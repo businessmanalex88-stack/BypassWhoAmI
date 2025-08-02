@@ -2,25 +2,21 @@
 
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
--- GUI Loading
+-- LOADING SCREEN
 local loaderGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 loaderGui.Name = "LoaderNotice"
 loaderGui.IgnoreGuiInset = true
 loaderGui.ResetOnSpawn = false
 
--- Container Background
 local bg = Instance.new("Frame", loaderGui)
 bg.Size = UDim2.new(0, 260, 0, 80)
 bg.Position = UDim2.new(0.5, -130, 0.5, -40)
 bg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 bg.BorderSizePixel = 0
-bg.BackgroundTransparency = 0
+Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 12)
 
-local corner = Instance.new("UICorner", bg)
-corner.CornerRadius = UDim.new(0, 12)
-
--- Text
 local text = Instance.new("TextLabel", bg)
 text.Size = UDim2.new(1, -20, 0, 50)
 text.Position = UDim2.new(0, 10, 0, 10)
@@ -30,198 +26,169 @@ text.TextColor3 = Color3.new(1, 1, 1)
 text.Font = Enum.Font.GothamSemibold
 text.TextScaled = true
 text.TextWrapped = true
-text.TextYAlignment = Enum.TextYAlignment.Center
 
--- Progress Bar Background
 local progressBarBg = Instance.new("Frame", bg)
 progressBarBg.Size = UDim2.new(1, -20, 0, 6)
 progressBarBg.Position = UDim2.new(0, 10, 1, -16)
 progressBarBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 progressBarBg.BorderSizePixel = 0
+Instance.new("UICorner", progressBarBg).CornerRadius = UDim.new(0, 3)
 
-local barCorner = Instance.new("UICorner", progressBarBg)
-barCorner.CornerRadius = UDim.new(0, 3)
-
--- Progress Bar Fill
 local progressBar = Instance.new("Frame", progressBarBg)
 progressBar.Size = UDim2.new(0, 0, 1, 0)
 progressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 progressBar.BorderSizePixel = 0
+Instance.new("UICorner", progressBar).CornerRadius = UDim.new(0, 3)
 
-local fillCorner = Instance.new("UICorner", progressBar)
-fillCorner.CornerRadius = UDim.new(0, 3)
+TweenService:Create(progressBar, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+    Size = UDim2.new(1, 0, 1, 0)
+}):Play()
+task.wait(1.5)
 
--- Tween Progress Bar
-local progressTween = TweenService:Create(progressBar, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
-	Size = UDim2.new(1, 0, 1, 0)
-})
-progressTween:Play()
-progressTween.Completed:Wait()
-
--- Fade Out Tween
-local fadeTween = TweenService:Create(bg, TweenInfo.new(0.5), {BackgroundTransparency = 1})
-local textFade = TweenService:Create(text, TweenInfo.new(0.5), {TextTransparency = 1})
-local barFade = TweenService:Create(progressBar, TweenInfo.new(0.5), {BackgroundTransparency = 1})
-local barBgFade = TweenService:Create(progressBarBg, TweenInfo.new(0.5), {BackgroundTransparency = 1})
-
-fadeTween:Play()
-textFade:Play()
-barFade:Play()
-barBgFade:Play()
-wait(0.5)
+TweenService:Create(bg, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+TweenService:Create(text, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+TweenService:Create(progressBar, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+TweenService:Create(progressBarBg, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+task.wait(0.5)
 loaderGui:Destroy()
 
-local player = game.Players.LocalPlayer
-local hrp = player.Character and player.Character:WaitForChild("HumanoidRootPart")
-local TweenService = game:GetService("TweenService")
-local Lighting = game:GetService("Lighting")
-
--- GUI
+-- MAIN GUI
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "FloatingMiniGUI"
+gui.Name = "FloatingMenu"
 gui.ResetOnSpawn = false
 
--- Container Kecil
+local menuVisible = true
+
 local mainFrame = Instance.new("Frame", gui)
-mainFrame.Size = UDim2.new(0, 100, 0, 40)
-mainFrame.Position = UDim2.new(0, 20, 1, -60)
+mainFrame.Size = UDim2.new(0, 120, 0, 40)
+mainFrame.Position = UDim2.new(0.5, -60, 1, -80)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
-mainFrame.ClipsDescendants = true
-
-local uiCorner = Instance.new("UICorner", mainFrame)
-uiCorner.CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
 
 local layout = Instance.new("UIListLayout", mainFrame)
 layout.Padding = UDim.new(0, 4)
 layout.FillDirection = Enum.FillDirection.Vertical
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 
--- Fungsi animasi size
-local function animateSize(frame, newSize)
-	TweenService:Create(frame, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Size = newSize
-	}):Play()
+local function createButton(text, parent)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 30)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextScaled = true
+    btn.AutoButtonColor = true
+    btn.Parent = parent
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
 end
 
--- Fungsi buat tombol
-local function buatTombol(parent, teks, callback)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(1, -10, 0, 30)
-	btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Font = Enum.Font.GothamSemibold
-	btn.TextScaled = true
-	btn.Text = teks
-	btn.Parent = parent
+local submenuFrame = Instance.new("Frame", mainFrame)
+submenuFrame.Size = UDim2.new(1, 0, 0, 0)
+submenuFrame.BackgroundTransparency = 1
+submenuFrame.ClipsDescendants = true
+local sublayout = Instance.new("UIListLayout", submenuFrame)
+sublayout.Padding = UDim.new(0, 4)
+sublayout.FillDirection = Enum.FillDirection.Vertical
+sublayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+sublayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 
-	local corner = Instance.new("UICorner", btn)
-	corner.CornerRadius = UDim.new(0, 6)
+local toggleButton = createButton("WHO AM I", mainFrame)
+submenuFrame.Parent = mainFrame
 
-	btn.MouseButton1Click:Connect(callback)
-	return btn
+local senterBtn = createButton("Senter", submenuFrame)
+local bypassBtn = createButton("Bypass Puncak", submenuFrame)
+
+local function toggleSubmenu()
+    submenuFrame.Size = submenuFrame.Size.Y.Scale == 0 and UDim2.new(1, 0, 0, 140) or UDim2.new(1, 0, 0, 0)
 end
 
--- == WHO AM I tombol utama ==
-local expanded = false
-local menuFrame = Instance.new("Frame", mainFrame)
-menuFrame.Size = UDim2.new(1, 0, 0, 0)
-menuFrame.BackgroundTransparency = 1
-menuFrame.Visible = false
+toggleButton.MouseButton1Click:Connect(toggleSubmenu)
 
-local menuLayout = Instance.new("UIListLayout", menuFrame)
-menuLayout.Padding = UDim.new(0, 4)
+-- SENTER ON/OFF
+local nightOn = false
+local light = nil
 
--- === Submenu Senter ===
-local senterFrame = Instance.new("Frame", menuFrame)
-senterFrame.Size = UDim2.new(1, 0, 0, 0)
-senterFrame.BackgroundTransparency = 1
-senterFrame.Visible = false
+local senterON = createButton("ON", submenuFrame)
+local senterOFF = createButton("OFF", submenuFrame)
+senterON.Visible = false
+senterOFF.Visible = false
 
-local senterLayout = Instance.new("UIListLayout", senterFrame)
-senterLayout.Padding = UDim.new(0, 2)
-
-buatTombol(menuFrame, "🔦 Senter", function()
-	local show = not senterFrame.Visible
-	senterFrame.Visible = show
+senterBtn.MouseButton1Click:Connect(function()
+    senterON.Visible = not senterON.Visible
+    senterOFF.Visible = not senterOFF.Visible
 end)
 
-buatTombol(senterFrame, "ON", function()
-	Lighting.Brightness = 5
-	Lighting.ClockTime = 14
-	Lighting.FogEnd = 100000
-	Lighting.GlobalShadows = false
-	Lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-
-	local light = Instance.new("PointLight", hrp)
-	light.Name = "TempLight"
-	light.Range = 60
-	light.Brightness = 4
+senterON.MouseButton1Click:Connect(function()
+    local lighting = game:GetService("Lighting")
+    nightOn = true
+    lighting.Brightness = 5
+    lighting.ClockTime = 14
+    lighting.FogEnd = 100000
+    lighting.GlobalShadows = false
+    lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+    light = Instance.new("PointLight", player.Character:WaitForChild("HumanoidRootPart"))
+    light.Brightness = 5
+    light.Range = 60
 end)
 
-buatTombol(senterFrame, "OFF", function()
-	Lighting.ClockTime = 20
-	Lighting.FogEnd = 300
-	Lighting.Brightness = 2
-	Lighting.GlobalShadows = true
-	Lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
-
-	local light = hrp:FindFirstChild("TempLight")
-	if light then light:Destroy() end
+senterOFF.MouseButton1Click:Connect(function()
+    local lighting = game:GetService("Lighting")
+    nightOn = false
+    lighting.Brightness = 2
+    lighting.ClockTime = 20
+    lighting.FogEnd = 300
+    lighting.GlobalShadows = true
+    lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
+    if light then light:Destroy() end
 end)
 
--- === Submenu Bypass ===
+-- BYPASS POS
 local lokasi = {
-	["Pos 1"] = Vector3.new(-223, 441, 2114),
-	["Pos 2"] = Vector3.new(-400, 848, 3210),
-	["Pos 3"] = Vector3.new(43, 1268, 4030),
-	["Pos 4"] = Vector3.new(-1168, 1552, 4892),
-	["Puncak"] = Vector3.new(-718, 1938, 5325),
+    ["Pos 1"] = Vector3.new(-223, 441, 2114),
+    ["Pos 2"] = Vector3.new(-400, 848, 3210),
+    ["Pos 3"] = Vector3.new(43, 1268, 4030),
+    ["Pos 4"] = Vector3.new(-1168, 1552, 4892),
+    ["Puncak"] = Vector3.new(-718, 1938, 5325)
 }
 
-local lokasiFrame = Instance.new("Frame", menuFrame)
-lokasiFrame.Size = UDim2.new(1, 0, 0, 0)
-lokasiFrame.BackgroundTransparency = 1
-lokasiFrame.Visible = false
-
-local lokasiLayout = Instance.new("UIListLayout", lokasiFrame)
-lokasiLayout.Padding = UDim.new(0, 2)
-
-buatTombol(menuFrame, "🚩 Bypass Puncak", function()
-	local show = not lokasiFrame.Visible
-	lokasiFrame.Visible = show
-end)
-
 for nama, pos in pairs(lokasi) do
-	buatTombol(lokasiFrame, nama, function()
-		local bolt = Instance.new("ParticleEmitter", hrp)
-		bolt.Texture = "rbxassetid://243660364"
-		bolt.Lifetime = NumberRange.new(0.3)
-		bolt.Rate = 200
-		bolt:Emit(20)
-		wait(0.2)
-		hrp.CFrame = CFrame.new(pos)
-		bolt:Destroy()
-	end)
+    local btn = createButton(nama, submenuFrame)
+    btn.Visible = false
+    btn.MouseButton1Click:Connect(function()
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local bolt = Instance.new("ParticleEmitter", hrp)
+            bolt.LightEmission = 1
+            bolt.Texture = "rbxassetid://243660364"
+            bolt.Lifetime = NumberRange.new(0.2)
+            bolt.Rate = 200
+            bolt:Emit(20)
+            task.wait(0.1)
+            hrp.CFrame = CFrame.new(pos)
+            task.wait(0.2)
+            bolt:Destroy()
+        end
+    end)
+
+    bypassBtn.MouseButton1Click:Connect(function()
+        btn.Visible = not btn.Visible
+    end)
 end
 
--- Tombol WHO AM I
-buatTombol(mainFrame, "WHO AM I", function()
-	expanded = not expanded
-	menuFrame.Visible = expanded
-	if expanded then
-		animateSize(mainFrame, UDim2.new(0, 100, 0, 300))
-	else
-		animateSize(mainFrame, UDim2.new(0, 100, 0, 40))
-		task.wait(0.3)
-		menuFrame.Visible = false
-		senterFrame.Visible = false
-		lokasiFrame.Visible = false
-	end
+-- GESTURE 3 JARI
+local fingerCount = 0
+UserInputService.TouchStarted:Connect(function()
+    fingerCount += 1
+    if fingerCount >= 3 then
+        menuVisible = not menuVisible
+        mainFrame.Visible = menuVisible
+    end
 end)
 
--- Masukkan semua ke GUI
-senterFrame.Parent = menuFrame
-lokasiFrame.Parent = menuFrame
-menuFrame.Parent = mainFrame
+UserInputService.TouchEnded:Connect(function()
+    fingerCount = math.max(0, fingerCount - 1)
+end)
