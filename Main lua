@@ -1,5 +1,6 @@
 -- main.lua
 
+
 -- WHO AM I GUI SCRIPT + TELEPORT + SENTER
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
@@ -31,7 +32,6 @@ local function createButton(name, yOffset)
 	btn.TextColor3 = Color3.new(1, 1, 1)
 	btn.Font = Enum.Font.Gotham
 	btn.Visible = false
-	btn.TextTransparency = 1
 	btn.Parent = gui
 	return btn
 end
@@ -40,7 +40,12 @@ end
 local senterBtn = createButton("Senter", -150)
 local bypassBtn = createButton("Bypass Puncak", -100)
 
--- Main menu buttons
+-- Senter submenu
+local senterToggleBtn = createButton("On/Off", -200)
+local brightnessUp = createButton("+ Cahaya", -250)
+local brightnessDown = createButton("- Cahaya", -300)
+
+-- Bypass submenu (teleport buttons)
 local pos1 = createButton("Pos 1", -200)
 local pos2 = createButton("Pos 2", -250)
 local pos3 = createButton("Pos 3", -300)
@@ -82,76 +87,75 @@ loadingText.Parent = loadingFrame
 wait(4)
 loadingFrame:Destroy()
 
--- State
+-- States
 local menuOpen = false
-local submenuOpen = false
+local submenu = ""
 local flashlightOn = false
 
--- Flashlight
+-- Flashlight logic
 local function toggleFlashlight()
 	flashlightOn = not flashlightOn
 	Lighting.Brightness = flashlightOn and 3 or 1
 end
 
--- Button visibility handler
+local function adjustBrightness(delta)
+	Lighting.Brightness = math.clamp(Lighting.Brightness + delta, 0, 10)
+end
+
 local function toggleButtonVisibility(buttons, visible)
 	for _, btn in pairs(buttons) do
-		btn.Visible = true
 		local tween = TweenService:Create(btn, TweenInfo.new(0.3), {TextTransparency = visible and 0 or 1})
+		btn.Visible = true
 		tween:Play()
 		if not visible then
-			task.delay(0.3, function()
-				btn.Visible = false
-			end)
+			task.delay(0.3, function() btn.Visible = false end)
 		end
 	end
 end
 
--- WHO AM I click handler
 whoAmIBtn.MouseButton1Click:Connect(function()
 	menuOpen = not menuOpen
-	submenuOpen = false
-
+	submenu = ""
 	whoAmIBtn.TextColor3 = menuOpen and Color3.new(1, 0, 0) or Color3.new(1, 1, 1)
 
 	toggleButtonVisibility({senterBtn, bypassBtn}, menuOpen)
+	toggleButtonVisibility({senterToggleBtn, brightnessUp, brightnessDown, pos1, pos2, pos3, pos4, puncak}, false)
+end)
+
+senterBtn.MouseButton1Click:Connect(function()
+	submenu = "senter"
+	toggleButtonVisibility({senterToggleBtn, brightnessUp, brightnessDown}, true)
 	toggleButtonVisibility({pos1, pos2, pos3, pos4, puncak}, false)
 end)
 
-local function openMainButtons()
-	if not submenuOpen then
-		submenuOpen = true
-		toggleButtonVisibility({pos1, pos2, pos3, pos4, puncak}, true)
-	end
-end
-
-senterBtn.MouseButton1Click:Connect(function()
-	toggleFlashlight()
-	openMainButtons()
-end)
-
 bypassBtn.MouseButton1Click:Connect(function()
-	player.Character:MoveTo(teleportLocations["Puncak"])
-	openMainButtons()
+	submenu = "bypass"
+	toggleButtonVisibility({senterToggleBtn, brightnessUp, brightnessDown}, false)
+	toggleButtonVisibility({pos1, pos2, pos3, pos4, puncak}, true)
 end)
 
--- Teleport buttons
+-- Flashlight control
+senterToggleBtn.MouseButton1Click:Connect(toggleFlashlight)
+brightnessUp.MouseButton1Click:Connect(function()
+	adjustBrightness(0.5)
+end)
+brightnessDown.MouseButton1Click:Connect(function()
+	adjustBrightness(-0.5)
+end)
+
+-- Teleports
 pos1.MouseButton1Click:Connect(function()
 	player.Character:MoveTo(teleportLocations["Pos 1"])
 end)
-
 pos2.MouseButton1Click:Connect(function()
 	player.Character:MoveTo(teleportLocations["Pos 2"])
 end)
-
 pos3.MouseButton1Click:Connect(function()
 	player.Character:MoveTo(teleportLocations["Pos 3"])
 end)
-
 pos4.MouseButton1Click:Connect(function()
 	player.Character:MoveTo(teleportLocations["Pos 4"])
 end)
-
 puncak.MouseButton1Click:Connect(function()
 	player.Character:MoveTo(teleportLocations["Puncak"])
 end)
