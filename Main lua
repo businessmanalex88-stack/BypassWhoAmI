@@ -199,18 +199,34 @@ for _, key in ipairs({"Pos 1", "Pos 2", "Pos 3", "Pos 4", "Puncak"}) do
     local pos = lokasi[key]
     local btn = createButton(key, lokasiFrame)
     btn.MouseButton1Click:Connect(function()
-        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local bolt = Instance.new("ParticleEmitter", hrp)
-            bolt.LightEmission = 1
-            bolt.Texture = "rbxassetid://243660364"
-            bolt.Lifetime = NumberRange.new(0.2)
-            bolt.Rate = 200
-            bolt:Emit(20)
-            task.wait(0.1)
-            hrp.CFrame = CFrame.new(pos)
-            task.wait(0.2)
-            bolt:Destroy()
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local bolt = Instance.new("ParticleEmitter", hrp)
+        bolt.LightEmission = 1
+        bolt.Texture = "rbxassetid://243660364"
+        bolt.Lifetime = NumberRange.new(0.2)
+        bolt.Rate = 200
+        bolt:Emit(20)
+        task.wait(0.1)
+        
+        -- Teleport pemain utama
+        hrp.CFrame = CFrame.new(pos)
+
+        -- Coba teleport pemain lain yang digendong (dalam weld atau motor6D)
+        for _, constraint in pairs(hrp:GetChildren()) do
+            if constraint:IsA("Weld") or constraint:IsA("Motor6D") then
+                local part1 = constraint.Part1
+                if part1 and part1:IsDescendantOf(game.Workspace) then
+                    local otherChar = part1:FindFirstAncestorOfClass("Model")
+                    if otherChar and otherChar ~= player.Character and otherChar:FindFirstChild("HumanoidRootPart") then
+                        otherChar:MoveTo(pos + Vector3.new(0, 3, 0)) -- Naik sedikit agar tidak nabrak
+                    end
+                end
+            end
+        end
+
+        task.wait(0.2)
+        bolt:Destroy()
         end
     end)
 end
