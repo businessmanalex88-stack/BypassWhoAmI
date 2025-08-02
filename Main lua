@@ -1,11 +1,11 @@
 -- main.lua
 
--- WHO AM I GUI MULTI-FEATURE SCRIPT (Scroll + Cahaya + Gesture + Posisi Tombol Baru)
+
+-- WHO AM I - GUI MULTI-FEATURE SCRIPT (Scroll + Cahaya +/- + Gesture + Relokasi Tombol)
 
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local lighting = game:GetService("Lighting")
 
 -- LOADING SCREEN
 local loaderGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
@@ -54,8 +54,10 @@ local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "FloatingMenu"
 gui.ResetOnSpawn = false
 
+local menuVisible = true
+
 local mainFrame = Instance.new("Frame", gui)
-mainFrame.Size = UDim2.new(0, 120, 0, 50)
+mainFrame.Size = UDim2.new(0, 120, 0, 40)
 mainFrame.Position = UDim2.new(0.5, -60, 1, -80)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
@@ -94,16 +96,59 @@ sublayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 local toggleButton = createButton("WHO AM I", mainFrame)
 submenuFrame.Parent = mainFrame
 
--- Tombol untuk Senter dan Bypass (Posisi sesuai gambar)
-local senterBtn = createButton("SENTER", gui)
-senterBtn.Position = UDim2.new(0.27, 0, 0.30, 0)
-senterBtn.Size = UDim2.new(0, 100, 0, 30)
+-- Frame ikon kiri dan kanan
+local kiriFrame = Instance.new("Frame", gui)
+kiriFrame.Size = UDim2.new(0, 60, 0, 60)
+kiriFrame.Position = UDim2.new(0, 20, 0.5, -30)
+kiriFrame.AnchorPoint = Vector2.new(0, 0.5)
+kiriFrame.BackgroundTransparency = 1
 
-local bypassBtn = createButton("BYPASS PUNCAK", gui)
-bypassBtn.Position = UDim2.new(0.70, 0, 0.30, 0)
-bypassBtn.Size = UDim2.new(0, 140, 0, 30)
+local kananFrame = Instance.new("Frame", gui)
+kananFrame.Size = UDim2.new(0, 60, 0, 60)
+kananFrame.Position = UDim2.new(1, -80, 0.5, -30)
+kananFrame.AnchorPoint = Vector2.new(0, 0.5)
+kananFrame.BackgroundTransparency = 1
 
--- Scrollable lokasi
+local function createIconButton(parent, iconId, tooltipText)
+    local btn = Instance.new("ImageButton")
+    btn.Size = UDim2.new(0, 60, 0, 60)
+    btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btn.Image = iconId
+    btn.Parent = parent
+    btn.AutoButtonColor = true
+    btn.ImageColor3 = Color3.new(1, 1, 1)
+
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(1, 0)
+
+    local stroke = Instance.new("UIStroke", btn)
+    stroke.Thickness = 1.5
+    stroke.Color = Color3.fromRGB(100, 100, 100)
+
+    local tip = Instance.new("TextLabel", btn)
+    tip.Text = tooltipText
+    tip.Size = UDim2.new(1, 0, 0, 16)
+    tip.Position = UDim2.new(0, 0, 1, 0)
+    tip.TextColor3 = Color3.new(1,1,1)
+    tip.TextScaled = true
+    tip.BackgroundTransparency = 1
+    tip.Font = Enum.Font.GothamSemibold
+    return btn
+end
+
+local senterBtn = createIconButton(kiriFrame, "rbxassetid://3926305904", "Senter")
+local bypassBtn = createIconButton(kananFrame, "rbxassetid://3926307971", "Bypass")
+
+-- Tombol tambahan
+local senterON = createButton("ON", submenuFrame)
+local senterOFF = createButton("OFF", submenuFrame)
+local tambahCahaya = createButton("+", submenuFrame)
+local kurangCahaya = createButton("-", submenuFrame)
+senterON.Visible = false
+senterOFF.Visible = false
+tambahCahaya.Visible = false
+kurangCahaya.Visible = false
+
 local lokasiFrame = Instance.new("ScrollingFrame", submenuFrame)
 lokasiFrame.Size = UDim2.new(1, -10, 0, 100)
 lokasiFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
@@ -117,34 +162,39 @@ lokasiFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 Instance.new("UICorner", lokasiFrame).CornerRadius = UDim.new(0, 6)
 Instance.new("UIListLayout", lokasiFrame).Padding = UDim.new(0, 4)
 
--- Cahaya
-local senterON = createButton("ON", submenuFrame)
-local senterOFF = createButton("OFF", submenuFrame)
-local tambahCahaya = createButton("+", submenuFrame)
-local kurangCahaya = createButton("-", submenuFrame)
-senterON.Visible = false
-senterOFF.Visible = false
-tambahCahaya.Visible = false
-kurangCahaya.Visible = false
+-- Toggle
+local function toggleSubmenu()
+    submenuFrame.Size = submenuFrame.Size.Y.Scale == 0 and UDim2.new(1, 0, 0, 260) or UDim2.new(1, 0, 0, 0)
+    senterON.Visible = false
+    senterOFF.Visible = false
+    tambahCahaya.Visible = false
+    kurangCahaya.Visible = false
+    lokasiFrame.Visible = false
+end
+toggleButton.MouseButton1Click:Connect(toggleSubmenu)
 
+-- SENTER LOGIC
+local nightOn = false
 local light = nil
 local brightness = 5
 
 senterBtn.MouseButton1Click:Connect(function()
     senterON.Visible = not senterON.Visible
-    senterOFF.Visible = senterON.Visible
-    tambahCahaya.Visible = senterON.Visible
-    kurangCahaya.Visible = senterON.Visible
+    senterOFF.Visible = not senterOFF.Visible
+    tambahCahaya.Visible = not tambahCahaya.Visible
+    kurangCahaya.Visible = not kurangCahaya.Visible
     lokasiFrame.Visible = false
 end)
 
 senterON.MouseButton1Click:Connect(function()
+    local lighting = game:GetService("Lighting")
+    nightOn = true
+    brightness = 5
     lighting.Brightness = 5
     lighting.ClockTime = 14
     lighting.FogEnd = 100000
     lighting.GlobalShadows = false
     lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-    brightness = 5
     if light then light:Destroy() end
     light = Instance.new("PointLight", player.Character:WaitForChild("HumanoidRootPart"))
     light.Brightness = brightness
@@ -152,19 +202,18 @@ senterON.MouseButton1Click:Connect(function()
 end)
 
 senterOFF.MouseButton1Click:Connect(function()
+    local lighting = game:GetService("Lighting")
+    nightOn = false
     lighting.Brightness = 2
     lighting.ClockTime = 20
     lighting.FogEnd = 300
     lighting.GlobalShadows = true
     lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
-    if light then
-        light:Destroy()
-        light = nil
-    end
+    if light then light:Destroy() light = nil end
 end)
 
 tambahCahaya.MouseButton1Click:Connect(function()
-    if light then
+    if light and brightness < 10 then
         brightness += 1
         light.Brightness = brightness
     end
@@ -177,7 +226,7 @@ kurangCahaya.MouseButton1Click:Connect(function()
     end
 end)
 
--- Lokasi teleportasi
+-- BYPASS LOGIC
 local lokasi = {
     ["Pos 1"] = Vector3.new(-223, 441, 2114),
     ["Pos 2"] = Vector3.new(-400, 848, 3210),
@@ -214,26 +263,22 @@ bypassBtn.MouseButton1Click:Connect(function()
     kurangCahaya.Visible = false
 end)
 
--- Toggle WHO AM I menu
-local function toggleSubmenu()
-    submenuFrame.Size = submenuFrame.Size.Y.Scale == 0 and UDim2.new(1, 0, 0, 260) or UDim2.new(1, 0, 0, 0)
-    senterON.Visible = false
-    senterOFF.Visible = false
-    tambahCahaya.Visible = false
-    kurangCahaya.Visible = false
-    lokasiFrame.Visible = false
-end
-toggleButton.MouseButton1Click:Connect(toggleSubmenu)
-
--- Gesture 3 jari sembunyikan menu
+-- GESTURE 3 JARI
 local fingerCount = 0
 UserInputService.TouchStarted:Connect(function()
     fingerCount += 1
     if fingerCount >= 3 then
-        mainFrame.Visible = not mainFrame.Visible
+        menuVisible = not menuVisible
+        mainFrame.Visible = menuVisible
     end
 end)
 
 UserInputService.TouchEnded:Connect(function()
     fingerCount = math.max(0, fingerCount - 1)
 end)
+
+-- Fade In tombol ikon
+for _, button in pairs({senterBtn, bypassBtn}) do
+    button.ImageTransparency = 1
+    TweenService:Create(button, TweenInfo.new(1), {ImageTransparency = 0}):Play()
+end
