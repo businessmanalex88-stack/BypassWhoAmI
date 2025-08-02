@@ -1,7 +1,6 @@
 -- main.lua
 
-
--- WHO AM I GUI MULTI-FEATURE SCRIPT FINAL VERSION
+-- WHO AM I GUI MULTI-FEATURE SCRIPT (Gabungan dengan tombol toggle UI)
 
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
@@ -25,8 +24,8 @@ local text = Instance.new("TextLabel", bg)
 text.Size = UDim2.new(1, -20, 0, 50)
 text.Position = UDim2.new(0, 10, 0, 10)
 text.BackgroundTransparency = 1
-text.Text = "Harap menunggu...\nLoader sedang dimuat"
-text.TextColor3 = Color3.new(1, 1, 1)
+text.Text = "SCRIPT BY WHO AM I\nDagoan Sakedeng..."
+text.TextColor3 = Color3.fromRGB(255, 0, 0)
 text.Font = Enum.Font.GothamSemibold
 text.TextScaled = true
 text.TextWrapped = true
@@ -44,10 +43,10 @@ progressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 progressBar.BorderSizePixel = 0
 Instance.new("UICorner", progressBar).CornerRadius = UDim.new(0, 3)
 
-TweenService:Create(progressBar, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+TweenService:Create(progressBar, TweenInfo.new(7, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
     Size = UDim2.new(1, 0, 1, 0)
 }):Play()
-task.wait(1.5)
+task.wait(7)
 loaderGui:Destroy()
 
 -- MAIN GUI
@@ -58,7 +57,7 @@ gui.ResetOnSpawn = false
 local toggleUIButton = Instance.new("ImageButton", gui)
 toggleUIButton.Name = "ToggleUI"
 toggleUIButton.Size = UDim2.new(0, 36, 0, 36)
-toggleUIButton.Position = UDim2.new(1, -130, 0, 20) -- Posisi di bawah tombol Dukung Kami!
+toggleUIButton.Position = UDim2.new(1, -130, 0, 20) -- bawah tombol Dukung Kami!
 toggleUIButton.BackgroundTransparency = 1
 toggleUIButton.Image = "rbxassetid://6031091002"
 
@@ -100,9 +99,11 @@ sublayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 sublayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 
 local toggleButton = createButton("WHO AM I", mainFrame)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+local toggleState = false
 submenuFrame.Parent = mainFrame
 
--- Tombol untuk Senter dan Bypass
+-- Tombol untuk Senter dan Bypass (Posisi sesuai gambar)
 local senterBtn = createButton("SENTER", gui)
 senterBtn.Position = UDim2.new(0.27, 0, 0.30, 0)
 senterBtn.Size = UDim2.new(0, 100, 0, 30)
@@ -224,16 +225,15 @@ end)
 
 -- Toggle WHO AM I menu
 local function toggleSubmenu()
-    local isOpen = submenuFrame.Size.Y.Scale == 0
-    submenuFrame.Size = isOpen and UDim2.new(1, 0, 0, 260) or UDim2.new(1, 0, 0, 0)
-    toggleButton.TextColor3 = isOpen and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(255, 255, 255)
+    toggleState = not toggleState
+    submenuFrame.Size = toggleState and UDim2.new(1, 0, 0, 260) or UDim2.new(1, 0, 0, 0)
+    toggleButton.TextColor3 = toggleState and Color3.fromRGB(255, 0, 0) or Color3.new(1, 1, 1)
     senterON.Visible = false
     senterOFF.Visible = false
     tambahCahaya.Visible = false
     kurangCahaya.Visible = false
     lokasiFrame.Visible = false
 end
-
 toggleButton.MouseButton1Click:Connect(toggleSubmenu)
 
 -- Tombol untuk menyembunyikan/menampilkan seluruh menu
