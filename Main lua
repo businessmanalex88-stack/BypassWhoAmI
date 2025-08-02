@@ -1,5 +1,7 @@
 -- main.lua
 
+-- WHO AM I - GUI MULTI-FEATURE SCRIPT
+
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -102,24 +104,40 @@ submenuFrame.Parent = mainFrame
 local senterBtn = createButton("Senter", submenuFrame)
 local bypassBtn = createButton("Bypass Puncak", submenuFrame)
 
-local function toggleSubmenu()
-    submenuFrame.Size = submenuFrame.Size.Y.Scale == 0 and UDim2.new(1, 0, 0, 140) or UDim2.new(1, 0, 0, 0)
-end
+-- Scrollable lokasi
+local lokasiFrame = Instance.new("ScrollingFrame", submenuFrame)
+lokasiFrame.Size = UDim2.new(1, 0, 0, 100)
+lokasiFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+lokasiFrame.ScrollBarThickness = 4
+lokasiFrame.BackgroundTransparency = 1
+lokasiFrame.Visible = false
+lokasiFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+lokasiFrame.ClipsDescendants = true
+lokasiFrame.AutomaticSize = Enum.AutomaticSize.Y
+Instance.new("UIListLayout", lokasiFrame).Padding = UDim.new(0, 4)
 
-toggleButton.MouseButton1Click:Connect(toggleSubmenu)
-
--- SENTER ON/OFF
-local nightOn = false
-local light = nil
-
+-- Reset menus
 local senterON = createButton("ON", submenuFrame)
 local senterOFF = createButton("OFF", submenuFrame)
 senterON.Visible = false
 senterOFF.Visible = false
 
+local function toggleSubmenu()
+    submenuFrame.Size = submenuFrame.Size.Y.Scale == 0 and UDim2.new(1, 0, 0, 220) or UDim2.new(1, 0, 0, 0)
+    senterON.Visible = false
+    senterOFF.Visible = false
+    lokasiFrame.Visible = false
+end
+toggleButton.MouseButton1Click:Connect(toggleSubmenu)
+
+-- SENTER
+local nightOn = false
+local light = nil
+
 senterBtn.MouseButton1Click:Connect(function()
     senterON.Visible = not senterON.Visible
     senterOFF.Visible = not senterOFF.Visible
+    lokasiFrame.Visible = false
 end)
 
 senterON.MouseButton1Click:Connect(function()
@@ -146,7 +164,7 @@ senterOFF.MouseButton1Click:Connect(function()
     if light then light:Destroy() end
 end)
 
--- BYPASS POS
+-- BYPASS
 local lokasi = {
     ["Pos 1"] = Vector3.new(-223, 441, 2114),
     ["Pos 2"] = Vector3.new(-400, 848, 3210),
@@ -155,9 +173,9 @@ local lokasi = {
     ["Puncak"] = Vector3.new(-718, 1938, 5325)
 }
 
-for nama, pos in pairs(lokasi) do
-    local btn = createButton(nama, submenuFrame)
-    btn.Visible = false
+for _, key in ipairs({"Pos 1", "Pos 2", "Pos 3", "Pos 4", "Puncak"}) do
+    local pos = lokasi[key]
+    local btn = createButton(key, lokasiFrame)
     btn.MouseButton1Click:Connect(function()
         local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
@@ -173,11 +191,13 @@ for nama, pos in pairs(lokasi) do
             bolt:Destroy()
         end
     end)
-
-    bypassBtn.MouseButton1Click:Connect(function()
-        btn.Visible = not btn.Visible
-    end)
 end
+
+bypassBtn.MouseButton1Click:Connect(function()
+    lokasiFrame.Visible = not lokasiFrame.Visible
+    senterON.Visible = false
+    senterOFF.Visible = false
+end)
 
 -- GESTURE 3 JARI
 local fingerCount = 0
