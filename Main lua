@@ -1,6 +1,6 @@
 -- main.lua
 
--- WHO AM I - GUI MULTI-FEATURE SCRIPT
+-- WHO AM I - GUI MULTI-FEATURE SCRIPT (Scroll + Cahaya +/- + Gesture)
 
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
@@ -47,11 +47,6 @@ TweenService:Create(progressBar, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.
 }):Play()
 task.wait(1.5)
 
-TweenService:Create(bg, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
-TweenService:Create(text, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-TweenService:Create(progressBar, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
-TweenService:Create(progressBarBg, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
-task.wait(0.5)
 loaderGui:Destroy()
 
 -- MAIN GUI
@@ -106,26 +101,34 @@ local bypassBtn = createButton("Bypass Puncak", submenuFrame)
 
 -- Scrollable lokasi
 local lokasiFrame = Instance.new("ScrollingFrame", submenuFrame)
-lokasiFrame.Size = UDim2.new(1, 0, 0, 100)
-lokasiFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+lokasiFrame.Size = UDim2.new(1, -10, 0, 100)
+lokasiFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
 lokasiFrame.ScrollBarThickness = 4
-lokasiFrame.BackgroundTransparency = 1
+lokasiFrame.BackgroundTransparency = 0.2
+lokasiFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 lokasiFrame.Visible = false
 lokasiFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 lokasiFrame.ClipsDescendants = true
-lokasiFrame.AutomaticSize = Enum.AutomaticSize.Y
+lokasiFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+Instance.new("UICorner", lokasiFrame).CornerRadius = UDim.new(0, 6)
 Instance.new("UIListLayout", lokasiFrame).Padding = UDim.new(0, 4)
 
 -- Reset menus
 local senterON = createButton("ON", submenuFrame)
 local senterOFF = createButton("OFF", submenuFrame)
+local tambahCahaya = createButton("+", submenuFrame)
+local kurangCahaya = createButton("-", submenuFrame)
 senterON.Visible = false
 senterOFF.Visible = false
+tambahCahaya.Visible = false
+kurangCahaya.Visible = false
 
 local function toggleSubmenu()
-    submenuFrame.Size = submenuFrame.Size.Y.Scale == 0 and UDim2.new(1, 0, 0, 220) or UDim2.new(1, 0, 0, 0)
+    submenuFrame.Size = submenuFrame.Size.Y.Scale == 0 and UDim2.new(1, 0, 0, 260) or UDim2.new(1, 0, 0, 0)
     senterON.Visible = false
     senterOFF.Visible = false
+    tambahCahaya.Visible = false
+    kurangCahaya.Visible = false
     lokasiFrame.Visible = false
 end
 toggleButton.MouseButton1Click:Connect(toggleSubmenu)
@@ -133,10 +136,13 @@ toggleButton.MouseButton1Click:Connect(toggleSubmenu)
 -- SENTER
 local nightOn = false
 local light = nil
+local brightness = 5
 
 senterBtn.MouseButton1Click:Connect(function()
     senterON.Visible = not senterON.Visible
     senterOFF.Visible = not senterOFF.Visible
+    tambahCahaya.Visible = not tambahCahaya.Visible
+    kurangCahaya.Visible = not kurangCahaya.Visible
     lokasiFrame.Visible = false
 end)
 
@@ -149,7 +155,7 @@ senterON.MouseButton1Click:Connect(function()
     lighting.GlobalShadows = false
     lighting.OutdoorAmbient = Color3.new(1, 1, 1)
     light = Instance.new("PointLight", player.Character:WaitForChild("HumanoidRootPart"))
-    light.Brightness = 5
+    light.Brightness = brightness
     light.Range = 60
 end)
 
@@ -162,6 +168,20 @@ senterOFF.MouseButton1Click:Connect(function()
     lighting.GlobalShadows = true
     lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
     if light then light:Destroy() end
+end)
+
+tambahCahaya.MouseButton1Click:Connect(function()
+    if light then
+        brightness += 1
+        light.Brightness = brightness
+    end
+end)
+
+kurangCahaya.MouseButton1Click:Connect(function()
+    if light and brightness > 1 then
+        brightness -= 1
+        light.Brightness = brightness
+    end
 end)
 
 -- BYPASS
@@ -197,6 +217,8 @@ bypassBtn.MouseButton1Click:Connect(function()
     lokasiFrame.Visible = not lokasiFrame.Visible
     senterON.Visible = false
     senterOFF.Visible = false
+    tambahCahaya.Visible = false
+    kurangCahaya.Visible = false
 end)
 
 -- GESTURE 3 JARI
