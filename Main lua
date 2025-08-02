@@ -1,0 +1,7 @@
+-- main.lua
+print("✅ Script dari GitHub berhasil dijalankan!")
+
+local plr = game.Players.LocalPlayer
+plr.CharacterAdded:Wait()
+local hrp = plr.Character:WaitForChild("HumanoidRootPart")
+hrp.CFrame = CFrame.new(-223, 441, 2114) -- Pos 1
