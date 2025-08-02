@@ -1,7 +1,71 @@
 -- main.lua
 print("✅ Script dari GitHub berhasil dijalankan!")
 
-local plr = game.Players.LocalPlayer
-plr.CharacterAdded:Wait()
-local hrp = plr.Character:WaitForChild("HumanoidRootPart")
-hrp.CFrame = CFrame.new(-223, 441, 2114) -- Pos 1
+-- Versi Pasti Muncul: Tombol TextLabel Toggle Night Vision
+local player = game.Players.LocalPlayer
+local lighting = game:GetService("Lighting")
+local char = player.Character or player.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+-- Buat GUI
+local gui = Instance.new("ScreenGui")
+gui.Name = "NightVisionGUI"
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Buat TextLabel sebagai tombol
+local toggle = Instance.new("TextLabel")
+toggle.Size = UDim2.new(0, 200, 0, 50)
+toggle.Position = UDim2.new(0, 30, 0, 30)
+toggle.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+toggle.TextColor3 = Color3.new(1, 1, 1)
+toggle.Text = "🔦 Toggle Night Vision"
+toggle.TextScaled = true
+toggle.Name = "NightVisionToggle"
+toggle.Parent = gui
+
+-- Aktifkan klik dengan ClickDetector-like event
+toggle.Active = true
+toggle.MouseEnter:Connect(function()
+	toggle.BackgroundColor3 = Color3.new(0.4, 0.4, 0.4)
+end)
+toggle.MouseLeave:Connect(function()
+	toggle.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+end)
+
+-- Status
+local isOn = false
+local pointLight = nil
+
+-- Klik Event
+toggle.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		isOn = not isOn
+		if isOn then
+			lighting.Brightness = 5
+			lighting.ClockTime = 14
+			lighting.FogEnd = 100000
+			lighting.GlobalShadows = false
+			lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+
+			pointLight = Instance.new("PointLight", hrp)
+			pointLight.Brightness = 5
+			pointLight.Range = 60
+			pointLight.Color = Color3.new(1, 1, 1)
+
+			toggle.Text = "🌕 Night Vision ON"
+		else
+			lighting.Brightness = 2
+			lighting.ClockTime = 20
+			lighting.FogEnd = 300
+			lighting.GlobalShadows = true
+			lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
+
+			if pointLight then
+				pointLight:Destroy()
+				pointLight = nil
+			end
+
+			toggle.Text = "🔦 Toggle Night Vision"
+		end
+	end
+end)
