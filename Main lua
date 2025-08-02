@@ -1,71 +1,140 @@
 -- main.lua
-print("✅ Script dari GitHub berhasil dijalankan!")
+print("Loader Sedang Dimuat")
 
--- Versi Pasti Muncul: Tombol TextLabel Toggle Night Vision
+
 local player = game.Players.LocalPlayer
-local lighting = game:GetService("Lighting")
-local char = player.Character or player.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart")
+local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+local UserInputService = game:GetService("UserInputService")
 
--- Buat GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "NightVisionGUI"
-gui.Parent = player:WaitForChild("PlayerGui")
+-- GUI Utama
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "MultiMenu"
+gui.ResetOnSpawn = false
 
--- Buat TextLabel sebagai tombol
-local toggle = Instance.new("TextLabel")
-toggle.Size = UDim2.new(0, 200, 0, 50)
-toggle.Position = UDim2.new(0, 30, 0, 30)
-toggle.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-toggle.TextColor3 = Color3.new(1, 1, 1)
-toggle.Text = "🔦 Toggle Night Vision"
-toggle.TextScaled = true
-toggle.Name = "NightVisionToggle"
-toggle.Parent = gui
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 220, 0, 300)
+frame.Position = UDim2.new(0, 20, 0.5, -150)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+frame.BorderSizePixel = 0
 
--- Aktifkan klik dengan ClickDetector-like event
-toggle.Active = true
-toggle.MouseEnter:Connect(function()
-	toggle.BackgroundColor3 = Color3.new(0.4, 0.4, 0.4)
-end)
-toggle.MouseLeave:Connect(function()
-	toggle.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-end)
+local layout = Instance.new("UIListLayout", frame)
+layout.Padding = UDim.new(0, 5)
+layout.FillDirection = Enum.FillDirection.Vertical
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Top
 
--- Status
-local isOn = false
-local pointLight = nil
+-- Fungsi tombol
+local function buatTombol(teks, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 40)
+	btn.Text = teks
+	btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextScaled = true
+	btn.Parent = frame
+	btn.MouseButton1Click:Connect(callback)
+	return btn
+end
 
--- Klik Event
-toggle.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		isOn = not isOn
-		if isOn then
-			lighting.Brightness = 5
-			lighting.ClockTime = 14
-			lighting.FogEnd = 100000
-			lighting.GlobalShadows = false
-			lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+-- Simpan posisi menu untuk toggle gesture
+frame.Visible = true
 
-			pointLight = Instance.new("PointLight", hrp)
-			pointLight.Brightness = 5
-			pointLight.Range = 60
-			pointLight.Color = Color3.new(1, 1, 1)
-
-			toggle.Text = "🌕 Night Vision ON"
-		else
-			lighting.Brightness = 2
-			lighting.ClockTime = 20
-			lighting.FogEnd = 300
-			lighting.GlobalShadows = true
-			lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
-
-			if pointLight then
-				pointLight:Destroy()
-				pointLight = nil
-			end
-
-			toggle.Text = "🔦 Toggle Night Vision"
+-- Gesture tap 3 kali
+local tapTimes = {}
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	if input.UserInputType == Enum.UserInputType.Touch then
+		table.insert(tapTimes, tick())
+		if #tapTimes > 3 then table.remove(tapTimes, 1) end
+		if #tapTimes == 3 and (tapTimes[3] - tapTimes[1]) <= 1 then
+			frame.Visible = not frame.Visible
+			tapTimes = {}
 		end
 	end
+end)
+
+-- Dropdown Menu WHO AM I
+local bukaMenu = false
+local containerLokasi = Instance.new("Frame", frame)
+containerLokasi.Size = UDim2.new(1, -10, 0, 0)
+containerLokasi.BackgroundTransparency = 1
+containerLokasi.Visible = false
+
+local layoutLokasi = Instance.new("UIListLayout", containerLokasi)
+layoutLokasi.Padding = UDim.new(0, 5)
+layoutLokasi.FillDirection = Enum.FillDirection.Vertical
+layoutLokasi.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+-- Lokasi
+local lokasi = {
+	["Pos 1"] = Vector3.new(-223, 441, 2114),
+	["Pos 2"] = Vector3.new(-400, 848, 3210),
+	["Pos 3"] = Vector3.new(43, 1268, 4030),
+	["Pos 4"] = Vector3.new(-1168, 1552, 4892),
+	["Puncak"] = Vector3.new(-718, 1938, 5325),
+}
+
+-- WHO AM I
+buatTombol("🚪 Bypass WHO AM I", function()
+	bukaMenu = not bukaMenu
+	containerLokasi.Visible = bukaMenu
+	containerLokasi.Size = UDim2.new(1, -10, 0, (#lokasi + 2) * 45)
+end)
+
+-- Tambah tombol lokasi
+for nama, pos in pairs(lokasi) do
+	local btn = Instance.new("TextButton", containerLokasi)
+	btn.Size = UDim2.new(1, 0, 0, 40)
+	btn.Text = nama
+	btn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.SourceSansBold
+	btn.TextScaled = true
+	btn.MouseButton1Click:Connect(function()
+		hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			local bolt = Instance.new("ParticleEmitter", hrp)
+			bolt.LightEmission = 1
+			bolt.Texture = "rbxassetid://243660364"
+			bolt.Lifetime = NumberRange.new(0.2)
+			bolt.Rate = 200
+			bolt:Emit(20)
+			wait(0.1)
+			hrp.CFrame = CFrame.new(pos)
+			wait(0.2)
+			bolt:Destroy()
+		end
+	end)
+end
+
+-- Night Vision
+local nightOn = false
+local light = nil
+buatTombol("🔦 Night Vision", function()
+	local lighting = game:GetService("Lighting")
+	nightOn = not nightOn
+	if nightOn then
+		lighting.Brightness = 5
+		lighting.ClockTime = 14
+		lighting.FogEnd = 100000
+		lighting.GlobalShadows = false
+		lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+		light = Instance.new("PointLight", hrp)
+		light.Brightness = 5
+		light.Range = 60
+		light.Color = Color3.new(1, 1, 1)
+	else
+		lighting.Brightness = 2
+		lighting.ClockTime = 20
+		lighting.FogEnd = 300
+		lighting.GlobalShadows = true
+		lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
+		if light then light:Destroy() end
+	end
+end)
+
+-- Tutup
+buatTombol("❌ Tutup Menu", function()
+	frame.Visible = false
 end)
