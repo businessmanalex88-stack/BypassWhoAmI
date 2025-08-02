@@ -1,10 +1,11 @@
 -- main.lua
 
 
--- WHO AM I GUI MULTI-FEATURE SCRIPT (Versi Lengkap dengan Toggle Tombol)
+-- WHO AM I GUI MULTI-FEATURE SCRIPT FINAL VERSION
 
 local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local lighting = game:GetService("Lighting")
 
 -- LOADING SCREEN
@@ -49,10 +50,17 @@ TweenService:Create(progressBar, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.
 task.wait(1.5)
 loaderGui:Destroy()
 
--- GUI UTAMA
+-- MAIN GUI
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "FloatingMenu"
 gui.ResetOnSpawn = false
+
+local toggleUIButton = Instance.new("ImageButton", gui)
+toggleUIButton.Name = "ToggleUI"
+toggleUIButton.Size = UDim2.new(0, 36, 0, 36)
+toggleUIButton.Position = UDim2.new(1, -130, 0, 20) -- Posisi di bawah tombol Dukung Kami!
+toggleUIButton.BackgroundTransparency = 1
+toggleUIButton.Image = "rbxassetid://6031091002"
 
 local mainFrame = Instance.new("Frame", gui)
 mainFrame.Size = UDim2.new(0, 120, 0, 50)
@@ -94,59 +102,16 @@ sublayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 local toggleButton = createButton("WHO AM I", mainFrame)
 submenuFrame.Parent = mainFrame
 
--- Tombol Toggle UI (pojok kanan bawah)
-local toggleUI = Instance.new("TextButton")
-toggleUI.Name = "UIToggleButton"
-toggleUI.Size = UDim2.new(0, 40, 0, 40)
-toggleUI.Position = UDim2.new(1, -50, 1, -50)
-toggleUI.AnchorPoint = Vector2.new(0.5, 0.5)
-toggleUI.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-toggleUI.Text = "⚙️"
-toggleUI.TextColor3 = Color3.new(1, 1, 1)
-toggleUI.Font = Enum.Font.GothamBold
-toggleUI.TextScaled = true
-toggleUI.Parent = gui
-Instance.new("UICorner", toggleUI).CornerRadius = UDim.new(0, 10)
-
--- Tombol Senter & Bypass
+-- Tombol untuk Senter dan Bypass
 local senterBtn = createButton("SENTER", gui)
-senterBtn.AnchorPoint = Vector2.new(0.5, 0.5)
 senterBtn.Position = UDim2.new(0.27, 0, 0.30, 0)
 senterBtn.Size = UDim2.new(0, 100, 0, 30)
 
 local bypassBtn = createButton("BYPASS PUNCAK", gui)
-bypassBtn.AnchorPoint = Vector2.new(0.5, 0.5)
 bypassBtn.Position = UDim2.new(0.70, 0, 0.30, 0)
 bypassBtn.Size = UDim2.new(0, 140, 0, 30)
 
--- Fungsi Tampilkan/Sembunyikan Semua Menu
-local menuVisible = true
-local function setMenuVisible(state)
-    menuVisible = state
-    mainFrame.Visible = state
-    senterBtn.Visible = state
-    bypassBtn.Visible = state
-    submenuFrame.Size = UDim2.new(1, 0, 0, 0)
-    senterON.Visible = false
-    senterOFF.Visible = false
-    tambahCahaya.Visible = false
-    kurangCahaya.Visible = false
-    lokasiFrame.Visible = false
-end
-
-toggleUI.MouseButton1Click:Connect(function()
-    setMenuVisible(not menuVisible)
-end)
-
--- Lokasi Teleportasi
-local lokasi = {
-    ["Pos 1"] = Vector3.new(-223, 441, 2114),
-    ["Pos 2"] = Vector3.new(-400, 848, 3210),
-    ["Pos 3"] = Vector3.new(43, 1268, 4030),
-    ["Pos 4"] = Vector3.new(-1168, 1552, 4892),
-    ["Puncak"] = Vector3.new(-718, 1938, 5325)
-}
-
+-- Scrollable lokasi
 local lokasiFrame = Instance.new("ScrollingFrame", submenuFrame)
 lokasiFrame.Size = UDim2.new(1, -10, 0, 100)
 lokasiFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
@@ -160,31 +125,7 @@ lokasiFrame.ScrollingDirection = Enum.ScrollingDirection.Y
 Instance.new("UICorner", lokasiFrame).CornerRadius = UDim.new(0, 6)
 Instance.new("UIListLayout", lokasiFrame).Padding = UDim.new(0, 4)
 
-local debounce = false
-for _, key in ipairs({"Pos 1", "Pos 2", "Pos 3", "Pos 4", "Puncak"}) do
-    local pos = lokasi[key]
-    local btn = createButton(key, lokasiFrame)
-    btn.MouseButton1Click:Connect(function()
-        if debounce then return end
-        debounce = true
-        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            local bolt = Instance.new("ParticleEmitter", hrp)
-            bolt.LightEmission = 1
-            bolt.Texture = "rbxassetid://243660364"
-            bolt.Lifetime = NumberRange.new(0.2)
-            bolt.Rate = 200
-            bolt:Emit(20)
-            task.wait(0.1)
-            hrp.CFrame = CFrame.new(pos)
-            task.wait(0.2)
-            bolt:Destroy()
-        end
-        task.wait(0.5)
-        debounce = false
-    end)
-end
-
+-- Cahaya
 local senterON = createButton("ON", submenuFrame)
 local senterOFF = createButton("OFF", submenuFrame)
 local tambahCahaya = createButton("+", submenuFrame)
@@ -244,6 +185,35 @@ kurangCahaya.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Lokasi teleportasi
+local lokasi = {
+    ["Pos 1"] = Vector3.new(-223, 441, 2114),
+    ["Pos 2"] = Vector3.new(-400, 848, 3210),
+    ["Pos 3"] = Vector3.new(43, 1268, 4030),
+    ["Pos 4"] = Vector3.new(-1168, 1552, 4892),
+    ["Puncak"] = Vector3.new(-718, 1938, 5325)
+}
+
+for _, key in ipairs({"Pos 1", "Pos 2", "Pos 3", "Pos 4", "Puncak"}) do
+    local pos = lokasi[key]
+    local btn = createButton(key, lokasiFrame)
+    btn.MouseButton1Click:Connect(function()
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local bolt = Instance.new("ParticleEmitter", hrp)
+            bolt.LightEmission = 1
+            bolt.Texture = "rbxassetid://243660364"
+            bolt.Lifetime = NumberRange.new(0.2)
+            bolt.Rate = 200
+            bolt:Emit(20)
+            task.wait(0.1)
+            hrp.CFrame = CFrame.new(pos)
+            task.wait(0.2)
+            bolt:Destroy()
+        end
+    end)
+end
+
 bypassBtn.MouseButton1Click:Connect(function()
     lokasiFrame.Visible = not lokasiFrame.Visible
     senterON.Visible = false
@@ -252,13 +222,11 @@ bypassBtn.MouseButton1Click:Connect(function()
     kurangCahaya.Visible = false
 end)
 
--- WHO AM I toggle submenu dengan tween
+-- Toggle WHO AM I menu
 local function toggleSubmenu()
-    local isHidden = submenuFrame.Size.Y.Offset == 0
-    local targetSize = isHidden and 260 or 0
-    TweenService:Create(submenuFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = UDim2.new(1, 0, 0, targetSize)
-    }):Play()
+    local isOpen = submenuFrame.Size.Y.Scale == 0
+    submenuFrame.Size = isOpen and UDim2.new(1, 0, 0, 260) or UDim2.new(1, 0, 0, 0)
+    toggleButton.TextColor3 = isOpen and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(255, 255, 255)
     senterON.Visible = false
     senterOFF.Visible = false
     tambahCahaya.Visible = false
@@ -267,3 +235,12 @@ local function toggleSubmenu()
 end
 
 toggleButton.MouseButton1Click:Connect(toggleSubmenu)
+
+-- Tombol untuk menyembunyikan/menampilkan seluruh menu
+local uiVisible = true
+toggleUIButton.MouseButton1Click:Connect(function()
+    uiVisible = not uiVisible
+    mainFrame.Visible = uiVisible
+    senterBtn.Visible = uiVisible
+    bypassBtn.Visible = uiVisible
+end)
