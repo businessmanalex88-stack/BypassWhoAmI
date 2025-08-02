@@ -1,161 +1,261 @@
 -- main.lua
 
+-- WHO AM I GUI MULTI-FEATURE SCRIPT (Scroll + Cahaya + Gesture + Posisi Tombol Baru + Tween + Anti-spam)
 
--- WHO AM I GUI SCRIPT + TELEPORT + SENTER
+local player = game.Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local Lighting = game:GetService("Lighting")
-local player = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local lighting = game:GetService("Lighting")
+
+local debounce = false
+
+-- LOADING SCREEN
+local loaderGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+loaderGui.Name = "LoaderNotice"
+loaderGui.IgnoreGuiInset = true
+loaderGui.ResetOnSpawn = false
+
+local bg = Instance.new("Frame", loaderGui)
+bg.Size = UDim2.new(0, 260, 0, 80)
+bg.Position = UDim2.new(0.5, -130, 0.5, -40)
+bg.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+bg.BorderSizePixel = 0
+Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 12)
+
+local text = Instance.new("TextLabel", bg)
+text.Size = UDim2.new(1, -20, 0, 50)
+text.Position = UDim2.new(0, 10, 0, 10)
+text.BackgroundTransparency = 1
+text.Text = "Harap menunggu...\nLoader sedang dimuat"
+text.TextColor3 = Color3.new(1, 1, 1)
+text.Font = Enum.Font.GothamSemibold
+text.TextScaled = true
+text.TextWrapped = true
+
+local progressBarBg = Instance.new("Frame", bg)
+progressBarBg.Size = UDim2.new(1, -20, 0, 6)
+progressBarBg.Position = UDim2.new(0, 10, 1, -16)
+progressBarBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+progressBarBg.BorderSizePixel = 0
+Instance.new("UICorner", progressBarBg).CornerRadius = UDim.new(0, 3)
+
+local progressBar = Instance.new("Frame", progressBarBg)
+progressBar.Size = UDim2.new(0, 0, 1, 0)
+progressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+progressBar.BorderSizePixel = 0
+Instance.new("UICorner", progressBar).CornerRadius = UDim.new(0, 3)
+
+TweenService:Create(progressBar, TweenInfo.new(1.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+    Size = UDim2.new(1, 0, 1, 0)
+}):Play()
+task.wait(1.5)
+loaderGui:Destroy()
+
+-- MAIN GUI
 local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "FloatingMenu"
 gui.ResetOnSpawn = false
 
--- WHO AM I Button
-local whoAmIBtn = Instance.new("TextButton")
-whoAmIBtn.Size = UDim2.new(0, 120, 0, 40)
-whoAmIBtn.Position = UDim2.new(0.5, -60, 1, -100)
-whoAmIBtn.AnchorPoint = Vector2.new(0.5, 1)
-whoAmIBtn.Text = "WHO AM I"
-whoAmIBtn.TextScaled = true
-whoAmIBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-whoAmIBtn.TextColor3 = Color3.new(1, 1, 1)
-whoAmIBtn.Font = Enum.Font.GothamBold
-whoAmIBtn.Parent = gui
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 120, 0, 50)
+mainFrame.Position = UDim2.new(0.5, -60, 1, -80)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 8)
 
-local function createButton(name, yOffset)
-	local btn = Instance.new("TextButton")
-	btn.Size = UDim2.new(0, 140, 0, 40)
-	btn.Position = UDim2.new(0.5, -70, 1, yOffset)
-	btn.AnchorPoint = Vector2.new(0.5, 1)
-	btn.Text = name
-	btn.TextScaled = true
-	btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	btn.TextColor3 = Color3.new(1, 1, 1)
-	btn.Font = Enum.Font.Gotham
-	btn.Visible = false
-	btn.Parent = gui
-	return btn
+local layout = Instance.new("UIListLayout", mainFrame)
+layout.Padding = UDim.new(0, 4)
+layout.FillDirection = Enum.FillDirection.Vertical
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+
+local function createButton(text, parent)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -10, 0, 30)
+    btn.Text = text
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextScaled = true
+    btn.AutoButtonColor = true
+    btn.Parent = parent
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
 end
 
--- Submenu buttons
-local senterBtn = createButton("Senter", -150)
-local bypassBtn = createButton("Bypass Puncak", -100)
+local submenuFrame = Instance.new("Frame", mainFrame)
+submenuFrame.Size = UDim2.new(1, 0, 0, 0)
+submenuFrame.BackgroundTransparency = 1
+submenuFrame.ClipsDescendants = true
+local sublayout = Instance.new("UIListLayout", submenuFrame)
+sublayout.Padding = UDim.new(0, 4)
+sublayout.FillDirection = Enum.FillDirection.Vertical
+sublayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+sublayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 
--- Senter submenu
-local senterToggleBtn = createButton("On/Off", -200)
-local brightnessUp = createButton("+ Cahaya", -250)
-local brightnessDown = createButton("- Cahaya", -300)
+local toggleButton = createButton("WHO AM I", mainFrame)
+submenuFrame.Parent = mainFrame
 
--- Bypass submenu (teleport buttons)
-local pos1 = createButton("Pos 1", -200)
-local pos2 = createButton("Pos 2", -250)
-local pos3 = createButton("Pos 3", -300)
-local pos4 = createButton("Pos 4", -350)
-local puncak = createButton("Puncak", -400)
+local senterBtn = createButton("SENTER", gui)
+senterBtn.Size = UDim2.new(0, 100, 0, 30)
+senterBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+senterBtn.Position = UDim2.new(0.27, 0, 0.30, 0)
 
--- Teleport locations
-local teleportLocations = {
-	["Pos 1"] = Vector3.new(0, 5, 0),
-	["Pos 2"] = Vector3.new(50, 5, 0),
-	["Pos 3"] = Vector3.new(100, 5, 0),
-	["Pos 4"] = Vector3.new(150, 5, 0),
-	["Puncak"] = Vector3.new(200, 5, 0),
-}
+local bypassBtn = createButton("BYPASS PUNCAK", gui)
+bypassBtn.Size = UDim2.new(0, 140, 0, 30)
+bypassBtn.AnchorPoint = Vector2.new(0.5, 0.5)
+bypassBtn.Position = UDim2.new(0.70, 0, 0.30, 0)
 
--- Loading screen
-local loadingFrame = Instance.new("Frame")
-loadingFrame.Size = UDim2.new(1, 0, 1, 0)
-loadingFrame.BackgroundColor3 = Color3.new(0, 0, 0)
-loadingFrame.Parent = gui
+local lokasiFrame = Instance.new("ScrollingFrame", submenuFrame)
+lokasiFrame.Size = UDim2.new(1, -10, 0, 100)
+lokasiFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
+lokasiFrame.ScrollBarThickness = 4
+lokasiFrame.BackgroundTransparency = 0.2
+lokasiFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+lokasiFrame.Visible = false
+lokasiFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+lokasiFrame.ClipsDescendants = true
+lokasiFrame.ScrollingDirection = Enum.ScrollingDirection.Y
+Instance.new("UICorner", lokasiFrame).CornerRadius = UDim.new(0, 6)
+Instance.new("UIListLayout", lokasiFrame).Padding = UDim.new(0, 4)
 
-local img = Instance.new("ImageLabel")
-img.Image = "rbxassetid://18423224238"
-img.Size = UDim2.new(0, 100, 0, 100)
-img.Position = UDim2.new(0.5, -50, 0.4, 0)
-img.BackgroundTransparency = 1
-img.Parent = loadingFrame
+-- Cahaya
+local senterON = createButton("ON", submenuFrame)
+local senterOFF = createButton("OFF", submenuFrame)
+local tambahCahaya = createButton("+", submenuFrame)
+local kurangCahaya = createButton("-", submenuFrame)
+senterON.Visible = false
+senterOFF.Visible = false
+tambahCahaya.Visible = false
+kurangCahaya.Visible = false
 
-local loadingText = Instance.new("TextLabel")
-loadingText.Text = "Loading..."
-loadingText.Size = UDim2.new(0, 200, 0, 50)
-loadingText.Position = UDim2.new(0.5, -100, 0.6, 0)
-loadingText.BackgroundTransparency = 1
-loadingText.TextColor3 = Color3.new(1, 1, 1)
-loadingText.TextScaled = true
-loadingText.Font = Enum.Font.GothamBold
-loadingText.Parent = loadingFrame
-
-wait(4)
-loadingFrame:Destroy()
-
--- States
-local menuOpen = false
-local submenu = ""
-local flashlightOn = false
-
--- Flashlight logic
-local function toggleFlashlight()
-	flashlightOn = not flashlightOn
-	Lighting.Brightness = flashlightOn and 3 or 1
-end
-
-local function adjustBrightness(delta)
-	Lighting.Brightness = math.clamp(Lighting.Brightness + delta, 0, 10)
-end
-
-local function toggleButtonVisibility(buttons, visible)
-	for _, btn in pairs(buttons) do
-		local tween = TweenService:Create(btn, TweenInfo.new(0.3), {TextTransparency = visible and 0 or 1})
-		btn.Visible = true
-		tween:Play()
-		if not visible then
-			task.delay(0.3, function() btn.Visible = false end)
-		end
-	end
-end
-
-whoAmIBtn.MouseButton1Click:Connect(function()
-	menuOpen = not menuOpen
-	submenu = ""
-	whoAmIBtn.TextColor3 = menuOpen and Color3.new(1, 0, 0) or Color3.new(1, 1, 1)
-
-	toggleButtonVisibility({senterBtn, bypassBtn}, menuOpen)
-	toggleButtonVisibility({senterToggleBtn, brightnessUp, brightnessDown, pos1, pos2, pos3, pos4, puncak}, false)
-end)
+local light = nil
+local brightness = 5
 
 senterBtn.MouseButton1Click:Connect(function()
-	submenu = "senter"
-	toggleButtonVisibility({senterToggleBtn, brightnessUp, brightnessDown}, true)
-	toggleButtonVisibility({pos1, pos2, pos3, pos4, puncak}, false)
+    senterON.Visible = not senterON.Visible
+    senterOFF.Visible = senterON.Visible
+    tambahCahaya.Visible = senterON.Visible
+    kurangCahaya.Visible = senterON.Visible
+    lokasiFrame.Visible = false
 end)
+
+senterON.MouseButton1Click:Connect(function()
+    if debounce then return end
+    debounce = true
+    lighting.Brightness = 5
+    lighting.ClockTime = 14
+    lighting.FogEnd = 100000
+    lighting.GlobalShadows = false
+    lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+    brightness = 5
+    if light then light:Destroy() end
+    light = Instance.new("PointLight", player.Character:WaitForChild("HumanoidRootPart"))
+    light.Brightness = brightness
+    light.Range = 60
+    task.wait(0.5)
+    debounce = false
+end)
+
+senterOFF.MouseButton1Click:Connect(function()
+    if debounce then return end
+    debounce = true
+    lighting.Brightness = 2
+    lighting.ClockTime = 20
+    lighting.FogEnd = 300
+    lighting.GlobalShadows = true
+    lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
+    if light then
+        light:Destroy()
+        light = nil
+    end
+    task.wait(0.5)
+    debounce = false
+end)
+
+tambahCahaya.MouseButton1Click:Connect(function()
+    if debounce or not light then return end
+    debounce = true
+    brightness += 1
+    light.Brightness = brightness
+    task.wait(0.5)
+    debounce = false
+end)
+
+kurangCahaya.MouseButton1Click:Connect(function()
+    if debounce or not light or brightness <= 1 then return end
+    debounce = true
+    brightness -= 1
+    light.Brightness = brightness
+    task.wait(0.5)
+    debounce = false
+end)
+
+-- Lokasi teleportasi
+local lokasi = {
+    ["Pos 1"] = Vector3.new(-223, 441, 2114),
+    ["Pos 2"] = Vector3.new(-400, 848, 3210),
+    ["Pos 3"] = Vector3.new(43, 1268, 4030),
+    ["Pos 4"] = Vector3.new(-1168, 1552, 4892),
+    ["Puncak"] = Vector3.new(-718, 1938, 5325)
+}
+
+for _, key in ipairs({"Pos 1", "Pos 2", "Pos 3", "Pos 4", "Puncak"}) do
+    local pos = lokasi[key]
+    local btn = createButton(key, lokasiFrame)
+    btn.MouseButton1Click:Connect(function()
+        if debounce then return end
+        debounce = true
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            local bolt = Instance.new("ParticleEmitter", hrp)
+            bolt.LightEmission = 1
+            bolt.Texture = "rbxassetid://243660364"
+            bolt.Lifetime = NumberRange.new(0.2)
+            bolt.Rate = 200
+            bolt:Emit(20)
+            task.wait(0.1)
+            hrp.CFrame = CFrame.new(pos)
+            task.wait(0.2)
+            bolt:Destroy()
+        end
+        task.wait(0.5)
+        debounce = false
+    end)
+end
 
 bypassBtn.MouseButton1Click:Connect(function()
-	submenu = "bypass"
-	toggleButtonVisibility({senterToggleBtn, brightnessUp, brightnessDown}, false)
-	toggleButtonVisibility({pos1, pos2, pos3, pos4, puncak}, true)
+    lokasiFrame.Visible = not lokasiFrame.Visible
+    senterON.Visible = false
+    senterOFF.Visible = false
+    tambahCahaya.Visible = false
+    kurangCahaya.Visible = false
 end)
 
--- Flashlight control
-senterToggleBtn.MouseButton1Click:Connect(toggleFlashlight)
-brightnessUp.MouseButton1Click:Connect(function()
-	adjustBrightness(0.5)
-end)
-brightnessDown.MouseButton1Click:Connect(function()
-	adjustBrightness(-0.5)
+local function toggleSubmenu()
+    local isHidden = submenuFrame.Size.Y.Offset == 0
+    local targetSize = isHidden and 260 or 0
+    TweenService:Create(submenuFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Size = UDim2.new(1, 0, 0, targetSize)
+    }):Play()
+    senterON.Visible = false
+    senterOFF.Visible = false
+    tambahCahaya.Visible = false
+    kurangCahaya.Visible = false
+    lokasiFrame.Visible = false
+end
+
+toggleButton.MouseButton1Click:Connect(toggleSubmenu)
+
+-- Gesture 3 jari
+local activeTouches = {}
+UserInputService.TouchStarted:Connect(function(input)
+    activeTouches[input] = true
+    if table.getn(activeTouches) >= 3 then
+        mainFrame.Visible = not mainFrame.Visible
+    end
 end)
 
--- Teleports
-pos1.MouseButton1Click:Connect(function()
-	player.Character:MoveTo(teleportLocations["Pos 1"])
-end)
-pos2.MouseButton1Click:Connect(function()
-	player.Character:MoveTo(teleportLocations["Pos 2"])
-end)
-pos3.MouseButton1Click:Connect(function()
-	player.Character:MoveTo(teleportLocations["Pos 3"])
-end)
-pos4.MouseButton1Click:Connect(function()
-	player.Character:MoveTo(teleportLocations["Pos 4"])
-end)
-puncak.MouseButton1Click:Connect(function()
-	player.Character:MoveTo(teleportLocations["Puncak"])
+UserInputService.TouchEnded:Connect(function(input)
+    activeTouches[input] = nil
 end)
