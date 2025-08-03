@@ -1,104 +1,141 @@
 -- main.lua
 
 local player = game:GetService("Players").LocalPlayer
-local TweenService = game:GetService("TweenService")
 
--- LOADING GUI
-local loadingGui = Instance.new("ScreenGui")
-loadingGui.Name = "LoadingGUI"
-loadingGui.ResetOnSpawn = false
-loadingGui.IgnoreGuiInset = true
-loadingGui.Parent = player:WaitForChild("PlayerGui")
-
-local loadFrame = Instance.new("Frame", loadingGui)
-loadFrame.Size = UDim2.new(0, 260, 0, 80)
-loadFrame.Position = UDim2.new(0.5, -130, 0.5, -40)
-loadFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-loadFrame.BorderSizePixel = 0
-Instance.new("UICorner", loadFrame).CornerRadius = UDim.new(0, 12)
-
-local loadText = Instance.new("TextLabel", loadFrame)
-loadText.Size = UDim2.new(1, -20, 0, 50)
-loadText.Position = UDim2.new(0, 10, 0, 10)
-loadText.BackgroundTransparency = 1
-loadText.Text = "SCRIPT BY WHO AM I\nMemuat Menu..."
-loadText.TextColor3 = Color3.fromRGB(255, 255, 255)
-loadText.Font = Enum.Font.GothamBold
-loadText.TextScaled = true
-loadText.TextWrapped = true
-
-local barBg = Instance.new("Frame", loadFrame)
-barBg.Size = UDim2.new(1, -20, 0, 6)
-barBg.Position = UDim2.new(0, 10, 1, -16)
-barBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-barBg.BorderSizePixel = 0
-Instance.new("UICorner", barBg).CornerRadius = UDim.new(0, 3)
-
-local bar = Instance.new("Frame", barBg)
-bar.Size = UDim2.new(0, 0, 1, 0)
-bar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-bar.BorderSizePixel = 0
-Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
-
-TweenService:Create(bar, TweenInfo.new(2.5), {
-    Size = UDim2.new(1, 0, 1, 0)
-}):Play()
-
-task.wait(2.5)
-loadingGui:Destroy()
-
--- MAIN GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "WhoAmILauncher"
+-- GUI UTAMA
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "KeyAccessUI"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
 
--- FRAME MENU
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 240, 0, 160)
-mainFrame.Position = UDim2.new(0.5, -120, 0.5, -80)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
-mainFrame.Parent = gui
+-- Frame verifikasi kunci
+local keyFrame = Instance.new("Frame", gui)
+keyFrame.Size = UDim2.new(0, 300, 0, 160)
+keyFrame.Position = UDim2.new(0.5, -150, 0.5, -80)
+keyFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+keyFrame.BackgroundTransparency = 0
+Instance.new("UICorner", keyFrame).CornerRadius = UDim.new(0, 10)
 
-local layout = Instance.new("UIListLayout", mainFrame)
-layout.Padding = UDim.new(0, 8)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Center
+local title = Instance.new("TextLabel", keyFrame)
+title.Size = UDim2.new(1, -20, 0, 40)
+title.Position = UDim2.new(0, 10, 0, 10)
+title.Text = "🔐 Masukkan Kunci"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
 
--- FUNGSI BUAT TOMBOL
-local function createBtn(text, url)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -30, 0, 45)
-    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    btn.Text = text
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextScaled = true
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    btn.Parent = mainFrame
+local textbox = Instance.new("TextBox", keyFrame)
+textbox.Size = UDim2.new(1, -40, 0, 35)
+textbox.Position = UDim2.new(0, 20, 0, 60)
+textbox.PlaceholderText = "Ketik kunci di sini..."
+textbox.Text = ""
+textbox.TextColor3 = Color3.new(1, 1, 1)
+textbox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+textbox.Font = Enum.Font.Gotham
+textbox.TextScaled = true
+textbox.ClearTextOnFocus = false
+Instance.new("UICorner", textbox).CornerRadius = UDim.new(0, 6)
 
-    btn.MouseButton1Click:Connect(function()
-        pcall(function()
-            loadstring(game:HttpGet(url))()
-        end)
-    end)
+local notif = Instance.new("TextLabel", keyFrame)
+notif.Size = UDim2.new(1, -20, 0, 20)
+notif.Position = UDim2.new(0, 10, 1, -25)
+notif.BackgroundTransparency = 1
+notif.Text = ""
+notif.TextColor3 = Color3.fromRGB(255, 50, 50)
+notif.Font = Enum.Font.Gotham
+notif.TextScaled = true
+
+local submit = Instance.new("TextButton", keyFrame)
+submit.Size = UDim2.new(1, -40, 0, 35)
+submit.Position = UDim2.new(0, 20, 0, 105)
+submit.Text = "Masuk"
+submit.TextColor3 = Color3.new(1, 1, 1)
+submit.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+submit.Font = Enum.Font.GothamBold
+submit.TextScaled = true
+Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 6)
+
+-- Fungsi verifikasi
+local function verifyKey()
+    if textbox.Text == "Bypassdong" then
+        gui:Destroy()
+
+        -- Loading screen
+        local loading = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+        loading.Name = "LoadingScreen"
+
+        local box = Instance.new("Frame", loading)
+        box.Size = UDim2.new(0, 240, 0, 80)
+        box.Position = UDim2.new(0.5, -120, 0.5, -40)
+        box.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+        Instance.new("UICorner", box).CornerRadius = UDim.new(0, 12)
+
+        local label = Instance.new("TextLabel", box)
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.Text = "WAIT....."
+        label.TextColor3 = Color3.fromRGB(255, 0, 0)
+        label.Font = Enum.Font.GothamBold
+        label.TextScaled = true
+        label.BackgroundTransparency = 1
+
+        -- Animasi loading
+        local UIStroke = Instance.new("UIStroke", box)
+        UIStroke.Thickness = 1.5
+        UIStroke.Color = Color3.fromRGB(255, 0, 0)
+        UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        task.wait(5)
+        loading:Destroy()
+
+        -- Launcher GUI
+        local mainGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+        mainGui.Name = "SimpleLauncher"
+
+        local frame = Instance.new("Frame", mainGui)
+        frame.Size = UDim2.new(0, 250, 0, 170)
+        frame.Position = UDim2.new(0.5, -125, 0.5, -85)
+        frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+        local layout = Instance.new("UIListLayout", frame)
+        layout.Padding = UDim.new(0, 10)
+        layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        layout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+        local function createBtn(text, url)
+            local btn = Instance.new("TextButton", frame)
+            btn.Size = UDim2.new(0, 200, 0, 40)
+            btn.Text = text
+            btn.TextColor3 = Color3.new(1, 1, 1)
+            btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+            btn.Font = Enum.Font.GothamBold
+            btn.TextScaled = true
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+
+            btn.MouseButton1Click:Connect(function()
+                mainGui:Destroy()
+                loadstring(game:HttpGet(url))()
+            end)
+        end
+
+        createBtn("Bypass Krakatau", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20KRAKATAU")
+        createBtn("Bypass Sumbing", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20SUMBING")
+
+        local tag = Instance.new("TextLabel", frame)
+        tag.Size = UDim2.new(0, 200, 0, 20)
+        tag.Text = "Bypass Who Am I"
+        tag.TextColor3 = Color3.fromRGB(255, 255, 255)
+        tag.Font = Enum.Font.Gotham
+        tag.TextScaled = true
+        tag.BackgroundTransparency = 1
+    else
+        notif.Text = "Kunci salah! Coba lagi."
+    end
 end
 
--- BUAT TOMBOL MENU
-createBtn("BYPASS KRAKATAU", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20KRAKATAU")
-createBtn("BYPASS SUMBING", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20SUMBING")
-
--- TOGGLE BUTTON (SEBELAH KIRI)
-local toggleButton = Instance.new("ImageButton", gui)
-toggleButton.Size = UDim2.new(0, 36, 0, 36)
-toggleButton.Position = UDim2.new(0, 20, 0, 20)
-toggleButton.BackgroundTransparency = 1
-toggleButton.Image = "rbxassetid://6031091002"
-toggleButton.Name = "ToggleButton"
-
-local visible = true
-toggleButton.MouseButton1Click:Connect(function()
-    visible = not visible
-    mainFrame.Visible = visible
+submit.MouseButton1Click:Connect(verifyKey)
+textbox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        verifyKey()
+    end
 end)
