@@ -1,0 +1,81 @@
+-- WHO AM I MULTI-MENU LAUNCHER
+
+local player = game.Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+
+-- Loading Screen
+local loadingGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+loadingGui.Name = "LoadingLauncher"
+loadingGui.ResetOnSpawn = false
+loadingGui.IgnoreGuiInset = true
+
+local loadingFrame = Instance.new("Frame", loadingGui)
+loadingFrame.Size = UDim2.new(0, 260, 0, 80)
+loadingFrame.Position = UDim2.new(0.5, -130, 0.5, -40)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+loadingFrame.BorderSizePixel = 0
+Instance.new("UICorner", loadingFrame).CornerRadius = UDim.new(0, 12)
+
+local loadingText = Instance.new("TextLabel", loadingFrame)
+loadingText.Size = UDim2.new(1, -20, 0, 50)
+loadingText.Position = UDim2.new(0, 10, 0, 10)
+loadingText.BackgroundTransparency = 1
+loadingText.Text = "Memuat menu...\nSCRIPT BY WHO AM I"
+loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+loadingText.Font = Enum.Font.GothamBold
+loadingText.TextScaled = true
+loadingText.TextWrapped = true
+
+local barBg = Instance.new("Frame", loadingFrame)
+barBg.Size = UDim2.new(1, -20, 0, 6)
+barBg.Position = UDim2.new(0, 10, 1, -16)
+barBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+barBg.BorderSizePixel = 0
+Instance.new("UICorner", barBg).CornerRadius = UDim.new(0, 3)
+
+local bar = Instance.new("Frame", barBg)
+bar.Size = UDim2.new(0, 0, 1, 0)
+bar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+bar.BorderSizePixel = 0
+Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
+
+TweenService:Create(bar, TweenInfo.new(3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+    Size = UDim2.new(1, 0, 1, 0)
+}):Play()
+
+task.wait(3)
+loadingGui:Destroy()
+
+-- Launcher GUI
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "WhoAmILauncher"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 240, 0, 160)
+frame.Position = UDim2.new(0.5, -120, 0.5, -80)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+local layout = Instance.new("UIListLayout", frame)
+layout.Padding = UDim.new(0, 8)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+
+local function createBtn(text, url)
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(1, -30, 0, 45)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.GothamBold
+    btn.TextScaled = true
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    btn.MouseButton1Click:Connect(function()
+        loadstring(game:HttpGet(url))()
+    end)
+end
+
+-- Dua tombol menu:
+createBtn("BYPASS KRAKATAU", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20KRAKATAU")
+createBtn("BYPASS SUMBING", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20SUMBING")
