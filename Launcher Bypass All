@@ -1,75 +1,70 @@
--- WHO AM I MULTI-MENU LAUNCHER (VERSI FIXED)
-
-local player = game:WaitForChild("Players").LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local TweenService = game:GetService("TweenService")
 
--- Loading Screen
+-- LOADING GUI
 local loadingGui = Instance.new("ScreenGui")
-loadingGui.Name = "LoadingLauncher"
+loadingGui.Name = "LoadingGUI"
 loadingGui.ResetOnSpawn = false
 loadingGui.IgnoreGuiInset = true
 loadingGui.Parent = player:WaitForChild("PlayerGui")
 
-local loadingFrame = Instance.new("Frame")
-loadingFrame.Size = UDim2.new(0, 260, 0, 80)
-loadingFrame.Position = UDim2.new(0.5, -130, 0.5, -40)
-loadingFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-loadingFrame.BorderSizePixel = 0
-Instance.new("UICorner", loadingFrame).CornerRadius = UDim.new(0, 12)
-loadingFrame.Parent = loadingGui
+local loadFrame = Instance.new("Frame", loadingGui)
+loadFrame.Size = UDim2.new(0, 260, 0, 80)
+loadFrame.Position = UDim2.new(0.5, -130, 0.5, -40)
+loadFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+loadFrame.BorderSizePixel = 0
+Instance.new("UICorner", loadFrame).CornerRadius = UDim.new(0, 12)
 
-local loadingText = Instance.new("TextLabel")
-loadingText.Size = UDim2.new(1, -20, 0, 50)
-loadingText.Position = UDim2.new(0, 10, 0, 10)
-loadingText.BackgroundTransparency = 1
-loadingText.Text = "Memuat menu...\nSCRIPT BY WHO AM I"
-loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-loadingText.Font = Enum.Font.GothamBold
-loadingText.TextScaled = true
-loadingText.TextWrapped = true
-loadingText.Parent = loadingFrame
+local loadText = Instance.new("TextLabel", loadFrame)
+loadText.Size = UDim2.new(1, -20, 0, 50)
+loadText.Position = UDim2.new(0, 10, 0, 10)
+loadText.BackgroundTransparency = 1
+loadText.Text = "SCRIPT BY WHO AM I\nMemuat Menu..."
+loadText.TextColor3 = Color3.fromRGB(255, 255, 255)
+loadText.Font = Enum.Font.GothamBold
+loadText.TextScaled = true
+loadText.TextWrapped = true
 
-local barBg = Instance.new("Frame")
+local barBg = Instance.new("Frame", loadFrame)
 barBg.Size = UDim2.new(1, -20, 0, 6)
 barBg.Position = UDim2.new(0, 10, 1, -16)
 barBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 barBg.BorderSizePixel = 0
 Instance.new("UICorner", barBg).CornerRadius = UDim.new(0, 3)
-barBg.Parent = loadingFrame
 
-local bar = Instance.new("Frame")
+local bar = Instance.new("Frame", barBg)
 bar.Size = UDim2.new(0, 0, 1, 0)
 bar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 bar.BorderSizePixel = 0
 Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 3)
-bar.Parent = barBg
 
-TweenService:Create(bar, TweenInfo.new(3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+TweenService:Create(bar, TweenInfo.new(2.5), {
     Size = UDim2.new(1, 0, 1, 0)
 }):Play()
 
-task.wait(3)
+task.wait(2.5)
 loadingGui:Destroy()
 
--- Launcher GUI
+-- MAIN GUI
 local gui = Instance.new("ScreenGui")
 gui.Name = "WhoAmILauncher"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 240, 0, 160)
-frame.Position = UDim2.new(0.5, -120, 0.5, -80)
-frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
-frame.Parent = gui
+-- FRAME MENU
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 240, 0, 160)
+mainFrame.Position = UDim2.new(0.5, -120, 0.5, -80)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 10)
+mainFrame.Parent = gui
 
-local layout = Instance.new("UIListLayout")
+local layout = Instance.new("UIListLayout", mainFrame)
 layout.Padding = UDim.new(0, 8)
 layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Center
-layout.Parent = frame
 
+-- FUNGSI BUAT TOMBOL
 local function createBtn(text, url)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -30, 0, 45)
@@ -79,7 +74,7 @@ local function createBtn(text, url)
     btn.Font = Enum.Font.GothamBold
     btn.TextScaled = true
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    btn.Parent = frame
+    btn.Parent = mainFrame
 
     btn.MouseButton1Click:Connect(function()
         pcall(function()
@@ -88,6 +83,20 @@ local function createBtn(text, url)
     end)
 end
 
--- Tambahkan dua tombol menu:
+-- BUAT TOMBOL MENU
 createBtn("BYPASS KRAKATAU", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20KRAKATAU")
 createBtn("BYPASS SUMBING", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20SUMBING")
+
+-- TOGGLE BUTTON (SEBELAH KIRI)
+local toggleButton = Instance.new("ImageButton", gui)
+toggleButton.Size = UDim2.new(0, 36, 0, 36)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.BackgroundTransparency = 1
+toggleButton.Image = "rbxassetid://6031091002"
+toggleButton.Name = "ToggleButton"
+
+local visible = true
+toggleButton.MouseButton1Click:Connect(function()
+    visible = not visible
+    mainFrame.Visible = visible
+end)
