@@ -2,7 +2,7 @@
 
 
 --[[ 
-📦 Script Terbang Minimalis (posisi Fly ON diperbaiki & tombol X menonaktifkan fly)
+📦 Script Terbang Minimalis (Tombol X sekarang menonaktifkan fly & mematikan script total)
 ]]
 
 local Players = game:GetService("Players")
@@ -48,8 +48,10 @@ local move = {
 }
 local speed = 60
 local force
+local connections = {}
 
-btns.Toggle.MouseButton1Click:Connect(function()
+-- Toggle Fly
+table.insert(connections, btns.Toggle.MouseButton1Click:Connect(function()
 	flying = not flying
 	btns.Toggle.Text = flying and "Fly ON" or "Fly OFF"
 
@@ -59,34 +61,47 @@ btns.Toggle.MouseButton1Click:Connect(function()
 		if force then force:Destroy() end
 		hrp.Velocity = Vector3.zero
 	end
-end)
+end))
 
-btns.Close.MouseButton1Click:Connect(function()
-	-- Matikan fly saat ditutup
+-- Close Button (Kill Script)
+table.insert(connections, btns.Close.MouseButton1Click:Connect(function()
+	-- Matikan fly
 	flying = false
 	btns.Toggle.Text = "Fly OFF"
-	if force then
-		force:Destroy()
-		force = nil
-	end
+	if force then force:Destroy() end
 	hrp.Velocity = Vector3.zero
-	gui:Destroy()
-end)
 
+	-- Putus semua koneksi
+	for _, conn in pairs(connections) do
+		pcall(function() conn:Disconnect() end)
+	end
+
+	-- Hancurkan GUI
+	gui:Destroy()
+
+	-- Bersihkan memori
+	force = nil
+	move = nil
+	btns = nil
+end))
+
+-- Tombol gerakan
 for dir, btn in pairs(btns) do
 	if move[dir] ~= nil then
-		btn.MouseButton1Down:Connect(function()
+		table.insert(connections, btn.MouseButton1Down:Connect(function()
 			move[dir] = true
 			btn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
-		end)
-		btn.MouseButton1Up:Connect(function()
+		end))
+		table.insert(connections, btn.MouseButton1Up:Connect(function()
 			move[dir] = false
 			btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-		end)
+		end))
 	end
 end
 
-RunService.RenderStepped:Connect(function()
+-- Loop Fly
+local flyLoop
+flyLoop = RunService.RenderStepped:Connect(function()
 	if not flying then return end
 	local camCF = workspace.CurrentCamera.CFrame
 	local dir = Vector3.zero
@@ -103,3 +118,4 @@ RunService.RenderStepped:Connect(function()
 	end
 	hrp.Velocity = dir.Magnitude > 0 and dir.Unit * speed or Vector3.zero
 end)
+table.insert(connections, flyLoop)
