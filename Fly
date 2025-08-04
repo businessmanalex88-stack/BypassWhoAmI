@@ -1,0 +1,196 @@
+-- main.lua
+
+-- WhoAmI | v.0.0.0.1 -- Semua UI dan Fungsi telah digabung dan dioptimalkan -- Termasuk sistem Fly yang dipanggil saat klik tombol Fly
+
+local Players = game:GetService("Players") local player = Players.LocalPlayer local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- Fungsi: Menjalankan sistem Fly local function startFlySystem() -- Jika FlyUI sudah ada, hapus dulu local existing = PlayerGui:FindFirstChild("FlyUI") if existing then existing:Destroy() end
+
+local RunService = game:GetService("RunService")
+local character = player.Character or player.CharacterAdded:Wait()
+local hrp = character:WaitForChild("HumanoidRootPart")
+local head = character:WaitForChild("Head")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FlyUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = PlayerGui
+
+local function createStyledButton(name, pos, size, text)
+	local btn = Instance.new("TextButton")
+	btn.Name = name
+	btn.Size = size
+	btn.Position = pos
+	btn.Text = text
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 100)
+	btn.BackgroundTransparency = 0.3
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.TextScaled = true
+	btn.Font = Enum.Font.GothamBold
+	btn.AutoButtonColor = false
+
+	local stroke = Instance.new("UIStroke", btn)
+	stroke.Color = Color3.fromRGB(200, 200, 255)
+	stroke.Thickness = 2
+	stroke.Transparency = 0.3
+
+	local corner = Instance.new("UICorner", btn)
+	corner.CornerRadius = UDim.new(1, 0)
+
+	btn.Parent = screenGui
+	return btn
+end
+
+local buttons = {
+	Forward = createStyledButton("Forward", UDim2.new(0, 110, 1, -190), UDim2.new(0, 60, 0, 60), "↑"),
+	Backward = createStyledButton("Backward", UDim2.new(0, 110, 1, -90), UDim2.new(0, 60, 0, 60), "↓"),
+	Left = createStyledButton("Left", UDim2.new(0, 30, 1, -140), UDim2.new(0, 60, 0, 60), "←"),
+	Right = createStyledButton("Right", UDim2.new(0, 190, 1, -140), UDim2.new(0, 60, 0, 60), "→"),
+	Up = createStyledButton("Up", UDim2.new(1, -200, 1, -190), UDim2.new(0, 60, 0, 60), "⬆"),
+	Down = createStyledButton("Down", UDim2.new(1, -200, 1, -90), UDim2.new(0, 60, 0, 60), "⬇"),
+	ToggleFly = createStyledButton("ToggleFly", UDim2.new(1, -130, 0, 30), UDim2.new(0, 100, 0, 50), "Fly OFF"),
+	Close = createStyledButton("Close", UDim2.new(1, -50, 0, 0), UDim2.new(0, 40, 0, 40), "X")
+}
+
+local flying = false
+local moveDirection = Vector3.zero
+local speed = 60
+local gravityForce
+
+local function toggleFlyEffects(enable)
+	if enable then
+		local aura = Instance.new("ParticleEmitter")
+		aura.Name = "RedAura"
+		aura.Texture = "rbxassetid://243660364"
+		aura.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+		aura.LightEmission = 0.8
+		aura.Rate = 30
+		aura.Lifetime = NumberRange.new(1)
+		aura.Speed = NumberRange.new(0)
+		aura.Size = NumberSequence.new(2)
+		aura.Parent = hrp
+
+		local lightning = Instance.new("ParticleEmitter")
+		lightning.Name = "RedLightning"
+		lightning.Texture = "rbxassetid://5695074145"
+		lightning.Color = ColorSequence.new(Color3.fromRGB(255, 0, 0))
+		lightning.Rate = 10
+		lightning.Lifetime = NumberRange.new(0.5)
+		lightning.Speed = NumberRange.new(5)
+		lightning.Size = NumberSequence.new(1.5)
+		lightning.LightEmission = 1
+		lightning.Parent = hrp
+	else
+		for _, v in pairs(hrp:GetChildren()) do
+			if v:IsA("ParticleEmitter") and (v.Name == "RedAura" or v.Name == "RedLightning") then
+				v:Destroy()
+			end
+		end
+	end
+end
+
+local function createFlyTag()
+	if head:FindFirstChild("FlyStatus") then return end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "FlyStatus"
+	billboard.Size = UDim2.new(0, 200, 0, 50)
+	billboard.Adornee = head
+	billboard.AlwaysOnTop = true
+	billboard.StudsOffset = Vector3.new(0, 2, 0)
+	billboard.Parent = head
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = "🛫 Flying..."
+	label.TextColor3 = Color3.fromRGB(255, 255, 100)
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.Parent = billboard
+end
+
+local function removeFlyTag()
+	local tag = head:FindFirstChild("FlyStatus")
+	if tag then tag:Destroy() end
+end
+
+local function enableAntiGravity()
+	gravityForce = Instance.new("BodyForce")
+	gravityForce.Name = "FlyGravityForce"
+	gravityForce.Parent = hrp
+end
+
+local function disableAntiGravity()
+	if gravityForce then gravityForce:Destroy() end
+end
+
+local debounce = false
+buttons.ToggleFly.MouseButton1Click:Connect(function()
+	if debounce then return end
+	debounce = true
+	flying = not flying
+	buttons.ToggleFly.Text = flying and "Fly ON" or "Fly OFF"
+	if flying then
+		createFlyTag()
+		enableAntiGravity()
+		toggleFlyEffects(true)
+	else
+		removeFlyTag()
+		disableAntiGravity()
+		toggleFlyEffects(false)
+	end
+	task.delay(0.5, function()
+		debounce = false
+	end)
+end)
+
+local controlState = {
+	Forward = false, Backward = false,
+	Left = false, Right = false,
+	Up = false, Down = false
+}
+
+for key, btn in pairs(buttons) do
+	if key ~= "ToggleFly" and key ~= "Close" then
+		local defaultColor = btn.BackgroundColor3
+		local pressedColor = Color3.fromRGB(255, 80, 80)
+		btn.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+				controlState[key] = true
+				btn.BackgroundColor3 = pressedColor
+			end
+		end)
+		btn.InputEnded:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+				controlState[key] = false
+				btn.BackgroundColor3 = defaultColor
+			end
+		end)
+	end
+end
+
+buttons.Close.MouseButton1Click:Connect(function()
+	screenGui:Destroy()
+end)
+
+RunService.RenderStepped:Connect(function()
+	if not flying then return end
+	local camCF = workspace.CurrentCamera.CFrame
+	local dir = Vector3.zero
+	if controlState.Forward then dir += camCF.LookVector end
+	if controlState.Backward then dir -= camCF.LookVector end
+	if controlState.Left then dir -= camCF.RightVector end
+	if controlState.Right then dir += camCF.RightVector end
+	if controlState.Up then dir += camCF.UpVector end
+	if controlState.Down then dir -= camCF.UpVector end
+	moveDirection = dir.Magnitude > 0 and dir.Unit * speed or Vector3.zero
+	hrp.Velocity = moveDirection
+	if gravityForce then
+		gravityForce.Force = Vector3.new(0, workspace.Gravity * hrp.AssemblyMass, 0)
+	end
+end)
+
+end
+
+-- PANGGIL SAAT TOMBOL FLY DIKLIK: startFlySystem()
+
