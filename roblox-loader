@@ -1,0 +1,32 @@
+const express = require("express");
+const app = express();
+const port = process.env.PORT || 3000;
+
+const script = `
+loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/main/Radiant"))()
+`;
+
+app.get("/", (req, res) => {
+  res.send("✅ Server Aktif. Gunakan /loader");
+});
+
+app.get("/loader", (req, res) => {
+  res.setHeader("Content-Type", "text/plain");
+  res.send(script);
+});
+
+app.listen(port, () => {
+  console.log("🚀 Server aktif di port " + port);
+});
+
+{
+  "name": "roblox-loader",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
