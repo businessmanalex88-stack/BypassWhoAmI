@@ -90,7 +90,6 @@ cheatBtn.Font = Enum.Font.GothamBold
 cheatBtn.TextSize = 14
 Instance.new("UICorner", cheatBtn).CornerRadius = UDim.new(0, 6)
 
--- === TOMBOL KEMBALI DI SIDEBAR ===
 local backBtn = Instance.new("TextButton", side)
 backBtn.Size = UDim2.new(1, -10, 0, 30)
 backBtn.Position = UDim2.new(0, 5, 1, -35)
@@ -126,7 +125,7 @@ local function showGunungPos(gunung, posCount)
 		b.Font = Enum.Font.Gotham
 		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
 		b.MouseButton1Click:Connect(function()
-			print("Teleport ke " .. gunung .. " - " .. label)
+			print("Teleport to " .. gunung .. " - " .. label)
 		end)
 	end
 	backBtn.Visible = true
@@ -175,7 +174,9 @@ local function showCheats()
 		{ label = "Speed Run", callback = function()
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Speedrun"))()
 		end },
-		{ label = "Senter", callback = function() print("Senter clicked") end },
+		{ label = "Radiant Body", callback = function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Radiant%20body"))()
+		end },
 	}
 
 	for i, item in ipairs(items) do
