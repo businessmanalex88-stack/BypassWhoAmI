@@ -1,0 +1,52 @@
+-- 🧼 SCRIPT PEMBERSIH GUI & FUNGSIONALITAS EXECUTOR
+
+local player = game:GetService("Players").LocalPlayer
+local guiParent = player:WaitForChild("PlayerGui")
+
+-- 1. Hapus semua GUI buatan executor (bukan dari StarterGui)
+for _, gui in ipairs(guiParent:GetChildren()) do
+	if gui:IsA("ScreenGui") and not game.StarterGui:FindFirstChild(gui.Name) then
+		print("[Cleaner] Menghapus GUI:", gui.Name)
+		pcall(function() gui:Destroy() end)
+	end
+end
+
+-- 2. Hapus semua BillboardGui/SurfaceGui dari character (biasanya inject)
+local character = player.Character or player.CharacterAdded:Wait()
+for _, obj in ipairs(character:GetDescendants()) do
+	if obj:IsA("BillboardGui") or obj:IsA("SurfaceGui") then
+		print("[Cleaner] Menghapus GUI dari Character:", obj.Name)
+		pcall(function() obj:Destroy() end)
+	end
+end
+
+-- 3. Matikan semua koneksi UserInputService (opsional)
+-- Ini berguna jika kamu pernah pakai UI/Script dengan tombol input
+local UIS = game:GetService("UserInputService")
+for _, conn in pairs(getconnections(UIS.InputBegan)) do
+	pcall(function() conn:Disable() end)
+end
+for _, conn in pairs(getconnections(UIS.InputEnded)) do
+	pcall(function() conn:Disable() end)
+end
+
+-- 4. Bersihkan koneksi dari RunService (seperti .RenderStepped, .Stepped)
+local RS = game:GetService("RunService")
+for _, conn in pairs(getconnections(RS.RenderStepped)) do
+	pcall(function() conn:Disable() end)
+end
+for _, conn in pairs(getconnections(RS.Stepped)) do
+	pcall(function() conn:Disable() end)
+end
+for _, conn in pairs(getconnections(RS.Heartbeat)) do
+	pcall(function() conn:Disable() end)
+end
+
+-- 5. (Opsional) Bersihkan semua folder "temporary" dari executor
+for _, v in pairs(workspace:GetChildren()) do
+	if v:IsA("Folder") and v.Name:match("Executor") then
+		pcall(function() v:Destroy() end)
+	end
+end
+
+print("[Cleaner] Semua UI & fungsi executor berhasil dibersihkan ✅")
