@@ -1,21 +1,27 @@
--- 💥 Pembersih GUI dari Executor Delta, tanpa crash/kick
+-- 💥 Executor Delta GUI Cleaner (Tidak crash & hanya hapus GUI dari executor)
 
 local player = game:GetService("Players").LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Fungsi untuk mengecek apakah GUI berasal dari executor (bukan dari StarterGui)
+-- Cek apakah GUI berasal dari executor (bukan dari StarterGui dan bukan GUI sistem bawaan Roblox)
 local function isExecutorGui(gui)
-	return gui:IsA("ScreenGui") and not game.StarterGui:FindFirstChild(gui.Name)
+	if not gui:IsA("ScreenGui") then return false end
+	if game.StarterGui:FindFirstChild(gui.Name) then return false end
+	if gui.Name == "RobloxGui" or gui.Name == "Chat" then return false end -- GUI bawaan
+	if gui:FindFirstChildOfClass("TextButton") == nil and gui:FindFirstChildOfClass("Frame") == nil then
+		return false -- Bukan GUI dengan tombol/konten yang bisa berinteraksi
+	end
+	return true
 end
 
--- Hapus semua GUI yang di-load oleh executor (tidak berasal dari game)
-for _, gui in pairs(playerGui:GetChildren()) do
+-- Hapus semua GUI dari executor
+for _, gui in ipairs(playerGui:GetChildren()) do
 	if isExecutorGui(gui) then
-		print("[GUI Cleaner] Menghapus GUI executor:", gui.Name)
+		warn("[Delta GUI Cleaner] Menghapus GUI dari executor:", gui.Name)
 		pcall(function()
 			gui:Destroy()
 		end)
 	end
 end
 
-print("[GUI Cleaner] Semua GUI dari executor telah dibersihkan ✅")
+print("[Delta GUI Cleaner] Selesai menghapus semua GUI executor dengan aman ✅")
