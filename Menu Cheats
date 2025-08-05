@@ -1,0 +1,240 @@
+--[[ LUA UI SCRIPT: WhoAmI GUI Cheat Menu ]]
+
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "WhoAmIGUI"
+gui.ResetOnSpawn = false
+
+-- === Blur Effect ===
+local blur = Instance.new("BlurEffect")
+blur.Size = 0
+blur.Enabled = false
+blur.Parent = game:GetService("Lighting")
+
+-- === LOGO (Cheat) ===
+local logo = Instance.new("TextButton", gui)
+logo.Size = UDim2.new(0, 50, 0, 50)
+logo.Position = UDim2.new(0, 20, 0, 100)
+logo.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+logo.Text = "Cheat"
+logo.TextColor3 = Color3.fromRGB(255, 0, 0)
+logo.Font = Enum.Font.Gotham
+logo.TextSize = 10
+logo.Name = "CheatLogo"
+logo.AutoButtonColor = false
+logo.Active = true
+Instance.new("UICorner", logo).CornerRadius = UDim.new(0, 10)
+local stroke = Instance.new("UIStroke", logo)
+stroke.Color = Color3.fromRGB(255, 0, 0)
+stroke.Thickness = 2
+
+-- === MENU UTAMA ===
+local menu = Instance.new("Frame", gui)
+menu.Size = UDim2.new(0, 400, 0, 250)
+menu.Position = UDim2.new(0.5, -200, 0.5, -125)
+menu.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+menu.Visible = false
+menu.Active = true
+Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
+Instance.new("UIStroke", menu).Color = Color3.fromRGB(255, 0, 0)
+
+-- === TITLE ===
+local title = Instance.new("TextLabel", menu)
+title.Size = UDim2.new(1, -80, 0, 30)
+title.Position = UDim2.new(0, 40, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "WhoAmI | v.0.0.0.1"
+title.TextColor3 = Color3.fromRGB(255, 0, 0)
+title.TextSize = 14
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Center
+
+-- === TOMBOL CLOSE & MINIMIZE ===
+local closeBtn = Instance.new("TextButton", menu)
+closeBtn.Size = UDim2.new(0, 25, 0, 25)
+closeBtn.Position = UDim2.new(1, -30, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 14
+closeBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+local minBtn = Instance.new("TextButton", menu)
+minBtn.Size = UDim2.new(0, 25, 0, 25)
+minBtn.Position = UDim2.new(1, -60, 0, 5)
+minBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+minBtn.Text = "-"
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minBtn.TextSize = 18
+minBtn.Font = Enum.Font.GothamBold
+Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
+
+-- === SIDEBAR ===
+local side = Instance.new("Frame", menu)
+side.Size = UDim2.new(0, 100, 1, -40)
+side.Position = UDim2.new(0, 0, 0, 40)
+side.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Instance.new("UICorner", side).CornerRadius = UDim.new(0, 6)
+
+local cheatBtn = Instance.new("TextButton", side)
+cheatBtn.Size = UDim2.new(1, -10, 0, 35)
+cheatBtn.Position = UDim2.new(0, 5, 0, 10)
+cheatBtn.Text = "Cheat"
+cheatBtn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+cheatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+cheatBtn.Font = Enum.Font.GothamBold
+cheatBtn.TextSize = 14
+Instance.new("UICorner", cheatBtn).CornerRadius = UDim.new(0, 6)
+
+-- === TOMBOL KEMBALI DI SIDEBAR ===
+local backBtn = Instance.new("TextButton", side)
+backBtn.Size = UDim2.new(1, -10, 0, 30)
+backBtn.Position = UDim2.new(0, 5, 1, -35)
+backBtn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
+backBtn.Text = "< kembali"
+backBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+backBtn.Font = Enum.Font.Gotham
+backBtn.TextSize = 13
+Instance.new("UICorner", backBtn).CornerRadius = UDim.new(0, 5)
+backBtn.Visible = false
+
+-- === KONTEN ===
+local content = Instance.new("Frame", menu)
+content.Size = UDim2.new(1, -110, 1, -50)
+content.Position = UDim2.new(0, 110, 0, 40)
+content.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Instance.new("UICorner", content).CornerRadius = UDim.new(0, 6)
+
+-- === SUBMENU POS ===
+local function showGunungPos(gunung, posCount)
+	for _, c in pairs(content:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+	for i = 1, posCount do
+		local label = (i == posCount) and "Puncak" or ("Pos " .. i)
+		local b = Instance.new("TextButton", content)
+		b.Size = UDim2.new(1, -20, 0, 30)
+		b.Position = UDim2.new(0, 10, 0, (i - 1) * 35)
+		b.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
+		b.Text = label
+		b.TextColor3 = Color3.fromRGB(255, 255, 255)
+		b.TextSize = 12
+		b.Font = Enum.Font.Gotham
+		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
+		b.MouseButton1Click:Connect(function()
+			print("Teleport ke " .. gunung .. " - " .. label)
+		end)
+	end
+	backBtn.Visible = true
+end
+
+-- === SUBMENU AUTO PUNCAK ===
+local function showAutoPuncak()
+	for _, c in pairs(content:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+
+	local gunungList = {
+		{ name = "gn.sumbing", count = 5 },
+		{ name = "gn.krakatau", count = 4 },
+	}
+
+	for i, g in ipairs(gunungList) do
+		local b = Instance.new("TextButton", content)
+		b.Size = UDim2.new(1, -20, 0, 30)
+		b.Position = UDim2.new(0, 10, 0, (i - 1) * 35)
+		b.BackgroundColor3 = Color3.fromRGB(50, 30, 30)
+		b.Text = g.name
+		b.TextColor3 = Color3.fromRGB(255, 255, 255)
+		b.TextSize = 12
+		b.Font = Enum.Font.Gotham
+		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
+		b.MouseButton1Click:Connect(function()
+			showGunungPos(g.name, g.count)
+		end)
+	end
+	backBtn.Visible = true
+end
+
+-- === TAMPILKAN MENU CHEAT ===
+local function showCheats()
+	for _, c in pairs(content:GetChildren()) do
+		if c:IsA("TextButton") then c:Destroy() end
+	end
+
+	local items = {
+		{ label = "Auto Puncak", callback = showAutoPuncak },
+		{ label = "Auto Teleport", callback = function() print("Auto Teleport clicked") end },
+		{ label = "Fly", callback = function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Fly"))()
+		end },
+		{ label = "Speed Run", callback = function()
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Speedrun"))()
+		end },
+		{ label = "Senter", callback = function() print("Senter clicked") end },
+	}
+
+	for i, item in ipairs(items) do
+		local b = Instance.new("TextButton", content)
+		b.Size = UDim2.new(1, -20, 0, 30)
+		b.Position = UDim2.new(0, 10, 0, (i - 1) * 35)
+		b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		b.Text = item.label
+		b.TextColor3 = Color3.fromRGB(255, 255, 255)
+		b.TextSize = 12
+		b.Font = Enum.Font.Gotham
+		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
+		b.MouseButton1Click:Connect(item.callback)
+	end
+	backBtn.Visible = false
+end
+
+-- === EVENT TOMBOL ===
+cheatBtn.MouseButton1Click:Connect(showCheats)
+backBtn.MouseButton1Click:Connect(showCheats)
+
+logo.MouseButton1Click:Connect(function()
+	menu.Visible = true
+	blur.Enabled = true
+	TweenService:Create(blur, TweenInfo.new(0.3), { Size = 12 }):Play()
+end)
+
+minBtn.MouseButton1Click:Connect(function()
+	menu.Visible = false
+	blur.Enabled = false
+	blur.Size = 0
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+	menu.Visible = false
+	logo.Visible = false
+	blur.Enabled = false
+	blur.Size = 0
+end)
+
+-- === DRAGGABLE ===
+local function makeDraggable(frame)
+	local dragToggle, dragStart, startPos = nil, nil, nil
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragToggle = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then dragToggle = false end
+			end)
+		end
+	end)
+	UIS.InputChanged:Connect(function(input)
+		if dragToggle and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+end
+makeDraggable(menu)
+makeDraggable(logo)
