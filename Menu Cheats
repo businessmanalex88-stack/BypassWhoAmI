@@ -1,5 +1,4 @@
 --[[ LUA UI SCRIPT: WhoAmI GUI Cheat Menu ]]
-
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local player = game.Players.LocalPlayer
@@ -8,13 +7,11 @@ local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
 gui.Name = "WhoAmIGUI"
 gui.ResetOnSpawn = false
 
--- === Blur Effect ===
 local blur = Instance.new("BlurEffect")
 blur.Size = 0
 blur.Enabled = false
 blur.Parent = game:GetService("Lighting")
 
--- === LOGO (Cheat) ===
 local logo = Instance.new("TextButton", gui)
 logo.Size = UDim2.new(0, 50, 0, 50)
 logo.Position = UDim2.new(0, 20, 0, 100)
@@ -31,7 +28,6 @@ local stroke = Instance.new("UIStroke", logo)
 stroke.Color = Color3.fromRGB(255, 0, 0)
 stroke.Thickness = 2
 
--- === MENU UTAMA ===
 local menu = Instance.new("Frame", gui)
 menu.Size = UDim2.new(0, 400, 0, 250)
 menu.Position = UDim2.new(0.5, -200, 0.5, -125)
@@ -41,7 +37,6 @@ menu.Active = true
 Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
 Instance.new("UIStroke", menu).Color = Color3.fromRGB(255, 0, 0)
 
--- === TITLE ===
 local title = Instance.new("TextLabel", menu)
 title.Size = UDim2.new(1, -80, 0, 30)
 title.Position = UDim2.new(0, 40, 0, 0)
@@ -52,7 +47,6 @@ title.TextSize = 14
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
 
--- === TOMBOL CLOSE & MINIMIZE ===
 local closeBtn = Instance.new("TextButton", menu)
 closeBtn.Size = UDim2.new(0, 25, 0, 25)
 closeBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -73,7 +67,6 @@ minBtn.TextSize = 18
 minBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
 
--- === SIDEBAR ===
 local side = Instance.new("Frame", menu)
 side.Size = UDim2.new(0, 100, 1, -40)
 side.Position = UDim2.new(0, 0, 0, 40)
@@ -90,6 +83,24 @@ cheatBtn.Font = Enum.Font.GothamBold
 cheatBtn.TextSize = 14
 Instance.new("UICorner", cheatBtn).CornerRadius = UDim.new(0, 6)
 
+-- ✅ TOMBOL CLEAR (PERILAKU SAMA DENGAN CLOSE)
+local clearBtn = Instance.new("TextButton", side)
+clearBtn.Size = UDim2.new(1, -10, 0, 35)
+clearBtn.Position = UDim2.new(0, 5, 0, 55)
+clearBtn.Text = "Clear"
+clearBtn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+clearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+clearBtn.Font = Enum.Font.GothamBold
+clearBtn.TextSize = 14
+Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0, 6)
+
+clearBtn.MouseButton1Click:Connect(function()
+	menu.Visible = false
+	blur.Enabled = false
+	blur.Size = 0
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Pembersih"))()
+end)
+
 local backBtn = Instance.new("TextButton", side)
 backBtn.Size = UDim2.new(1, -10, 0, 30)
 backBtn.Position = UDim2.new(0, 5, 1, -35)
@@ -101,14 +112,12 @@ backBtn.TextSize = 13
 Instance.new("UICorner", backBtn).CornerRadius = UDim.new(0, 5)
 backBtn.Visible = false
 
--- === KONTEN ===
 local content = Instance.new("Frame", menu)
 content.Size = UDim2.new(1, -110, 1, -50)
 content.Position = UDim2.new(0, 110, 0, 40)
 content.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Instance.new("UICorner", content).CornerRadius = UDim.new(0, 6)
 
--- === SUBMENU POS ===
 local function showGunungPos(gunung, posCount)
 	for _, c in pairs(content:GetChildren()) do
 		if c:IsA("TextButton") then c:Destroy() end
@@ -131,7 +140,6 @@ local function showGunungPos(gunung, posCount)
 	backBtn.Visible = true
 end
 
--- === SUBMENU AUTO PUNCAK ===
 local function showAutoPuncak()
 	for _, c in pairs(content:GetChildren()) do
 		if c:IsA("TextButton") then c:Destroy() end
@@ -159,7 +167,6 @@ local function showAutoPuncak()
 	backBtn.Visible = true
 end
 
--- === TAMPILKAN MENU CHEAT ===
 local function showCheats()
 	for _, c in pairs(content:GetChildren()) do
 		if c:IsA("TextButton") then c:Destroy() end
@@ -194,7 +201,6 @@ local function showCheats()
 	backBtn.Visible = false
 end
 
--- === EVENT TOMBOL ===
 cheatBtn.MouseButton1Click:Connect(showCheats)
 backBtn.MouseButton1Click:Connect(showCheats)
 
@@ -217,7 +223,6 @@ closeBtn.MouseButton1Click:Connect(function()
 	blur.Size = 0
 end)
 
--- === DRAGGABLE ===
 local function makeDraggable(frame)
 	local dragToggle, dragStart, startPos = nil, nil, nil
 	frame.InputBegan:Connect(function(input)
