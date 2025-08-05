@@ -1,0 +1,103 @@
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
+gui.Name = "KeySystemGUI"
+gui.ResetOnSpawn = false
+
+-- Main UI
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 300, 0, 160)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -80)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+
+local uicorner = Instance.new("UICorner", mainFrame)
+uicorner.CornerRadius = UDim.new(0, 8)
+
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Text = "Key System (12 Jam)"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 18
+title.Font = Enum.Font.GothamBold
+
+local textbox = Instance.new("TextBox", mainFrame)
+textbox.Size = UDim2.new(0.8, 0, 0, 30)
+textbox.Position = UDim2.new(0.1, 0, 0.35, 0)
+textbox.PlaceholderText = "Enter your key..."
+textbox.Font = Enum.Font.Gotham
+textbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+textbox.TextSize = 16
+textbox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Instance.new("UICorner", textbox)
+
+local button = Instance.new("TextButton", mainFrame)
+button.Size = UDim2.new(0.5, 0, 0, 30)
+button.Position = UDim2.new(0.25, 0, 0.65, 0)
+button.Text = "Submit"
+button.Font = Enum.Font.GothamBold
+button.TextSize = 16
+button.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", button)
+
+local statusText = Instance.new("TextLabel", mainFrame)
+statusText.Size = UDim2.new(1, 0, 0, 20)
+statusText.Position = UDim2.new(0, 0, 1, 0)
+statusText.BackgroundTransparency = 1
+statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+statusText.TextSize = 14
+statusText.Font = Enum.Font.Gotham
+statusText.Text = ""
+
+-- VALIDASI KEY 12 JAM
+button.MouseButton1Click:Connect(function()
+	statusText.Text = "Checking key..."
+	statusText.TextColor3 = Color3.fromRGB(255, 255, 0)
+
+	local success, response = pcall(function()
+		return game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/key.txt")
+	end)
+
+	if success then
+		local inputKey = string.match(textbox.Text, "^%s*(.-)%s*$")
+		local now = os.time()
+		local foundValidKey = false
+
+		for line in string.gmatch(response, "[^\r\n]+") do
+			local key, timestamp = line:match("^(.-)|(%d+)$")
+			if key and timestamp then
+				if inputKey == key then
+					local keyTime = tonumber(timestamp)
+					if now - keyTime <= 43200 then -- 12 jam = 43200 detik
+						foundValidKey = true
+						break
+					else
+						statusText.Text = "Key expired!"
+						statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
+						return
+					end
+				end
+			end
+		end
+
+		if foundValidKey then
+			statusText.TextColor3 = Color3.fromRGB(0, 255, 0)
+			statusText.Text = "Key accepted!"
+			task.wait(1)
+			mainFrame.Visible = false
+			-- GANTI DENGAN LINK CHEAT KAMU
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats"))()
+		else
+			statusText.Text = "Invalid key!"
+			statusText.TextColor3 = Color3.fromRGB(255, 50, 50)
+		end
+	else
+		statusText.Text = "Failed to fetch key!"
+		statusText.TextColor3 = Color3.fromRGB(255, 0, 0)
+	end
+end)
