@@ -1,0 +1,93 @@
+--==[ Senter Pro Minimalis + Control Cahaya Delta Supported ]==--
+local player = game:GetService("Players").LocalPlayer
+local lighting = game:GetService("Lighting")
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Hapus GUI lama
+if playerGui:FindFirstChild("MiniFlashlightGUI") then
+	playerGui.MiniFlashlightGUI:Destroy()
+end
+
+-- Buat GUI utama
+local gui = Instance.new("ScreenGui", playerGui)
+gui.Name = "MiniFlashlightGUI"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Fungsi buat tombol kecil
+local function createButton(name, text, posX, callback)
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(0, 30, 0, 30)
+	btn.Position = UDim2.new(1, posX, 0, 10)
+	btn.AnchorPoint = Vector2.new(0, 0)
+	btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	btn.BorderSizePixel = 0
+	btn.Text = text
+	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 18
+	btn.Name = name
+	btn.AutoButtonColor = false
+	btn.Parent = gui
+
+	btn.MouseEnter:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+	end)
+	btn.MouseLeave:Connect(function()
+		btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	end)
+	btn.MouseButton1Click:Connect(callback)
+
+	return btn
+end
+
+-- Buat tombol utama ON/OFF
+local toggleBtn = createButton("ToggleBtn", "💡", -100, function() end)
+-- Tambah & kurang
+local plusBtn = createButton("PlusBtn", "+", -60, function() end)
+local minusBtn = createButton("MinusBtn", "-", -30, function() end)
+
+-- Lampu
+local light = Instance.new("PointLight")
+light.Range = 16
+light.Brightness = 2
+light.Color = Color3.new(1, 1, 1)
+light.Enabled = false
+
+-- Attach ke head
+local function attachLight()
+	local head = player.Character and player.Character:FindFirstChild("Head")
+	if head and not light:IsDescendantOf(head) then
+		light.Parent = head
+	end
+end
+attachLight()
+player.CharacterAdded:Connect(function()
+	wait(1)
+	attachLight()
+end)
+
+-- Toggle nyala
+local isOn = false
+toggleBtn.MouseButton1Click:Connect(function()
+	isOn = not isOn
+	light.Enabled = isOn
+	toggleBtn.TextColor3 = isOn and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(255, 255, 255)
+end)
+
+-- Batas kontrol
+local function clamp(val, min, max)
+	return math.clamp(val, min, max)
+end
+
+-- Tombol tambah brightness & range
+plusBtn.MouseButton1Click:Connect(function()
+	light.Brightness = clamp(light.Brightness + 1, 1, 10)
+	light.Range = clamp(light.Range + 4, 8, 60)
+end)
+
+-- Tombol kurang brightness & range
+minusBtn.MouseButton1Click:Connect(function()
+	light.Brightness = clamp(light.Brightness - 1, 1, 10)
+	light.Range = clamp(light.Range - 4, 8, 60)
+end)
