@@ -1,5 +1,6 @@
 -- main.lua
 
+
 -- WHO AM I GUI MULTI-FEATURE SCRIPT (Gabungan dengan tombol toggle UI)
 
 local player = game.Players.LocalPlayer
@@ -24,7 +25,7 @@ local text = Instance.new("TextLabel", bg)
 text.Size = UDim2.new(1, -20, 0, 50)
 text.Position = UDim2.new(0, 10, 0, 10)
 text.BackgroundTransparency = 1
-text.Text = "SCRIPT BY WHO AM I\nDagoan Sakedeng..."
+text.Text = "SCRIPT BY WHO AM I\nHarap menunggu..."
 text.TextColor3 = Color3.fromRGB(255, 0, 0)
 text.Font = Enum.Font.GothamSemibold
 text.TextScaled = true
@@ -44,7 +45,7 @@ progressBar.BorderSizePixel = 0
 Instance.new("UICorner", progressBar).CornerRadius = UDim.new(0, 3)
 
 TweenService:Create(progressBar, TweenInfo.new(7, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
-    Size = UDim2.new(1, 0, 1, 0)
+	Size = UDim2.new(1, 0, 1, 0)
 }):Play()
 task.wait(7)
 loaderGui:Destroy()
@@ -57,7 +58,7 @@ gui.ResetOnSpawn = false
 local toggleUIButton = Instance.new("ImageButton", gui)
 toggleUIButton.Name = "ToggleUI"
 toggleUIButton.Size = UDim2.new(0, 36, 0, 36)
-toggleUIButton.Position = UDim2.new(1, -130, 0, 20) -- bawah tombol Dukung Kami!
+toggleUIButton.Position = UDim2.new(1, -130, 0, 20)
 toggleUIButton.BackgroundTransparency = 1
 toggleUIButton.Image = "rbxassetid://6031091002"
 
@@ -75,17 +76,17 @@ layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 
 local function createButton(text, parent)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -10, 0, 30)
-    btn.Text = text
-    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextScaled = true
-    btn.AutoButtonColor = true
-    btn.Parent = parent
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    return btn
+	local btn = Instance.new("TextButton")
+	btn.Size = UDim2.new(1, -10, 0, 30)
+	btn.Text = text
+	btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextScaled = true
+	btn.AutoButtonColor = true
+	btn.Parent = parent
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+	return btn
 end
 
 local submenuFrame = Instance.new("Frame", mainFrame)
@@ -100,10 +101,11 @@ sublayout.VerticalAlignment = Enum.VerticalAlignment.Bottom
 
 local toggleButton = createButton("WHO AM I", mainFrame)
 toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.LayoutOrder = -1 -- tampilkan di atas
 local toggleState = false
 submenuFrame.Parent = mainFrame
 
--- Tombol untuk Senter dan Bypass (Posisi sesuai gambar)
+-- Tombol SENTER dan BYPASS
 local senterBtn = createButton("SENTER", gui)
 senterBtn.Position = UDim2.new(0.27, 0, 0.30, 0)
 senterBtn.Size = UDim2.new(0, 100, 0, 30)
@@ -112,7 +114,7 @@ local bypassBtn = createButton("BYPASS PUNCAK", gui)
 bypassBtn.Position = UDim2.new(0.70, 0, 0.30, 0)
 bypassBtn.Size = UDim2.new(0, 140, 0, 30)
 
--- Scrollable lokasi
+-- Scroll lokasi
 local lokasiFrame = Instance.new("ScrollingFrame", submenuFrame)
 lokasiFrame.Size = UDim2.new(1, -10, 0, 100)
 lokasiFrame.CanvasSize = UDim2.new(0, 0, 0, 300)
@@ -140,123 +142,120 @@ local light = nil
 local brightness = 5
 
 senterBtn.MouseButton1Click:Connect(function()
-    senterON.Visible = not senterON.Visible
-    senterOFF.Visible = senterON.Visible
-    tambahCahaya.Visible = senterON.Visible
-    kurangCahaya.Visible = senterON.Visible
-    lokasiFrame.Visible = false
+	senterON.Visible = not senterON.Visible
+	senterOFF.Visible = senterON.Visible
+	tambahCahaya.Visible = senterON.Visible
+	kurangCahaya.Visible = senterON.Visible
+	lokasiFrame.Visible = false
 end)
 
 senterON.MouseButton1Click:Connect(function()
-    lighting.Brightness = 5
-    lighting.ClockTime = 14
-    lighting.FogEnd = 100000
-    lighting.GlobalShadows = false
-    lighting.OutdoorAmbient = Color3.new(1, 1, 1)
-    brightness = 5
-    if light then light:Destroy() end
-    light = Instance.new("PointLight", player.Character:WaitForChild("HumanoidRootPart"))
-    light.Brightness = brightness
-    light.Range = 60
+	lighting.Brightness = 5
+	lighting.ClockTime = 14
+	lighting.FogEnd = 100000
+	lighting.GlobalShadows = false
+	lighting.OutdoorAmbient = Color3.new(1, 1, 1)
+	brightness = 5
+	if light then light:Destroy() end
+	light = Instance.new("PointLight", player.Character:WaitForChild("HumanoidRootPart"))
+	light.Brightness = brightness
+	light.Range = 60
 end)
 
 senterOFF.MouseButton1Click:Connect(function()
-    lighting.Brightness = 2
-    lighting.ClockTime = 20
-    lighting.FogEnd = 300
-    lighting.GlobalShadows = true
-    lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
-    if light then
-        light:Destroy()
-        light = nil
-    end
+	lighting.Brightness = 2
+	lighting.ClockTime = 20
+	lighting.FogEnd = 300
+	lighting.GlobalShadows = true
+	lighting.OutdoorAmbient = Color3.fromRGB(100, 100, 100)
+	if light then
+		light:Destroy()
+		light = nil
+	end
 end)
 
 tambahCahaya.MouseButton1Click:Connect(function()
-    if light then
-        brightness += 1
-        light.Brightness = brightness
-    end
+	if light then
+		brightness += 1
+		light.Brightness = brightness
+	end
 end)
 
 kurangCahaya.MouseButton1Click:Connect(function()
-    if light and brightness > 1 then
-        brightness -= 1
-        light.Brightness = brightness
-    end
+	if light and brightness > 1 then
+		brightness -= 1
+		light.Brightness = brightness
+	end
 end)
 
--- Lokasi teleportasi
-local lokasi = {
-    ["Pos 1"] = Vector3.new(-223, 441, 2114),
-    ["Pos 2"] = Vector3.new(-400, 848, 3210),
-    ["Pos 3"] = Vector3.new(43, 1268, 4030),
-    ["Pos 4"] = Vector3.new(-1168, 1552, 4892),
-    ["Puncak"] = Vector3.new(-718, 1938, 5325)
+-- Lokasi teleportasi urut
+local lokasiUrut = {
+	{Nama = "Pos 1", Posisi = Vector3.new(-223, 441, 2114)},
+	{Nama = "Pos 2", Posisi = Vector3.new(-400, 848, 3210)},
+	{Nama = "Pos 3", Posisi = Vector3.new(43, 1268, 4030)},
+	{Nama = "Pos 4", Posisi = Vector3.new(-1168, 1552, 4892)},
+	{Nama = "Puncak", Posisi = Vector3.new(-718, 1938, 5325)},
 }
 
-for _, key in ipairs({"Pos 1", "Pos 2", "Pos 3", "Pos 4", "Puncak"}) do
-    local pos = lokasi[key]
-    local btn = createButton(key, lokasiFrame)
-    btn.MouseButton1Click:Connect(function()
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if hrp then
-        local bolt = Instance.new("ParticleEmitter", hrp)
-        bolt.LightEmission = 1
-        bolt.Texture = "rbxassetid://243660364"
-        bolt.Lifetime = NumberRange.new(0.2)
-        bolt.Rate = 200
-        bolt:Emit(20)
-        task.wait(0.1)
-        
-        -- Teleport pemain utama
-        hrp.CFrame = CFrame.new(pos)
+for _, data in ipairs(lokasiUrut) do
+	local btn = createButton(data.Nama, lokasiFrame)
+	btn.MouseButton1Click:Connect(function()
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			local bolt = Instance.new("ParticleEmitter", hrp)
+			bolt.LightEmission = 1
+			bolt.Texture = "rbxassetid://243660364"
+			bolt.Lifetime = NumberRange.new(0.2)
+			bolt.Rate = 200
+			bolt:Emit(20)
+			task.wait(0.1)
 
-        -- Coba teleport pemain lain yang digendong (dalam weld atau motor6D)
-        for _, constraint in pairs(hrp:GetChildren()) do
-            if constraint:IsA("Weld") or constraint:IsA("Motor6D") then
-                local part1 = constraint.Part1
-                if part1 and part1:IsDescendantOf(game.Workspace) then
-                    local otherChar = part1:FindFirstAncestorOfClass("Model")
-                    if otherChar and otherChar ~= player.Character and otherChar:FindFirstChild("HumanoidRootPart") then
-                        otherChar:MoveTo(pos + Vector3.new(0, 3, 0)) -- Naik sedikit agar tidak nabrak
-                    end
-                end
-            end
-        end
+			hrp.CFrame = CFrame.new(data.Posisi)
 
-        task.wait(0.2)
-        bolt:Destroy()
-        end
-    end)
+			for _, constraint in pairs(hrp:GetChildren()) do
+				if constraint:IsA("Weld") or constraint:IsA("Motor6D") then
+					local part1 = constraint.Part1
+					if part1 and part1:IsDescendantOf(game.Workspace) then
+						local otherChar = part1:FindFirstAncestorOfClass("Model")
+						if otherChar and otherChar ~= player.Character and otherChar:FindFirstChild("HumanoidRootPart") then
+							otherChar:MoveTo(data.Posisi + Vector3.new(0, 3, 0))
+						end
+					end
+				end
+			end
+
+			task.wait(0.2)
+			bolt:Destroy()
+		end
+	end)
 end
 
 bypassBtn.MouseButton1Click:Connect(function()
-    lokasiFrame.Visible = not lokasiFrame.Visible
-    senterON.Visible = false
-    senterOFF.Visible = false
-    tambahCahaya.Visible = false
-    kurangCahaya.Visible = false
+	lokasiFrame.Visible = not lokasiFrame.Visible
+	senterON.Visible = false
+	senterOFF.Visible = false
+	tambahCahaya.Visible = false
+	kurangCahaya.Visible = false
 end)
 
 -- Toggle WHO AM I menu
 local function toggleSubmenu()
-    toggleState = not toggleState
-    submenuFrame.Size = toggleState and UDim2.new(1, 0, 0, 260) or UDim2.new(1, 0, 0, 0)
-    toggleButton.TextColor3 = toggleState and Color3.fromRGB(255, 0, 0) or Color3.new(1, 1, 1)
-    senterON.Visible = false
-    senterOFF.Visible = false
-    tambahCahaya.Visible = false
-    kurangCahaya.Visible = false
-    lokasiFrame.Visible = false
+	toggleState = not toggleState
+	submenuFrame.Size = toggleState and UDim2.new(1, 0, 0, 260) or UDim2.new(1, 0, 0, 0)
+	toggleButton.TextColor3 = toggleState and Color3.fromRGB(255, 0, 0) or Color3.new(1, 1, 1)
+	senterON.Visible = false
+	senterOFF.Visible = false
+	tambahCahaya.Visible = false
+	kurangCahaya.Visible = false
+	lokasiFrame.Visible = false
 end
 toggleButton.MouseButton1Click:Connect(toggleSubmenu)
 
--- Tombol untuk menyembunyikan/menampilkan seluruh menu
+-- Toggle seluruh GUI
 local uiVisible = true
 toggleUIButton.MouseButton1Click:Connect(function()
-    uiVisible = not uiVisible
-    mainFrame.Visible = uiVisible
-    senterBtn.Visible = uiVisible
-    bypassBtn.Visible = uiVisible
+	uiVisible = not uiVisible
+	mainFrame.Visible = uiVisible
+	senterBtn.Visible = uiVisible
+	bypassBtn.Visible = uiVisible
 end)
