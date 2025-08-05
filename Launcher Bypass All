@@ -12,7 +12,7 @@ screenGui.Parent = playerGui
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.ResetOnSpawn = false
 
--- Loading Text (bottom left)
+-- Loading Text
 local loadingText = Instance.new("TextLabel")
 loadingText.Size = UDim2.new(0, 200, 0, 20)
 loadingText.Position = UDim2.new(0, 10, 1, -30)
@@ -37,7 +37,7 @@ local uicorner = Instance.new("UICorner")
 uicorner.CornerRadius = UDim.new(0, 8)
 uicorner.Parent = mainFrame
 
--- Neon Border (Red)
+-- Neon Border
 for i = 1, 4 do
 	local glow = Instance.new("Frame")
 	glow.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
@@ -145,7 +145,7 @@ infoText.TextSize = 12
 infoText.Font = Enum.Font.Gotham
 infoText.Parent = mainFrame
 
--- Buttons
+-- Discord & LootLabs
 local discord = Instance.new("TextButton")
 discord.Size = UDim2.new(0.45, -5, 0, 30)
 discord.Position = UDim2.new(0.05, 0, 0, 180)
@@ -166,33 +166,7 @@ lootlabs.TextSize = 14
 lootlabs.Font = Enum.Font.GothamBold
 lootlabs.Parent = mainFrame
 
--- Key Check
-local validKey = "Adminganteng"
-
-button.MouseButton1Click:Connect(function()
-	if textbox.Text == validKey then
-		statusText.TextColor3 = Color3.fromRGB(0, 255, 0)
-		statusText.Text = "Correct key!"
-
-		task.wait(1)
-		mainFrame.Visible = false
-
-		-- Jalankan script dari GitHub
-		loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats"))()
-	else
-		statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-		statusText.Text = "Wrong key!"
-
-		local original = mainFrame.Position
-		for i = 1, 6 do
-			mainFrame.Position = original + UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
-			task.wait(0.05)
-		end
-		mainFrame.Position = original
-	end
-end)
-
--- Auto-copy
+-- Copy Function
 local function copyToClipboard(text)
 	if setclipboard then
 		setclipboard(text)
@@ -211,7 +185,58 @@ lootlabs.MouseButton1Click:Connect(function()
 	statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
 end)
 
--- Drag support
+-- === KEY VALIDATION ===
+button.MouseButton1Click:Connect(function()
+	statusText.Text = "Checking key..."
+	statusText.TextColor3 = Color3.fromRGB(255, 255, 0)
+
+	local success, response = pcall(function()
+		return game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/key.txt")
+	end)
+
+	if success then
+		local inputKey = string.match(textbox.Text, "^%s*(.-)%s*$")
+		local valid = false
+
+		for key in string.gmatch(response, "[^\r\n]+") do
+			if inputKey == string.match(key, "^%s*(.-)%s*$") then
+				valid = true
+				break
+			end
+		end
+
+		local extraKeys = {
+			["Adminganteng"] = true,
+			["Whoamidev"] = true,
+		}
+
+		if extraKeys[inputKey] then
+			valid = true
+		end
+
+		if valid then
+			statusText.TextColor3 = Color3.fromRGB(0, 255, 0)
+			statusText.Text = "Correct key!"
+			task.wait(1)
+			mainFrame.Visible = false
+			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats"))()
+		else
+			statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
+			statusText.Text = "Wrong key!"
+			local original = mainFrame.Position
+			for i = 1, 6 do
+				mainFrame.Position = original + UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
+				task.wait(0.05)
+			end
+			mainFrame.Position = original
+		end
+	else
+		statusText.TextColor3 = Color3.fromRGB(255, 0, 0)
+		statusText.Text = "Failed to fetch key!"
+	end
+end)
+
+-- Drag GUI
 local UIS = game:GetService("UserInputService")
 local dragging, dragInput, dragStart, startPos
 
@@ -242,7 +267,7 @@ UIS.InputChanged:Connect(function(input)
 	end
 end)
 
--- Show GUI after loading
+-- Show GUI
 task.wait(3)
 loadingText:Destroy()
 mainFrame.Visible = true
