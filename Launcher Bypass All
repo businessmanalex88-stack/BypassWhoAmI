@@ -1,141 +1,248 @@
--- main.lua
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
-local player = game:GetService("Players").LocalPlayer
-
--- GUI UTAMA
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "KeyAccessUI"
-gui.ResetOnSpawn = false
-
--- Frame verifikasi kunci
-local keyFrame = Instance.new("Frame", gui)
-keyFrame.Size = UDim2.new(0, 300, 0, 160)
-keyFrame.Position = UDim2.new(0.5, -150, 0.5, -80)
-keyFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-keyFrame.BackgroundTransparency = 0
-Instance.new("UICorner", keyFrame).CornerRadius = UDim.new(0, 10)
-
-local title = Instance.new("TextLabel", keyFrame)
-title.Size = UDim2.new(1, -20, 0, 40)
-title.Position = UDim2.new(0, 10, 0, 10)
-title.Text = "🔐 Masukkan Kunci"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextScaled = true
-
-local textbox = Instance.new("TextBox", keyFrame)
-textbox.Size = UDim2.new(1, -40, 0, 35)
-textbox.Position = UDim2.new(0, 20, 0, 60)
-textbox.PlaceholderText = "Ketik kunci di sini..."
-textbox.Text = ""
-textbox.TextColor3 = Color3.new(1, 1, 1)
-textbox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-textbox.Font = Enum.Font.Gotham
-textbox.TextScaled = true
-textbox.ClearTextOnFocus = false
-Instance.new("UICorner", textbox).CornerRadius = UDim.new(0, 6)
-
-local notif = Instance.new("TextLabel", keyFrame)
-notif.Size = UDim2.new(1, -20, 0, 20)
-notif.Position = UDim2.new(0, 10, 1, -25)
-notif.BackgroundTransparency = 1
-notif.Text = ""
-notif.TextColor3 = Color3.fromRGB(255, 50, 50)
-notif.Font = Enum.Font.Gotham
-notif.TextScaled = true
-
-local submit = Instance.new("TextButton", keyFrame)
-submit.Size = UDim2.new(1, -40, 0, 35)
-submit.Position = UDim2.new(0, 20, 0, 105)
-submit.Text = "Masuk"
-submit.TextColor3 = Color3.new(1, 1, 1)
-submit.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-submit.Font = Enum.Font.GothamBold
-submit.TextScaled = true
-Instance.new("UICorner", submit).CornerRadius = UDim.new(0, 6)
-
--- Fungsi verifikasi
-local function verifyKey()
-    if textbox.Text == "Bypassdong" then
-        gui:Destroy()
-
-        -- Loading screen
-        local loading = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-        loading.Name = "LoadingScreen"
-
-        local box = Instance.new("Frame", loading)
-        box.Size = UDim2.new(0, 240, 0, 80)
-        box.Position = UDim2.new(0.5, -120, 0.5, -40)
-        box.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        Instance.new("UICorner", box).CornerRadius = UDim.new(0, 12)
-
-        local label = Instance.new("TextLabel", box)
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.Text = "WAIT....."
-        label.TextColor3 = Color3.fromRGB(255, 0, 0)
-        label.Font = Enum.Font.GothamBold
-        label.TextScaled = true
-        label.BackgroundTransparency = 1
-
-        -- Animasi loading
-        local UIStroke = Instance.new("UIStroke", box)
-        UIStroke.Thickness = 1.5
-        UIStroke.Color = Color3.fromRGB(255, 0, 0)
-        UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-
-        task.wait(5)
-        loading:Destroy()
-
-        -- Launcher GUI
-        local mainGui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-        mainGui.Name = "SimpleLauncher"
-
-        local frame = Instance.new("Frame", mainGui)
-        frame.Size = UDim2.new(0, 250, 0, 170)
-        frame.Position = UDim2.new(0.5, -125, 0.5, -85)
-        frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
-
-        local layout = Instance.new("UIListLayout", frame)
-        layout.Padding = UDim.new(0, 10)
-        layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-        layout.VerticalAlignment = Enum.VerticalAlignment.Center
-
-        local function createBtn(text, url)
-            local btn = Instance.new("TextButton", frame)
-            btn.Size = UDim2.new(0, 200, 0, 40)
-            btn.Text = text
-            btn.TextColor3 = Color3.new(1, 1, 1)
-            btn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-            btn.Font = Enum.Font.GothamBold
-            btn.TextScaled = true
-            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-
-            btn.MouseButton1Click:Connect(function()
-                mainGui:Destroy()
-                loadstring(game:HttpGet(url))()
-            end)
-        end
-
-        createBtn("Bypass Krakatau", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20KRAKATAU")
-        createBtn("Bypass Sumbing", "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BYPASS%20SUMBING")
-
-        local tag = Instance.new("TextLabel", frame)
-        tag.Size = UDim2.new(0, 200, 0, 20)
-        tag.Text = "Bypass Who Am I"
-        tag.TextColor3 = Color3.fromRGB(255, 255, 255)
-        tag.Font = Enum.Font.Gotham
-        tag.TextScaled = true
-        tag.BackgroundTransparency = 1
-    else
-        notif.Text = "Kunci salah! Coba lagi."
-    end
+if playerGui:FindFirstChild("BypassGui") then
+	playerGui:FindFirstChild("BypassGui"):Destroy()
 end
 
-submit.MouseButton1Click:Connect(verifyKey)
-textbox.FocusLost:Connect(function(enterPressed)
-    if enterPressed then
-        verifyKey()
-    end
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "BypassGui"
+screenGui.Parent = playerGui
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.ResetOnSpawn = false
+
+-- Loading Text (bottom left)
+local loadingText = Instance.new("TextLabel")
+loadingText.Size = UDim2.new(0, 200, 0, 20)
+loadingText.Position = UDim2.new(0, 10, 1, -30)
+loadingText.BackgroundTransparency = 1
+loadingText.Text = "Script loaded. Please wait..."
+loadingText.TextColor3 = Color3.fromRGB(180, 180, 180)
+loadingText.TextSize = 12
+loadingText.Font = Enum.Font.Gotham
+loadingText.Parent = screenGui
+
+-- Main Frame
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 220)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -110)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.BorderSizePixel = 0
+mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+mainFrame.Visible = false
+mainFrame.Parent = screenGui
+
+local uicorner = Instance.new("UICorner")
+uicorner.CornerRadius = UDim.new(0, 8)
+uicorner.Parent = mainFrame
+
+-- Neon Border (Red)
+for i = 1, 4 do
+	local glow = Instance.new("Frame")
+	glow.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+	glow.BorderSizePixel = 0
+	glow.BackgroundTransparency = 0.5
+	glow.ZIndex = 0
+	glow.Parent = mainFrame
+
+	if i == 1 then
+		glow.Size = UDim2.new(1, 0, 0, 2)
+		glow.Position = UDim2.new(0, 0, 0, 0)
+	elseif i == 2 then
+		glow.Size = UDim2.new(1, 0, 0, 2)
+		glow.Position = UDim2.new(0, 0, 1, -2)
+	elseif i == 3 then
+		glow.Size = UDim2.new(0, 2, 1, 0)
+		glow.Position = UDim2.new(0, 0, 0, 0)
+	else
+		glow.Size = UDim2.new(0, 2, 1, 0)
+		glow.Position = UDim2.new(1, -2, 0, 0)
+	end
+end
+
+-- Logo
+local image = Instance.new("ImageLabel")
+image.Size = UDim2.new(0, 60, 0, 60)
+image.Position = UDim2.new(0.5, -30, 0, -40)
+image.BackgroundTransparency = 1
+image.Image = "rbxassetid://17615425140"
+image.Parent = mainFrame
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Position = UDim2.new(0, 0, 0, 10)
+title.BackgroundTransparency = 1
+title.Text = "Bypass WhoAmI"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 20
+title.Font = Enum.Font.GothamBold
+title.Parent = mainFrame
+
+-- Subtitle
+local subtitle = Instance.new("TextLabel")
+subtitle.Size = UDim2.new(1, 0, 0, 20)
+subtitle.Position = UDim2.new(0, 0, 0, 40)
+subtitle.BackgroundTransparency = 1
+subtitle.Text = "Key Security"
+subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+subtitle.TextSize = 14
+subtitle.Font = Enum.Font.Gotham
+subtitle.Parent = mainFrame
+
+-- TextBox
+local textbox = Instance.new("TextBox")
+textbox.Size = UDim2.new(0.9, 0, 0, 30)
+textbox.Position = UDim2.new(0.05, 0, 0, 70)
+textbox.PlaceholderText = "Enter Key..."
+textbox.Text = ""
+textbox.ClearTextOnFocus = false
+textbox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+textbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+textbox.TextSize = 14
+textbox.Font = Enum.Font.Gotham
+textbox.Parent = mainFrame
+
+local boxCorner = Instance.new("UICorner")
+boxCorner.CornerRadius = UDim.new(0, 6)
+boxCorner.Parent = textbox
+
+-- Status Text
+local statusText = Instance.new("TextLabel")
+statusText.Size = UDim2.new(1, 0, 0, 20)
+statusText.Position = UDim2.new(0, 0, 0, 100)
+statusText.BackgroundTransparency = 1
+statusText.Text = ""
+statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
+statusText.TextSize = 12
+statusText.Font = Enum.Font.Gotham
+statusText.Parent = mainFrame
+
+-- Button
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0.9, 0, 0, 30)
+button.Position = UDim2.new(0.05, 0, 0, 120)
+button.Text = "Continue"
+button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.TextSize = 16
+button.Font = Enum.Font.GothamBold
+button.Parent = mainFrame
+
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 6)
+buttonCorner.Parent = button
+
+-- Info Text
+local infoText = Instance.new("TextLabel")
+infoText.Size = UDim2.new(1, 0, 0, 20)
+infoText.Position = UDim2.new(0, 0, 0, 155)
+infoText.BackgroundTransparency = 1
+infoText.Text = "Need key? Join our discord."
+infoText.TextColor3 = Color3.fromRGB(180, 180, 180)
+infoText.TextSize = 12
+infoText.Font = Enum.Font.Gotham
+infoText.Parent = mainFrame
+
+-- Buttons
+local discord = Instance.new("TextButton")
+discord.Size = UDim2.new(0.45, -5, 0, 30)
+discord.Position = UDim2.new(0.05, 0, 0, 180)
+discord.Text = "Join Discord"
+discord.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+discord.TextColor3 = Color3.fromRGB(255, 255, 255)
+discord.TextSize = 14
+discord.Font = Enum.Font.GothamBold
+discord.Parent = mainFrame
+
+local lootlabs = Instance.new("TextButton")
+lootlabs.Size = UDim2.new(0.45, -5, 0, 30)
+lootlabs.Position = UDim2.new(0.5, 5, 0, 180)
+lootlabs.Text = "Get Key (LootLabs)"
+lootlabs.BackgroundColor3 = Color3.fromRGB(255, 175, 0)
+lootlabs.TextColor3 = Color3.fromRGB(0, 0, 0)
+lootlabs.TextSize = 14
+lootlabs.Font = Enum.Font.GothamBold
+lootlabs.Parent = mainFrame
+
+-- Key Check
+local validKey = "Adminganteng"
+
+button.MouseButton1Click:Connect(function()
+	if textbox.Text == validKey then
+		statusText.TextColor3 = Color3.fromRGB(0, 255, 0)
+		statusText.Text = "Correct key!"
+
+		task.wait(1)
+		mainFrame.Visible = false
+
+		-- Jalankan script dari GitHub
+		loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats"))()
+	else
+		statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
+		statusText.Text = "Wrong key!"
+
+		local original = mainFrame.Position
+		for i = 1, 6 do
+			mainFrame.Position = original + UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
+			task.wait(0.05)
+		end
+		mainFrame.Position = original
+	end
 end)
+
+-- Auto-copy
+local function copyToClipboard(text)
+	if setclipboard then
+		setclipboard(text)
+	end
+end
+
+discord.MouseButton1Click:Connect(function()
+	copyToClipboard("https://discord.gg/e77s79ZJ")
+	statusText.Text = "Discord link copied!"
+	statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+end)
+
+lootlabs.MouseButton1Click:Connect(function()
+	copyToClipboard("https://lootdest.org/s?Zvo1qoxp")
+	statusText.Text = "LootLabs link copied!"
+	statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
+end)
+
+-- Drag support
+local UIS = game:GetService("UserInputService")
+local dragging, dragInput, dragStart, startPos
+
+mainFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+mainFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+-- Show GUI after loading
+task.wait(3)
+loadingText:Destroy()
+mainFrame.Visible = true
