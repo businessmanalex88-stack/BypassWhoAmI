@@ -3,51 +3,78 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
--- Konfigurasi
 local speedBoost, normalSpeed = 100, 16
 local jumpBoost, normalJump = 180, 50
 local isSpeedOn, isJumpOn = false, false
 
--- GUI setup
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "SpeedJumpGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Fungsi buat tombol elegan
 local function createStyledButton(name, anchorPos, color, text)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(0, 120, 0, 50)
+	button.Size = UDim2.new(0, 90, 0, 35)
 	button.Position = anchorPos
 	button.AnchorPoint = Vector2.new(0, 1)
 	button.BackgroundColor3 = color
 	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Font = Enum.Font.GothamBold
+	button.Font = Enum.Font.Gotham
 	button.TextScaled = true
 	button.Text = text
 	button.AutoButtonColor = false
 	button.Parent = screenGui
-	
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 12)
+
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 	local stroke = Instance.new("UIStroke", button)
-	stroke.Thickness = 2
+	stroke.Thickness = 1.5
 	stroke.Color = Color3.fromRGB(255, 0, 0)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	return button
 end
 
--- Animasi klik tombol
+local function createMiniButton(name, anchorPos, text)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(0, 30, 0, 30)
+	button.Position = anchorPos
+	button.AnchorPoint = Vector2.new(0, 1)
+	button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.Gotham
+	button.TextScaled = true
+	button.Text = text
+	button.AutoButtonColor = false
+	button.Parent = screenGui
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+	return button
+end
+
+local function createLabel(name, anchorPos, text)
+	local label = Instance.new("TextLabel")
+	label.Name = name
+	label.Size = UDim2.new(0, 45, 0, 35)
+	label.Position = anchorPos
+	label.AnchorPoint = Vector2.new(0, 1)
+	label.BackgroundTransparency = 1
+	label.TextColor3 = Color3.new(1, 1, 1)
+	label.Font = Enum.Font.Gotham
+	label.TextScaled = true
+	label.Text = text
+	label.Parent = screenGui
+	return label
+end
+
 local function animateButton(button)
 	local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	local scaleUp = TweenService:Create(button, tweenInfo, { Size = UDim2.new(0, 130, 0, 55) })
-	local scaleDown = TweenService:Create(button, tweenInfo, { Size = UDim2.new(0, 120, 0, 50) })
+	local scaleUp = TweenService:Create(button, tweenInfo, { Size = button.Size + UDim2.new(0, 5, 0, 5) })
+	local scaleDown = TweenService:Create(button, tweenInfo, { Size = button.Size })
 	scaleUp:Play()
 	scaleUp.Completed:Wait()
 	scaleDown:Play()
 end
 
--- Fungsi update Speed
 local function updateSpeed()
 	local char = player.Character
 	if char and char:FindFirstChild("Humanoid") then
@@ -55,7 +82,6 @@ local function updateSpeed()
 	end
 end
 
--- Fungsi update Jump
 local function updateJump()
 	local char = player.Character
 	if char and char:FindFirstChild("Humanoid") then
@@ -66,12 +92,18 @@ local function updateJump()
 	end
 end
 
--- Tombol Speed
+-- SPEED UI
 local speedButton = createStyledButton("SpeedButton", UDim2.new(0, 20, 1, -20), Color3.fromRGB(170, 0, 0), "Speed OFF")
+local speedLabel = createLabel("SpeedLabel", UDim2.new(0, 115, 1, -20), tostring(speedBoost))
+local speedPlus = createMiniButton("SpeedPlus", UDim2.new(0, 165, 1, -20), "+")
+local speedMinus = createMiniButton("SpeedMinus", UDim2.new(0, 200, 1, -20), "-")
+
 local function updateSpeedButton()
 	speedButton.BackgroundColor3 = isSpeedOn and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
 	speedButton.Text = isSpeedOn and "Speed ON" or "Speed OFF"
+	speedLabel.Text = tostring(speedBoost)
 end
+
 speedButton.MouseButton1Click:Connect(function()
 	isSpeedOn = not isSpeedOn
 	updateSpeed()
@@ -79,12 +111,30 @@ speedButton.MouseButton1Click:Connect(function()
 	animateButton(speedButton)
 end)
 
--- Tombol Jump
-local jumpButton = createStyledButton("JumpButton", UDim2.new(0, 150, 1, -20), Color3.fromRGB(170, 0, 0), "Jump OFF")
+speedPlus.MouseButton1Click:Connect(function()
+	speedBoost = math.min(speedBoost + 5, 300)
+	if isSpeedOn then updateSpeed() end
+	updateSpeedButton()
+end)
+
+speedMinus.MouseButton1Click:Connect(function()
+	speedBoost = math.max(speedBoost - 5, 16)
+	if isSpeedOn then updateSpeed() end
+	updateSpeedButton()
+end)
+
+-- JUMP UI
+local jumpButton = createStyledButton("JumpButton", UDim2.new(0, 20, 1, -65), Color3.fromRGB(170, 0, 0), "Jump OFF")
+local jumpLabel = createLabel("JumpLabel", UDim2.new(0, 115, 1, -65), tostring(jumpBoost))
+local jumpPlus = createMiniButton("JumpPlus", UDim2.new(0, 165, 1, -65), "+")
+local jumpMinus = createMiniButton("JumpMinus", UDim2.new(0, 200, 1, -65), "-")
+
 local function updateJumpButton()
 	jumpButton.BackgroundColor3 = isJumpOn and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
 	jumpButton.Text = isJumpOn and "Jump ON" or "Jump OFF"
+	jumpLabel.Text = tostring(jumpBoost)
 end
+
 jumpButton.MouseButton1Click:Connect(function()
 	isJumpOn = not isJumpOn
 	updateJump()
@@ -92,18 +142,28 @@ jumpButton.MouseButton1Click:Connect(function()
 	animateButton(jumpButton)
 end)
 
--- Fungsi Anti Fall Death Lengkap
+jumpPlus.MouseButton1Click:Connect(function()
+	jumpBoost = math.min(jumpBoost + 10, 500)
+	if isJumpOn then updateJump() end
+	updateJumpButton()
+end)
+
+jumpMinus.MouseButton1Click:Connect(function()
+	jumpBoost = math.max(jumpBoost - 10, 50)
+	if isJumpOn then updateJump() end
+	updateJumpButton()
+end)
+
+-- Anti Fall Damage
 local function applyAntiFallDamage(char)
 	local hum = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	-- Matikan fall damage dari humanoid default
 	hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
 	hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
 	hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
 	hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
 
-	-- Hapus script fall damage dari game (jika ada)
 	for _, v in pairs(char:GetDescendants()) do
 		if v:IsA("Script") or v:IsA("LocalScript") then
 			if string.lower(v.Name):find("falldamage") then
@@ -112,7 +172,6 @@ local function applyAntiFallDamage(char)
 		end
 	end
 
-	-- Deteksi jatuh & redam velocity saat hampir mendarat
 	RunService.Heartbeat:Connect(function()
 		if hum:GetState() == Enum.HumanoidStateType.Freefall then
 			if hrp.Velocity.Y < -80 then
@@ -122,7 +181,6 @@ local function applyAntiFallDamage(char)
 	end)
 end
 
--- Saat karakter respawn
 player.CharacterAdded:Connect(function(char)
 	char:WaitForChild("Humanoid")
 	updateSpeed()
@@ -132,7 +190,6 @@ player.CharacterAdded:Connect(function(char)
 	applyAntiFallDamage(char)
 end)
 
--- Jika karakter sudah ada
 if player.Character and player.Character:FindFirstChild("Humanoid") then
 	updateSpeed()
 	updateJump()
@@ -141,7 +198,6 @@ if player.Character and player.Character:FindFirstChild("Humanoid") then
 	applyAntiFallDamage(player.Character)
 end
 
--- Loop cegah jump di-reset
 task.spawn(function()
 	while true do
 		task.wait(2)
