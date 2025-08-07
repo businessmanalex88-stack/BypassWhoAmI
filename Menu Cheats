@@ -59,10 +59,10 @@ Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
 
 local minBtn = Instance.new("TextButton", menu)
 minBtn.Size = UDim2.new(0, 25, 0, 25)
-minBtn.Position = UDim2.new(1, -60, 0, 5)
+minBtn.Position = UDim2.new(1, -60, 0,5) 
+minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 minBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 minBtn.Text = "-"
-minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 minBtn.TextSize = 18
 minBtn.Font = Enum.Font.GothamBold
 Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
@@ -83,7 +83,6 @@ cheatBtn.Font = Enum.Font.GothamBold
 cheatBtn.TextSize = 14
 Instance.new("UICorner", cheatBtn).CornerRadius = UDim.new(0, 6)
 
--- ✅ TOMBOL CLEAR (PERILAKU SAMA DENGAN CLOSE)
 local clearBtn = Instance.new("TextButton", side)
 clearBtn.Size = UDim2.new(1, -10, 0, 35)
 clearBtn.Position = UDim2.new(0, 5, 0, 55)
@@ -118,6 +117,23 @@ content.Position = UDim2.new(0, 110, 0, 40)
 content.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Instance.new("UICorner", content).CornerRadius = UDim.new(0, 6)
 
+-- ✅ Tambahan koordinat
+local teleportPoints = {
+	["gn.sumbing"] = {
+		[1] = CFrame.new(-223, 441, 2114),
+		[2] = CFrame.new(-400, 848, 3210),
+		[3] = CFrame.new(43, 1268, 4030),
+		[4] = CFrame.new(-1168, 1552, 4892),
+		[5] = CFrame.new(-718, 1938, 5325), -- Puncak
+	},
+	["gn.krakatau"] = {
+		[1] = CFrame.new(829, 307, 414),
+		[2] = CFrame.new(1647, 463, 496),
+		[3] = CFrame.new(2058, 562, -110),
+		[4] = CFrame.new(1289, 844, -134), -- Puncak
+	}
+}
+
 local function showGunungPos(gunung, posCount)
 	for _, c in pairs(content:GetChildren()) do
 		if c:IsA("TextButton") then c:Destroy() end
@@ -134,7 +150,12 @@ local function showGunungPos(gunung, posCount)
 		b.Font = Enum.Font.Gotham
 		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
 		b.MouseButton1Click:Connect(function()
-			print("Teleport to " .. gunung .. " - " .. label)
+			local targetCFrame = teleportPoints[gunung] and teleportPoints[gunung][i]
+			if targetCFrame and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+				player.Character.HumanoidRootPart.CFrame = targetCFrame
+			else
+				warn("Gagal teleport: koordinat tidak ditemukan.")
+			end
 		end)
 	end
 	backBtn.Visible = true
