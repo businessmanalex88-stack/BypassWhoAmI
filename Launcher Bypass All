@@ -186,7 +186,7 @@ lootlabs.MouseButton1Click:Connect(function()
 	statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
 end)
 
--- === KEY VALIDATION (VERCEL) ===
+-- === KEY VALIDATION (FINAL VERCEL VERSION) ===
 button.MouseButton1Click:Connect(function()
 	statusText.Text = "Checking key..."
 	statusText.TextColor3 = Color3.fromRGB(255, 255, 0)
