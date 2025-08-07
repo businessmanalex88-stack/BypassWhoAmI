@@ -167,7 +167,7 @@ lootlabs.TextSize = 14
 lootlabs.Font = Enum.Font.GothamBold
 lootlabs.Parent = mainFrame
 
--- Copy to Clipboard Function
+-- Copy Function
 local function copyToClipboard(text)
 	if setclipboard then
 		setclipboard(text)
@@ -186,7 +186,7 @@ lootlabs.MouseButton1Click:Connect(function()
 	statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
 end)
 
--- === KEY VALIDATION WITH VERCEL JSON API ===
+-- === KEY VALIDATION (VERCEL) ===
 button.MouseButton1Click:Connect(function()
 	statusText.Text = "Checking key..."
 	statusText.TextColor3 = Color3.fromRGB(255, 255, 0)
