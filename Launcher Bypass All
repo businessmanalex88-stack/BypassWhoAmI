@@ -186,13 +186,13 @@ lootlabs.MouseButton1Click:Connect(function()
 	statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
 end)
 
--- === KEY VALIDATION (FINAL VERCEL VERSION) ===
+-- === KEY VALIDATION (VERCEL FINAL) ===
 button.MouseButton1Click:Connect(function()
 	statusText.Text = "Checking key..."
 	statusText.TextColor3 = Color3.fromRGB(255, 255, 0)
 
 	local success, response = pcall(function()
-		return game:HttpGet("https://whoami-key-api.vercel.app")
+		return game:HttpGet("https://whoami-key-api.vercel.app/api/admin?password=Whoamidev1819")
 	end)
 
 	if success then
