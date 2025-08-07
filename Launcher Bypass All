@@ -221,6 +221,23 @@ button.MouseButton1Click:Connect(function()
 			statusText.TextColor3 = Color3.fromRGB(0, 255, 0)
 			statusText.Text = "Correct key!"
 			task.wait(1)
+
+			-- 🔥 Kirim log ke Vercel
+			pcall(function()
+				local logData = HttpService:JSONEncode({
+					key = inputKey,
+					user = player.Name,
+					timestamp = os.time()
+				})
+
+				game:HttpPost(
+					"https://whoami-key-api.vercel.app/api/logUsage",
+					logData,
+					Enum.HttpContentType.ApplicationJson,
+					false
+				)
+			end)
+
 			mainFrame.Visible = false
 			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats"))()
 		else
