@@ -186,7 +186,7 @@ lootlabs.MouseButton1Click:Connect(function()
 	statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
 end)
 
--- === KEY VALIDATION (VERCEL FINAL) ===
+-- === KEY VALIDATION (OBJECT KEYS[]) ===
 button.MouseButton1Click:Connect(function()
 	statusText.Text = "Checking key..."
 	statusText.TextColor3 = Color3.fromRGB(255, 255, 0)
@@ -196,12 +196,13 @@ button.MouseButton1Click:Connect(function()
 	end)
 
 	if success then
-		local decodedKeys = HttpService:JSONDecode(response)
+		local data = HttpService:JSONDecode(response)
+		local decodedKeys = data.keys or {}
 		local inputKey = string.match(textbox.Text, "^%s*(.-)%s*$")
 		local valid = false
 
-		for _, key in pairs(decodedKeys) do
-			if inputKey == string.match(key, "^%s*(.-)%s*$") then
+		for _, item in pairs(decodedKeys) do
+			if item.key == inputKey then
 				valid = true
 				break
 			end
