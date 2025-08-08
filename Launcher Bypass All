@@ -197,9 +197,13 @@ button.MouseButton1Click:Connect(function()
 
 	if success then
 		local data = HttpService:JSONDecode(response)
-		local decodedKeys = data.keys or {}
-		local inputKey = string.match(textbox.Text, "^%s*(.-)%s*$")
-		local valid = false
+local decodedKeys = data.keys or {}
+
+print("Decoded keys:")
+print(HttpService:JSONEncode(decodedKeys))  -- ⬅️ Tambahan debug
+
+local inputKey = string.match(textbox.Text, "^%s*(.-)%s*$")
+local valid = false
 
 		for _, item in pairs(decodedKeys) do
 	if typeof(item) == "table" and item.key == inputKey then
