@@ -202,11 +202,11 @@ button.MouseButton1Click:Connect(function()
 		local valid = false
 
 		for _, item in pairs(decodedKeys) do
-			if item.key == inputKey then
-				valid = true
-				break
-			end
-		end
+	if typeof(item) == "table" and item.key == inputKey then
+		valid = true
+		break
+	end
+end
 
 		local extraKeys = {
 			["Adminganteng"] = true,
