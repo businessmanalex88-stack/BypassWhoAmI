@@ -1,297 +1,632 @@
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-local player = Players.LocalPlayer
+-- =====================================================
+-- WhoAmI Bypass - Professional Edition v2.0
+-- Enhanced security and user experience
+-- =====================================================
+
+-- Services
+local Services = {
+    Players = game:GetService("Players"),
+    HttpService = game:GetService("HttpService"),
+    UserInputService = game:GetService("UserInputService"),
+    TweenService = game:GetService("TweenService"),
+    ReplicatedStorage = game:GetService("ReplicatedStorage"),
+    SoundService = game:GetService("SoundService")
+}
+
+-- Configuration
+local Config = {
+    API_BASE = "https://whoami-key-api.vercel.app/api",
+    ADMIN_PASSWORD = "Whoamidev1819",
+    FALLBACK_KEYS = {
+        ["Adminganteng"] = true,
+        ["Whoamidev"] = true,
+        ["WhoAmIAdmin2025"] = true
+    },
+    MAIN_SCRIPT_URL = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats",
+    DISCORD_LINK = "https://discord.gg/e77s79ZJ",
+    LOOTLABS_LINK = "https://lootdest.org/s?Zvo1qoxp"
+}
+
+-- Variables
+local player = Services.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+local screenGui = nil
+local mainFrame = nil
 
-if playerGui:FindFirstChild("BypassGui") then
-	playerGui:FindFirstChild("BypassGui"):Destroy()
+-- Utility Functions
+local Utils = {
+    -- Smooth text animation
+    typeWriterEffect = function(textLabel, text, speed)
+        textLabel.Text = ""
+        local speed = speed or 0.05
+        for i = 1, #text do
+            textLabel.Text = text:sub(1, i)
+            task.wait(speed)
+        end
+    end,
+    
+    -- Copy to clipboard with fallback
+    copyToClipboard = function(text)
+        local success = pcall(function()
+            if setclipboard then
+                setclipboard(text)
+                return true
+            end
+        end)
+        return success
+    end,
+    
+    -- Trim whitespace
+    trim = function(str)
+        return str:match("^%s*(.-)%s*$")
+    end,
+    
+    -- Shake animation for errors
+    shakeFrame = function(frame)
+        local originalPosition = frame.Position
+        local shakeInfo = TweenInfo.new(0.1, Enum.EasingStyle.Bounce, Enum.EasingDirection.InOut, 0, true, 0)
+        
+        for i = 1, 3 do
+            local offset = UDim2.new(0, math.random(-8, 8), 0, math.random(-5, 5))
+            local tween = Services.TweenService:Create(frame, shakeInfo, {Position = originalPosition + offset})
+            tween:Play()
+            tween.Completed:Wait()
+        end
+        
+        frame.Position = originalPosition
+    end,
+    
+    -- Smooth slide in animation
+    slideIn = function(frame, direction)
+        local originalPosition = frame.Position
+        local startPosition
+        
+        if direction == "top" then
+            startPosition = originalPosition - UDim2.new(0, 0, 1, 0)
+        elseif direction == "bottom" then
+            startPosition = originalPosition + UDim2.new(0, 0, 1, 0)
+        elseif direction == "left" then
+            startPosition = originalPosition - UDim2.new(1, 0, 0, 0)
+        else -- right
+            startPosition = originalPosition + UDim2.new(1, 0, 0, 0)
+        end
+        
+        frame.Position = startPosition
+        frame.Visible = true
+        
+        local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+        local tween = Services.TweenService:Create(frame, tweenInfo, {Position = originalPosition})
+        tween:Play()
+    end
+}
+
+-- GUI Creation
+local function createGui()
+    -- Clean up existing GUI
+    if playerGui:FindFirstChild("WhoAmIBypassGui") then
+        playerGui:FindFirstChild("WhoAmIBypassGui"):Destroy()
+    end
+    
+    -- Create ScreenGui
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "WhoAmIBypassGui"
+    screenGui.Parent = playerGui
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    screenGui.ResetOnSpawn = false
+    screenGui.DisplayOrder = 999
+    
+    -- Loading container (minimalist)
+    local loadingContainer = Instance.new("Frame")
+    loadingContainer.Name = "LoadingContainer"
+    loadingContainer.Size = UDim2.new(0, 280, 0, 80)
+    loadingContainer.Position = UDim2.new(0.5, -140, 0.5, -40)
+    loadingContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    loadingContainer.BackgroundTransparency = 0.1
+    loadingContainer.BorderSizePixel = 0
+    loadingContainer.Parent = screenGui
+    
+    local loadingCorner = Instance.new("UICorner")
+    loadingCorner.CornerRadius = UDim.new(0, 12)
+    loadingCorner.Parent = loadingContainer
+    
+    -- Subtle border
+    local loadingBorder = Instance.new("UIStroke")
+    loadingBorder.Color = Color3.fromRGB(255, 50, 50)
+    loadingBorder.Thickness = 1
+    loadingBorder.Transparency = 0.7
+    loadingBorder.Parent = loadingContainer
+    
+    -- Loading text (compact)
+    local loadingText = Instance.new("TextLabel")
+    loadingText.Name = "LoadingText"
+    loadingText.Size = UDim2.new(1, -60, 1, 0)
+    loadingText.Position = UDim2.new(0, 50, 0, 0)
+    loadingText.BackgroundTransparency = 1
+    loadingText.Text = "Loading..."
+    loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    loadingText.TextSize = 14
+    loadingText.Font = Enum.Font.GothamMedium
+    loadingText.TextXAlignment = Enum.TextXAlignment.Left
+    loadingText.Parent = loadingContainer
+    
+    -- Compact spinner
+    local spinner = Instance.new("ImageLabel")
+    spinner.Size = UDim2.new(0, 24, 0, 24)
+    spinner.Position = UDim2.new(0, 15, 0.5, -12)
+    spinner.BackgroundTransparency = 1
+    spinner.Image = "rbxassetid://17615425140"
+    spinner.Parent = loadingContainer
+    
+    local spinnerCorner = Instance.new("UICorner")
+    spinnerCorner.CornerRadius = UDim.new(0, 4)
+    spinnerCorner.Parent = spinner
+    
+    -- Spinning animation
+    local spinTween = Services.TweenService:Create(
+        spinner,
+        TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
+        {Rotation = 360}
+    )
+    spinTween:Play()
+    
+    return loadingContainer, loadingText
 end
 
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "BypassGui"
-screenGui.Parent = playerGui
-screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-screenGui.ResetOnSpawn = false
-
--- Loading Text
-local loadingText = Instance.new("TextLabel")
-loadingText.Size = UDim2.new(0, 200, 0, 20)
-loadingText.Position = UDim2.new(0, 10, 1, -30)
-loadingText.BackgroundTransparency = 1
-loadingText.Text = "Script loaded. Please wait..."
-loadingText.TextColor3 = Color3.fromRGB(180, 180, 180)
-loadingText.TextSize = 12
-loadingText.Font = Enum.Font.Gotham
-loadingText.Parent = screenGui
-
--- Main Frame
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 220)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -110)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-mainFrame.BorderSizePixel = 0
-mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-mainFrame.Visible = false
-mainFrame.Parent = screenGui
-
-local uicorner = Instance.new("UICorner")
-uicorner.CornerRadius = UDim.new(0, 8)
-uicorner.Parent = mainFrame
-
--- Neon Border
-for i = 1, 4 do
-	local glow = Instance.new("Frame")
-	glow.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-	glow.BorderSizePixel = 0
-	glow.BackgroundTransparency = 0.5
-	glow.ZIndex = 0
-	glow.Parent = mainFrame
-
-	if i == 1 then
-		glow.Size = UDim2.new(1, 0, 0, 2)
-		glow.Position = UDim2.new(0, 0, 0, 0)
-	elseif i == 2 then
-		glow.Size = UDim2.new(1, 0, 0, 2)
-		glow.Position = UDim2.new(0, 0, 1, -2)
-	elseif i == 3 then
-		glow.Size = UDim2.new(0, 2, 1, 0)
-		glow.Position = UDim2.new(0, 0, 0, 0)
-	else
-		glow.Size = UDim2.new(0, 2, 1, 0)
-		glow.Position = UDim2.new(1, -2, 0, 0)
-	end
+-- Main Frame Creation
+local function createMainFrame()
+    -- Main container
+    mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 380, 0, 280)
+    mainFrame.Position = UDim2.new(0.5, -190, 0.5, -140)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    mainFrame.Visible = false
+    mainFrame.Parent = screenGui
+    
+    -- Modern rounded corners
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 16)
+    mainCorner.Parent = mainFrame
+    
+    -- Drop shadow effect
+    local shadowFrame = Instance.new("Frame")
+    shadowFrame.Size = UDim2.new(1, 20, 1, 20)
+    shadowFrame.Position = UDim2.new(0, -10, 0, -10)
+    shadowFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadowFrame.BackgroundTransparency = 0.8
+    shadowFrame.BorderSizePixel = 0
+    shadowFrame.ZIndex = -1
+    shadowFrame.Parent = mainFrame
+    
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 20)
+    shadowCorner.Parent = shadowFrame
+    
+    -- Animated border gradient
+    local borderFrame = Instance.new("Frame")
+    borderFrame.Size = UDim2.new(1, 4, 1, 4)
+    borderFrame.Position = UDim2.new(0, -2, 0, -2)
+    borderFrame.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    borderFrame.BorderSizePixel = 0
+    borderFrame.ZIndex = -1
+    borderFrame.Parent = mainFrame
+    
+    local borderCorner = Instance.new("UICorner")
+    borderCorner.CornerRadius = UDim.new(0, 18)
+    borderCorner.Parent = borderFrame
+    
+    -- Border glow animation
+    local glowTween = Services.TweenService:Create(
+        borderFrame,
+        TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {BackgroundColor3 = Color3.fromRGB(255, 100, 100)}
+    )
+    glowTween:Play()
+    
+    -- Header section
+    local headerFrame = Instance.new("Frame")
+    headerFrame.Size = UDim2.new(1, 0, 0, 80)
+    headerFrame.Position = UDim2.new(0, 0, 0, 0)
+    headerFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+    headerFrame.BorderSizePixel = 0
+    headerFrame.Parent = mainFrame
+    
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 16)
+    headerCorner.Parent = headerFrame
+    
+    -- Fix header bottom corners
+    local headerMask = Instance.new("Frame")
+    headerMask.Size = UDim2.new(1, 0, 0, 16)
+    headerMask.Position = UDim2.new(0, 0, 1, -16)
+    headerMask.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+    headerMask.BorderSizePixel = 0
+    headerMask.Parent = headerFrame
+    
+    -- Logo
+    local logo = Instance.new("ImageLabel")
+    logo.Size = UDim2.new(0, 45, 0, 45)
+    logo.Position = UDim2.new(0, 20, 0.5, -22.5)
+    logo.BackgroundTransparency = 1
+    logo.Image = "rbxassetid://17615425140"
+    logo.Parent = headerFrame
+    
+    local logoCorner = Instance.new("UICorner")
+    logoCorner.CornerRadius = UDim.new(0, 8)
+    logoCorner.Parent = logo
+    
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(0, 250, 0, 25)
+    title.Position = UDim2.new(0, 75, 0, 15)
+    title.BackgroundTransparency = 1
+    title.Text = "WhoAmI Bypass System"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 18
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = headerFrame
+    
+    -- Subtitle
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Size = UDim2.new(0, 250, 0, 20)
+    subtitle.Position = UDim2.new(0, 75, 0, 38)
+    subtitle.BackgroundTransparency = 1
+    subtitle.Text = "Professional Security Suite"
+    subtitle.TextColor3 = Color3.fromRGB(180, 180, 180)
+    subtitle.TextSize = 12
+    subtitle.Font = Enum.Font.Gotham
+    subtitle.TextXAlignment = Enum.TextXAlignment.Left
+    subtitle.Parent = headerFrame
+    
+    -- Key input section
+    local inputLabel = Instance.new("TextLabel")
+    inputLabel.Size = UDim2.new(1, -40, 0, 20)
+    inputLabel.Position = UDim2.new(0, 20, 0, 100)
+    inputLabel.BackgroundTransparency = 1
+    inputLabel.Text = "Access Key Required"
+    inputLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    inputLabel.TextSize = 14
+    inputLabel.Font = Enum.Font.GothamMedium
+    inputLabel.TextXAlignment = Enum.TextXAlignment.Left
+    inputLabel.Parent = mainFrame
+    
+    -- Key textbox with modern styling
+    local keyInput = Instance.new("TextBox")
+    keyInput.Name = "KeyInput"
+    keyInput.Size = UDim2.new(1, -40, 0, 35)
+    keyInput.Position = UDim2.new(0, 20, 0, 125)
+    keyInput.PlaceholderText = "Enter your access key..."
+    keyInput.Text = ""
+    keyInput.ClearTextOnFocus = false
+    keyInput.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
+    keyInput.BorderColor3 = Color3.fromRGB(50, 60, 80)
+    keyInput.BorderSizePixel = 1
+    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+    keyInput.TextSize = 14
+    keyInput.Font = Enum.Font.Gotham
+    keyInput.Parent = mainFrame
+    
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 8)
+    inputCorner.Parent = keyInput
+    
+    -- Input focus effects
+    keyInput.Focused:Connect(function()
+        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(255, 50, 50)}):Play()
+    end)
+    
+    keyInput.FocusLost:Connect(function()
+        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(50, 60, 80)}):Play()
+    end)
+    
+    -- Status text
+    local statusText = Instance.new("TextLabel")
+    statusText.Name = "StatusText"
+    statusText.Size = UDim2.new(1, -40, 0, 18)
+    statusText.Position = UDim2.new(0, 20, 0, 165)
+    statusText.BackgroundTransparency = 1
+    statusText.Text = ""
+    statusText.TextColor3 = Color3.fromRGB(255, 180, 180)
+    statusText.TextSize = 12
+    statusText.Font = Enum.Font.Gotham
+    statusText.TextXAlignment = Enum.TextXAlignment.Left
+    statusText.Parent = mainFrame
+    
+    -- Submit button
+    local submitButton = Instance.new("TextButton")
+    submitButton.Name = "SubmitButton"
+    submitButton.Size = UDim2.new(1, -40, 0, 35)
+    submitButton.Position = UDim2.new(0, 20, 0, 185)
+    submitButton.Text = "🔓 Authenticate"
+    submitButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    submitButton.BorderSizePixel = 0
+    submitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    submitButton.TextSize = 14
+    submitButton.Font = Enum.Font.GothamBold
+    submitButton.Parent = mainFrame
+    
+    local submitCorner = Instance.new("UICorner")
+    submitCorner.CornerRadius = UDim.new(0, 8)
+    submitCorner.Parent = submitButton
+    
+    -- Button hover effects
+    submitButton.MouseEnter:Connect(function()
+        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 80, 80)}):Play()
+    end)
+    
+    submitButton.MouseLeave:Connect(function()
+        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)}):Play()
+    end)
+    
+    -- Links section
+    local linksFrame = Instance.new("Frame")
+    linksFrame.Size = UDim2.new(1, -40, 0, 25)
+    linksFrame.Position = UDim2.new(0, 20, 0, 230)
+    linksFrame.BackgroundTransparency = 1
+    linksFrame.Parent = mainFrame
+    
+    local discordButton = Instance.new("TextButton")
+    discordButton.Name = "DiscordButton"
+    discordButton.Size = UDim2.new(0.48, 0, 1, 0)
+    discordButton.Position = UDim2.new(0, 0, 0, 0)
+    discordButton.Text = "🎮 Discord"
+    discordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+    discordButton.BorderSizePixel = 0
+    discordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    discordButton.TextSize = 12
+    discordButton.Font = Enum.Font.GothamMedium
+    discordButton.Parent = linksFrame
+    
+    local discordCorner = Instance.new("UICorner")
+    discordCorner.CornerRadius = UDim.new(0, 6)
+    discordCorner.Parent = discordButton
+    
+    local keyButton = Instance.new("TextButton")
+    keyButton.Name = "KeyButton"
+    keyButton.Size = UDim2.new(0.48, 0, 1, 0)
+    keyButton.Position = UDim2.new(0.52, 0, 0, 0)
+    keyButton.Text = "🔑 Get Key"
+    keyButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    keyButton.BorderSizePixel = 0
+    keyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    keyButton.TextSize = 12
+    keyButton.Font = Enum.Font.GothamMedium
+    keyButton.Parent = linksFrame
+    
+    local keyCorner = Instance.new("UICorner")
+    keyCorner.CornerRadius = UDim.new(0, 6)
+    keyCorner.Parent = keyButton
+    
+    return mainFrame, keyInput, statusText, submitButton, discordButton, keyButton
 end
 
--- Logo
-local image = Instance.new("ImageLabel")
-image.Size = UDim2.new(0, 60, 0, 60)
-image.Position = UDim2.new(0.5, -30, 0, -40)
-image.BackgroundTransparency = 1
-image.Image = "rbxassetid://17615425140"
-image.Parent = mainFrame
-
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Position = UDim2.new(0, 0, 0, 10)
-title.BackgroundTransparency = 1
-title.Text = "Bypass WhoAmI"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 20
-title.Font = Enum.Font.GothamBold
-title.Parent = mainFrame
-
--- Subtitle
-local subtitle = Instance.new("TextLabel")
-subtitle.Size = UDim2.new(1, 0, 0, 20)
-subtitle.Position = UDim2.new(0, 0, 0, 40)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "Key Security"
-subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
-subtitle.TextSize = 14
-subtitle.Font = Enum.Font.Gotham
-subtitle.Parent = mainFrame
-
--- TextBox
-local textbox = Instance.new("TextBox")
-textbox.Size = UDim2.new(0.9, 0, 0, 30)
-textbox.Position = UDim2.new(0.05, 0, 0, 70)
-textbox.PlaceholderText = "Enter Key..."
-textbox.Text = ""
-textbox.ClearTextOnFocus = false
-textbox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-textbox.TextColor3 = Color3.fromRGB(255, 255, 255)
-textbox.TextSize = 14
-textbox.Font = Enum.Font.Gotham
-textbox.Parent = mainFrame
-
-local boxCorner = Instance.new("UICorner")
-boxCorner.CornerRadius = UDim.new(0, 6)
-boxCorner.Parent = textbox
-
--- Status Text
-local statusText = Instance.new("TextLabel")
-statusText.Size = UDim2.new(1, 0, 0, 20)
-statusText.Position = UDim2.new(0, 0, 0, 100)
-statusText.BackgroundTransparency = 1
-statusText.Text = ""
-statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-statusText.TextSize = 12
-statusText.Font = Enum.Font.Gotham
-statusText.Parent = mainFrame
-
--- Button
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0.9, 0, 0, 30)
-button.Position = UDim2.new(0.05, 0, 0, 120)
-button.Text = "Continue"
-button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-button.TextColor3 = Color3.fromRGB(255, 255, 255)
-button.TextSize = 16
-button.Font = Enum.Font.GothamBold
-button.Parent = mainFrame
-
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 6)
-buttonCorner.Parent = button
-
--- Info Text
-local infoText = Instance.new("TextLabel")
-infoText.Size = UDim2.new(1, 0, 0, 20)
-infoText.Position = UDim2.new(0, 0, 0, 155)
-infoText.BackgroundTransparency = 1
-infoText.Text = "Need key? Join our discord."
-infoText.TextColor3 = Color3.fromRGB(180, 180, 180)
-infoText.TextSize = 12
-infoText.Font = Enum.Font.Gotham
-infoText.Parent = mainFrame
-
--- Discord & LootLabs
-local discord = Instance.new("TextButton")
-discord.Size = UDim2.new(0.45, -5, 0, 30)
-discord.Position = UDim2.new(0.05, 0, 0, 180)
-discord.Text = "Join Discord"
-discord.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-discord.TextColor3 = Color3.fromRGB(255, 255, 255)
-discord.TextSize = 14
-discord.Font = Enum.Font.GothamBold
-discord.Parent = mainFrame
-
-local lootlabs = Instance.new("TextButton")
-lootlabs.Size = UDim2.new(0.45, -5, 0, 30)
-lootlabs.Position = UDim2.new(0.5, 5, 0, 180)
-lootlabs.Text = "Get Key (LootLabs)"
-lootlabs.BackgroundColor3 = Color3.fromRGB(255, 175, 0)
-lootlabs.TextColor3 = Color3.fromRGB(0, 0, 0)
-lootlabs.TextSize = 14
-lootlabs.Font = Enum.Font.GothamBold
-lootlabs.Parent = mainFrame
-
--- Copy Function
-local function copyToClipboard(text)
-	if setclipboard then
-		setclipboard(text)
-	end
+-- Key validation function with improved API handling
+local function validateKey(inputKey, statusText, callback)
+    statusText.Text = "🔄 Validating access key..."
+    statusText.TextColor3 = Color3.fromRGB(255, 255, 100)
+    
+    -- First check fallback keys
+    if Config.FALLBACK_KEYS[inputKey] then
+        statusText.Text = "✅ Access granted! (Admin Key)"
+        statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+        task.wait(1)
+        callback(true, inputKey)
+        return
+    end
+    
+    -- Check API keys
+    local success, response = pcall(function()
+        return game:HttpGet(Config.API_BASE .. "/admin?password=" .. Config.ADMIN_PASSWORD)
+    end)
+    
+    if success then
+        local parseSuccess, data = pcall(function()
+            return Services.HttpService:JSONDecode(response)
+        end)
+        
+        if parseSuccess and data.keys then
+            local keyFound = false
+            
+            for _, keyData in pairs(data.keys) do
+                if type(keyData) == "table" and keyData.key == inputKey then
+                    keyFound = true
+                    break
+                end
+            end
+            
+            if keyFound then
+                statusText.Text = "✅ Access granted! Loading system..."
+                statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+                
+                -- Log usage
+                pcall(function()
+                    local logData = Services.HttpService:JSONEncode({
+                        key = inputKey,
+                        user = player.Name,
+                        userId = player.UserId,
+                        timestamp = os.time(),
+                        place = game.PlaceId
+                    })
+                    
+                    game:HttpPost(
+                        Config.API_BASE .. "/logUsage",
+                        logData,
+                        Enum.HttpContentType.ApplicationJson,
+                        false
+                    )
+                end)
+                
+                task.wait(1)
+                callback(true, inputKey)
+                return
+            end
+        end
+    end
+    
+    -- Key not found
+    statusText.Text = "❌ Invalid access key!"
+    statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
+    callback(false, inputKey)
 end
 
-discord.MouseButton1Click:Connect(function()
-	copyToClipboard("https://discord.gg/e77s79ZJ")
-	statusText.Text = "Discord link copied!"
-	statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
-end)
-
-lootlabs.MouseButton1Click:Connect(function()
-	copyToClipboard("https://lootdest.org/s?Zvo1qoxp")
-	statusText.Text = "LootLabs link copied!"
-	statusText.TextColor3 = Color3.fromRGB(255, 255, 255)
-end)
-
--- === KEY VALIDATION (OBJECT KEYS[]) ===
-button.MouseButton1Click:Connect(function()
-	statusText.Text = "Checking key..."
-	statusText.TextColor3 = Color3.fromRGB(255, 255, 0)
-
-	local success, response = pcall(function()
-		return game:HttpGet("https://whoami-key-api.vercel.app/api/admin?password=Whoamidev1819")
-	end)
-
-	if success then
-		local data = HttpService:JSONDecode(response)
-local decodedKeys = data.keys or {}
-
-print("Decoded keys:")
-print(HttpService:JSONEncode(decodedKeys))  -- ⬅️ Tambahan debug
-
-local inputKey = string.match(textbox.Text, "^%s*(.-)%s*$")
-local valid = false
-
-		for _, item in pairs(decodedKeys) do
-	if typeof(item) == "table" and item.key == inputKey then
-		valid = true
-		break
-	end
+-- Enhanced drag functionality
+local function makeDraggable(frame)
+    local dragging = false
+    local dragInput = nil
+    local dragStart = nil
+    local startPos = nil
+    
+    local function updateInput(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+    
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    Services.UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            updateInput(input)
+        end
+    end)
 end
 
-		local extraKeys = {
-			["Adminganteng"] = true,
-			["Whoamidev"] = true,
-		}
+-- Main execution
+local function initialize()
+    local loadingContainer, loadingText = createGui()
+    
+    -- Minimalist loading sequence
+    local loadingMessages = {
+        "Connecting...",
+        "Authenticating...",
+        "Ready!"
+    }
+    
+    for i, message in ipairs(loadingMessages) do
+        loadingText.Text = message
+        task.wait(0.6)
+    end
+    
+    -- Create main interface
+    local frame, keyInput, statusText, submitButton, discordButton, keyButton = createMainFrame()
+    makeDraggable(frame)
+    
+    -- Smooth transition from loading to main frame
+    local fadeOutTween = Services.TweenService:Create(
+        loadingContainer,
+        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {BackgroundTransparency = 1}
+    )
+    
+    local fadeOutTextTween = Services.TweenService:Create(
+        loadingText,
+        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        {TextTransparency = 1}
+    )
+    
+    fadeOutTween:Play()
+    fadeOutTextTween:Play()
+    
+    fadeOutTween.Completed:Connect(function()
+        loadingContainer:Destroy()
+        Utils.slideIn(frame, "bottom")
+    end)
+    
+    -- Event handlers
+    submitButton.MouseButton1Click:Connect(function()
+        local inputKey = Utils.trim(keyInput.Text)
+        
+        if inputKey == "" then
+            statusText.Text = "⚠️ Please enter an access key!"
+            statusText.TextColor3 = Color3.fromRGB(255, 200, 100)
+            Utils.shakeFrame(frame)
+            return
+        end
+        
+        submitButton.Text = "🔄 Authenticating..."
+        submitButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        
+        validateKey(inputKey, statusText, function(success, key)
+            if success then
+                -- Success animation
+                local successTween = Services.TweenService:Create(
+                    frame,
+                    TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+                    {Size = UDim2.new(0, 0, 0, 0), Rotation = 15}
+                )
+                
+                successTween:Play()
+                successTween.Completed:Connect(function()
+                    screenGui:Destroy()
+                    
+                    -- Load main script
+                    pcall(function()
+                        loadstring(game:HttpGet(Config.MAIN_SCRIPT_URL))()
+                    end)
+                end)
+            else
+                -- Error animation
+                Utils.shakeFrame(frame)
+                submitButton.Text = "🔓 Authenticate"
+                submitButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+            end
+        end)
+    end)
+    
+    -- Link buttons
+    discordButton.MouseButton1Click:Connect(function()
+        if Utils.copyToClipboard(Config.DISCORD_LINK) then
+            statusText.Text = "📋 Discord link copied to clipboard!"
+            statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            statusText.Text = "Discord: " .. Config.DISCORD_LINK
+            statusText.TextColor3 = Color3.fromRGB(180, 180, 255)
+        end
+    end)
+    
+    keyButton.MouseButton1Click:Connect(function()
+        if Utils.copyToClipboard(Config.LOOTLABS_LINK) then
+            statusText.Text = "📋 Key link copied to clipboard!"
+            statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+        else
+            statusText.Text = "Get Key: " .. Config.LOOTLABS_LINK
+            statusText.TextColor3 = Color3.fromRGB(255, 200, 100)
+        end
+    end)
+    
+    -- Enter key support
+    keyInput.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            submitButton.MouseButton1Click:Fire()
+        end
+    end)
+end
 
-		if extraKeys[inputKey] then
-			valid = true
-		end
-
-		if valid then
-			statusText.TextColor3 = Color3.fromRGB(0, 255, 0)
-			statusText.Text = "Correct key!"
-			task.wait(1)
-
-			-- 🔥 Kirim log ke Vercel
-			pcall(function()
-				local logData = HttpService:JSONEncode({
-					key = inputKey,
-					user = player.Name,
-					timestamp = os.time()
-				})
-
-				game:HttpPost(
-					"https://whoami-key-api.vercel.app/api/logUsage",
-					logData,
-					Enum.HttpContentType.ApplicationJson,
-					false
-				)
-			end)
-
-			mainFrame.Visible = false
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats"))()
-		else
-			statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-			statusText.Text = "Wrong key!"
-			local original = mainFrame.Position
-			for i = 1, 6 do
-				mainFrame.Position = original + UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
-				task.wait(0.05)
-			end
-			mainFrame.Position = original
-		end
-	else
-		statusText.TextColor3 = Color3.fromRGB(255, 0, 0)
-		statusText.Text = "Failed to fetch key!"
-	end
-end)
-
--- Drag GUI
-local UIS = game:GetService("UserInputService")
-local dragging, dragInput, dragStart, startPos
-
-mainFrame.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = mainFrame.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-mainFrame.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		dragInput = input
-	end
-end)
-
-UIS.InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		local delta = input.Position - dragStart
-		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
-			startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
-end)
-
--- Show GUI
-task.wait(3)
-loadingText:Destroy()
-mainFrame.Visible = true
+-- Error handling wrapper
+pcall(initialize)
