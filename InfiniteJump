@@ -1,0 +1,221 @@
+-- Roblox Simple Infinite Jump - No GUI Version
+-- Auto-active, no buttons needed
+-- Compatible with Delta Executor Android
+
+print("🚀 Simple Infinite Jump Loading...")
+
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+-- Variables
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- Jump Configuration
+local JumpHeight = 50 -- Tinggi jump (default 16, kita set 50)
+local InfiniteJumpEnabled = true -- Langsung aktif
+local CanJump = true
+
+-- Speed Configuration
+local AirSpeedMultiplier = 2.5 -- Multiplier kecepatan saat di udara
+local NormalWalkSpeed = 16 -- Default walkspeed
+local AirSpeed = NormalWalkSpeed * AirSpeedMultiplier -- Speed saat di udara
+local SpeedBoostEnabled = true
+
+-- Function untuk boost speed saat di udara
+local function airSpeedBoost()
+    if not SpeedBoostEnabled or not Character or not Humanoid then return end
+    
+    -- Cek apakah player di udara (tidak menyentuh ground)
+    local raycast = workspace:Raycast(RootPart.Position, Vector3.new(0, -5, 0))
+    local isInAir = not raycast
+    
+    if isInAir then
+        -- Boost speed saat di udara
+        Humanoid.WalkSpeed = AirSpeed
+        
+        -- Tambahan boost horizontal movement
+        local moveVector = Humanoid.MoveDirection
+        if moveVector.Magnitude > 0 then
+            local BodyVelocity = RootPart:FindFirstChild("AirSpeedBoost")
+            if not BodyVelocity then
+                BodyVelocity = Instance.new("BodyVelocity")
+                BodyVelocity.Name = "AirSpeedBoost"
+                BodyVelocity.MaxForce = Vector3.new(4000, 0, 4000)
+                BodyVelocity.Parent = RootPart
+            end
+            
+            -- Set velocity untuk movement yang lebih cepat
+            local horizontalVelocity = moveVector * AirSpeed
+            BodyVelocity.Velocity = Vector3.new(horizontalVelocity.X, RootPart.Velocity.Y, horizontalVelocity.Z)
+        end
+    else
+        -- Kembalikan speed normal saat di ground
+        Humanoid.WalkSpeed = NormalWalkSpeed
+        
+        -- Hapus air speed boost
+        local BodyVelocity = RootPart:FindFirstChild("AirSpeedBoost")
+        if BodyVelocity then
+            BodyVelocity:Destroy()
+        end
+    end
+end
+
+-- Function untuk infinite jump (Enhanced)
+local function performJump()
+    if not InfiniteJumpEnabled or not Character or not RootPart then return end
+    
+    -- Buat BodyVelocity untuk jump tinggi
+    local BodyVelocity = Instance.new("BodyVelocity")
+    BodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
+    BodyVelocity.Velocity = Vector3.new(0, JumpHeight, 0)
+    BodyVelocity.Parent = RootPart
+    
+    -- Preserve horizontal movement saat jump
+    local currentVelocity = RootPart.Velocity
+    BodyVelocity.Velocity = Vector3.new(currentVelocity.X, JumpHeight, currentVelocity.Z)
+    
+    -- Hapus setelah 0.3 detik
+    spawn(function()
+        wait(0.3)
+        if BodyVelocity then
+            BodyVelocity:Destroy()
+        end
+    end)
+end
+
+-- Detect jump input (Space key untuk PC)
+local function onKeyDown(key)
+    if key.KeyCode == Enum.KeyCode.Space and CanJump then
+        CanJump = false
+        performJump()
+        
+        -- Cooldown singkat untuk prevent spam
+        spawn(function()
+            wait(0.1)
+            CanJump = true
+        end)
+    end
+end
+
+-- Detect mobile jump (Touch jump button)
+local function detectMobileJump()
+    if Humanoid.Jump and CanJump then
+        CanJump = false
+        performJump()
+        
+        -- Reset jump state
+        Humanoid.Jump = false
+        
+        -- Cooldown
+        spawn(function()
+            wait(0.1)
+            CanJump = true
+        end)
+    end
+end
+
+-- Monitor jump state dan air speed untuk mobile
+local jumpConnection
+local airSpeedConnection
+local function setupMonitors()
+    if jumpConnection then
+        jumpConnection:Disconnect()
+    end
+    if airSpeedConnection then
+        airSpeedConnection:Disconnect()
+    end
+    
+    -- Jump monitor
+    jumpConnection = RunService.Heartbeat:Connect(function()
+        if Character and Humanoid then
+            detectMobileJump()
+        end
+    end)
+    
+    -- Air speed monitor
+    airSpeedConnection = RunService.Heartbeat:Connect(function()
+        if Character and Humanoid and RootPart then
+            airSpeedBoost()
+        end
+    end)
+end
+
+-- Setup saat character spawn/respawn
+local function onCharacterAdded(newCharacter)
+    Character = newCharacter
+    Humanoid = Character:WaitForChild("Humanoid")
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+    
+    -- Setup monitors untuk mobile dan air speed
+    setupMonitors()
+    
+    -- Tingkatkan JumpPower default
+    if Humanoid then
+        Humanoid.JumpPower = JumpHeight
+        Humanoid.JumpHeight = JumpHeight -- Untuk R15
+        Humanoid.WalkSpeed = NormalWalkSpeed -- Set normal speed
+    end
+    
+    print("🔄 Infinite Jump & Air Speed ready on new character!")
+end
+
+-- Connect events
+if UserInputService then
+    UserInputService.InputBegan:Connect(onKeyDown)
+end
+
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+-- Setup initial character
+setupMonitors()
+
+-- Tingkatkan JumpPower awal
+if Humanoid then
+    Humanoid.JumpPower = JumpHeight
+    Humanoid.JumpHeight = JumpHeight
+    Humanoid.WalkSpeed = NormalWalkSpeed
+end
+
+-- Notification tanpa GUI
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Infinite Jump & Air Speed";
+    Text = "Jump higher & move faster in air!";
+    Duration = 3;
+})
+
+-- Auto-maintain jump power
+spawn(function()
+    while true do
+        wait(1)
+        if Character and Humanoid then
+            -- Maintain jump power
+            Humanoid.JumpPower = JumpHeight
+            Humanoid.JumpHeight = JumpHeight
+        end
+    end
+end)
+
+-- Anti-fall damage (optional)
+spawn(function()
+    while true do
+        wait(0.5)
+        if Character and Humanoid then
+            pcall(function()
+                if Humanoid.PlatformStand then
+                    Humanoid.PlatformStand = false
+                end
+            end)
+        end
+    end
+end)
+
+print("✅ Infinite Jump & Air Speed Active!")
+print("🎮 Use game's jump button or Space key")
+print("🚀 Jump height: " .. JumpHeight)
+print("💨 Air speed: " .. AirSpeed .. " (x" .. AirSpeedMultiplier .. " faster)")
+print("⚡ No GUI interference - Clean gameplay!")
