@@ -1,0 +1,598 @@
+-- main.lua - Fixed Version
+
+--[[ 
+📦 Script Terbang Gabungan - iOS Support + Health Fix
+- UI minimal dengan dukungan touch untuk iOS
+- Sistem fly yang diperbaiki (tidak mengurangi health)
+- Kontrol UP/DOWN yang smooth
+- Speed control yang responsive
+- Body light/senter
+- Touch controls untuk mobile
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+-- Check if mobile/iOS
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+-- Tunggu karakter
+local function getCharacter()
+    local char = player.Character
+    if not char then
+        player.CharacterAdded:Wait()
+        char = player.Character
+    end
+    return char
+end
+
+local char = getCharacter()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+
+-- Buat GUI dengan style responsive
+local gui = Instance.new("ScreenGui")
+gui.Name = "FlyMinimalUI"
+gui.Parent = player:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+
+-- Responsive sizing untuk mobile
+local buttonScale = isMobile and 1.5 or 1
+local baseButtonSize = UDim2.new(0, 60 * buttonScale, 0, 60 * buttonScale)
+local smallButtonSize = UDim2.new(0, 40 * buttonScale, 0, 35 * buttonScale)
+local tinyButtonSize = UDim2.new(0, 35 * buttonScale, 0, 35 * buttonScale)
+
+-- Fungsi untuk membuat tombol dengan gradient hijau
+local function createBtn(name, pos, text, size)
+	size = size or baseButtonSize
+	local btn = Instance.new("TextButton", gui)
+	btn.Name = name
+	btn.Size = size
+	btn.Position = pos
+	btn.BackgroundTransparency = 0.15
+	btn.TextColor3 = Color3.new(1, 1, 1)
+	btn.Text = text
+	btn.TextScaled = true
+	btn.Font = Enum.Font.GothamBold
+	btn.TextStrokeTransparency = 0.5
+	btn.TextStrokeColor3 = Color3.new(0, 0, 0)
+	
+	-- Touch feedback untuk mobile
+	if isMobile then
+		btn.SelectionImageObject = nil
+	end
+	
+	local corner = Instance.new("UICorner", btn)
+	corner.CornerRadius = UDim.new(0, 12)
+	
+	local gradient = Instance.new("UIGradient", btn)
+	gradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0.0, Color3.fromRGB(46, 204, 113)),
+		ColorSequenceKeypoint.new(1.0, Color3.fromRGB(22, 160, 133))
+	}
+	gradient.Rotation = 45
+	
+	local stroke = Instance.new("UIStroke", btn)
+	stroke.Color = Color3.fromRGB(255, 255, 255)
+	stroke.Thickness = 1
+	stroke.Transparency = 0.7
+	
+	-- Touch animation
+	local function animatePress()
+		local tween = TweenService:Create(btn, 
+			TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
+			{Size = size * 0.95}
+		)
+		tween:Play()
+		tween.Completed:Connect(function()
+			local tween2 = TweenService:Create(btn, 
+				TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
+				{Size = size}
+			)
+			tween2:Play()
+		end)
+	end
+	
+	btn.MouseButton1Down:Connect(animatePress)
+	if isMobile then
+		btn.TouchTap:Connect(animatePress)
+	end
+	
+	return btn
+end
+
+-- Positioning dengan offset untuk mobile
+local yOffset = isMobile and 20 or 10
+local xOffset = isMobile and 20 or 10
+local spacing = isMobile and 10 : 5
+
+-- Buat tombol-tombol dengan positioning responsive
+local btns = {
+	Toggle = createBtn("Toggle", UDim2.new(0, xOffset, 0, yOffset), "Fly OFF", UDim2.new(0, 80 * buttonScale, 0, 40 * buttonScale)),
+	Close = createBtn("Close", UDim2.new(0, xOffset + 100 * buttonScale, 0, yOffset), "X", UDim2.new(0, 40 * buttonScale, 0, 40 * buttonScale)),
+	
+	Up = createBtn("Up", UDim2.new(0, xOffset, 0, yOffset + 60 * buttonScale), "UP", smallButtonSize),
+	Down = createBtn("Down", UDim2.new(0, xOffset + 55 * buttonScale, 0, yOffset + 60 * buttonScale), "DOWN", smallButtonSize),
+	
+	SpeedUp = createBtn("SpeedUp", UDim2.new(0, xOffset, 0, yOffset + 105 * buttonScale), "+", tinyButtonSize),
+	SpeedDown = createBtn("SpeedDown", UDim2.new(0, xOffset + 55 * buttonScale, 0, yOffset + 105 * buttonScale), "-", tinyButtonSize),
+	
+	LightUp = createBtn("LightUp", UDim2.new(0, xOffset, 0, yOffset + 150 * buttonScale), "+", tinyButtonSize),
+	LightDown = createBtn("LightDown", UDim2.new(0, xOffset + 55 * buttonScale, 0, yOffset + 150 * buttonScale), "-", tinyButtonSize)
+}
+
+-- Labels dengan scaling
+local speedLabel = Instance.new("TextLabel", gui)
+speedLabel.Size = UDim2.new(0, 80 * buttonScale, 0, 20 * buttonScale)
+speedLabel.Position = UDim2.new(0, xOffset + 100 * buttonScale, 0, yOffset + 112 * buttonScale)
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.TextScaled = true
+speedLabel.Font = Enum.Font.GothamBold
+speedLabel.TextStrokeTransparency = 0.5
+speedLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+speedLabel.Text = "Speed: 1"
+
+local lightLabel = Instance.new("TextLabel", gui)
+lightLabel.Size = UDim2.new(0, 80 * buttonScale, 0, 20 * buttonScale)
+lightLabel.Position = UDim2.new(0, xOffset + 100 * buttonScale, 0, yOffset + 157 * buttonScale)
+lightLabel.BackgroundTransparency = 1
+lightLabel.TextColor3 = Color3.new(1, 1, 1)
+lightLabel.TextScaled = true
+lightLabel.Font = Enum.Font.GothamBold
+lightLabel.TextStrokeTransparency = 0.5
+lightLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+lightLabel.Text = "Light: 0"
+
+local instructLabel = Instance.new("TextLabel", gui)
+instructLabel.Size = UDim2.new(0, 200 * buttonScale, 0, 40 * buttonScale)
+instructLabel.Position = UDim2.new(0, xOffset, 0, yOffset + 195 * buttonScale)
+instructLabel.BackgroundTransparency = 1
+instructLabel.TextColor3 = Color3.new(1, 1, 1)
+instructLabel.TextScaled = true
+instructLabel.Font = Enum.Font.Gotham
+instructLabel.TextStrokeTransparency = 0.5
+instructLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+instructLabel.Text = isMobile and "Touch controls: Use movement joystick + UP/DOWN buttons" or "Control: Use WASD/Arrow keys + UP/DOWN buttons"
+
+-- Variables
+local speeds = 1
+local lightBrightness = 0
+local nowe = false
+local flyBodyMovers = {}
+local flyConnections = {}
+
+-- Health protection
+local originalMaxHealth = humanoid.MaxHealth
+local originalHealth = humanoid.Health
+
+-- Body light function
+local function updateBodyLight()
+	for _, child in pairs(hrp:GetChildren()) do
+		if child.Name == "FlashlightGlow" or 
+		   child.Name == "FlashlightParticles" or 
+		   child.Name == "FlashlightSpot" then
+			child:Destroy()
+		end
+	end
+	
+	for _, child in pairs(hrp:GetChildren()) do
+		if child:IsA("Attachment") and child.Name == "FlashlightParticles" then
+			child:Destroy()
+		end
+	end
+	
+	if lightBrightness > 0 then
+		local glowEffect = Instance.new("PointLight", hrp)
+		glowEffect.Name = "FlashlightGlow"
+		glowEffect.Brightness = lightBrightness * 0.8
+		glowEffect.Range = lightBrightness * 12
+		glowEffect.Color = Color3.fromRGB(255, 248, 220)
+		glowEffect.Shadows = true
+		
+		local spotLight = Instance.new("SpotLight", hrp)
+		spotLight.Name = "FlashlightSpot"
+		spotLight.Brightness = lightBrightness * 0.6
+		spotLight.Range = lightBrightness * 15
+		spotLight.Angle = 60 + (lightBrightness * 5)
+		spotLight.Color = Color3.fromRGB(255, 248, 220)
+		spotLight.Face = Enum.NormalId.Front
+		spotLight.Shadows = true
+		
+		local attachment = Instance.new("Attachment", hrp)
+		attachment.Name = "FlashlightParticles"
+		local particles = Instance.new("ParticleEmitter", attachment)
+		particles.Color = ColorSequence.new(Color3.fromRGB(255, 248, 220))
+		particles.Size = NumberSequence.new{
+			NumberSequenceKeypoint.new(0, 0.3),
+			NumberSequenceKeypoint.new(1, 0.1)
+		}
+		particles.Lifetime = NumberRange.new(0.8, 1.5)
+		particles.Rate = lightBrightness * 5
+		particles.SpreadAngle = Vector2.new(30, 30)
+		particles.Speed = NumberRange.new(1, 3)
+		particles.Transparency = NumberSequence.new{
+			NumberSequenceKeypoint.new(0, 0.7),
+			NumberSequenceKeypoint.new(1, 1)
+		}
+		particles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	end
+	
+	lightLabel.Text = "Light: " .. lightBrightness
+end
+
+-- Cleanup function
+local function cleanupFly()
+	-- Disconnect all connections
+	for _, conn in pairs(flyConnections) do
+		if conn then
+			conn:Disconnect()
+		end
+	end
+	flyConnections = {}
+	
+	-- Remove body movers
+	for _, mover in pairs(flyBodyMovers) do
+		if mover and mover.Parent then
+			mover:Destroy()
+		end
+	end
+	flyBodyMovers = {}
+	
+	-- Reset states
+	if humanoid then
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, true)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
+		humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+		humanoid.PlatformStand = false
+		
+		-- Restore health
+		humanoid.MaxHealth = originalMaxHealth
+		humanoid.Health = originalMaxHealth
+	end
+	
+	if char and char:FindFirstChild("Animate") then
+		char.Animate.Disabled = false
+	end
+end
+
+-- Improved fly function with health protection
+local function toggleFly()
+	if nowe then
+		-- Turn OFF fly
+		nowe = false
+		cleanupFly()
+	else 
+		-- Turn ON fly
+		nowe = true
+		
+		-- Protect health
+		humanoid.MaxHealth = math.huge
+		humanoid.Health = math.huge
+		
+		-- Create health protection connection
+		local healthConnection = humanoid.HealthChanged:Connect(function(health)
+			if nowe and health < humanoid.MaxHealth then
+				humanoid.Health = humanoid.MaxHealth
+			end
+		end)
+		table.insert(flyConnections, healthConnection)
+		
+		-- Disable character animations
+		if char:FindFirstChild("Animate") then
+			char.Animate.Disabled = true
+		end
+		
+		-- Stop all animation tracks
+		local Hum = char:FindFirstChildOfClass("Humanoid") or char:FindFirstChildOfClass("AnimationController")
+		if Hum then
+			for i,v in pairs(Hum:GetPlayingAnimationTracks()) do
+				v:AdjustSpeed(0)
+			end
+		end
+		
+		-- Disable humanoid states
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, false)
+		humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+		humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+		
+		humanoid.PlatformStand = true
+
+		-- Create body movers
+		local bodyPart = hrp
+		if humanoid.RigType == Enum.HumanoidRigType.R6 then
+			bodyPart = char:FindFirstChild("Torso") or hrp
+		else
+			bodyPart = char:FindFirstChild("UpperTorso") or hrp
+		end
+
+		local bg = Instance.new("BodyGyro")
+		bg.P = 9e4
+		bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+		bg.cframe = bodyPart.CFrame
+		bg.Parent = bodyPart
+		
+		local bv = Instance.new("BodyVelocity")
+		bv.velocity = Vector3.new(0, 0.1, 0)
+		bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+		bv.Parent = bodyPart
+		
+		flyBodyMovers.bg = bg
+		flyBodyMovers.bv = bv
+		
+		-- Control variables
+		local ctrl = {f = 0, b = 0, l = 0, r = 0, q = 0, e = 0}
+		local lastctrl = {f = 0, b = 0, l = 0, r = 0, q = 0, e = 0}
+		local maxspeed = 50 + (speeds * 10)
+		local speed = 0
+		
+		-- Input handling
+		local function keyDown(key)
+			if key:lower() == "w" then
+				ctrl.f = speeds
+			elseif key:lower() == "s" then
+				ctrl.b = -speeds
+			elseif key:lower() == "a" then
+				ctrl.l = -speeds
+			elseif key:lower() == "d" then  
+				ctrl.r = speeds
+			elseif key:lower() == "q" then
+				ctrl.q = speeds
+			elseif key:lower() == "e" then
+				ctrl.e = -speeds
+			end
+		end
+		
+		local function keyUp(key)
+			if key:lower() == "w" then
+				ctrl.f = 0
+			elseif key:lower() == "s" then
+				ctrl.b = 0
+			elseif key:lower() == "a" then
+				ctrl.l = 0
+			elseif key:lower() == "d" then
+				ctrl.r = 0
+			elseif key:lower() == "q" then
+				ctrl.q = 0
+			elseif key:lower() == "e" then
+				ctrl.e = 0
+			end
+		end
+		
+		-- Connect input events
+		if not isMobile then
+			local keyDownConn = UserInputService.InputBegan:Connect(function(input, processed)
+				if not processed and input.UserInputType == Enum.UserInputType.Keyboard then
+					keyDown(input.KeyCode.Name)
+				end
+			end)
+			
+			local keyUpConn = UserInputService.InputEnded:Connect(function(input, processed)
+				if not processed and input.UserInputType == Enum.UserInputType.Keyboard then
+					keyUp(input.KeyCode.Name)
+				end
+			end)
+			
+			table.insert(flyConnections, keyDownConn)
+			table.insert(flyConnections, keyUpConn)
+		end
+		
+		-- Mobile movement handling
+		if isMobile then
+			local moveConnection = RunService.Heartbeat:Connect(function()
+				if nowe and humanoid then
+					local moveDir = humanoid.MoveDirection
+					if moveDir.Magnitude > 0 then
+						ctrl.f = moveDir.Z < 0 and speeds or 0
+						ctrl.b = moveDir.Z > 0 and -speeds or 0
+						ctrl.l = moveDir.X < 0 and -speeds or 0
+						ctrl.r = moveDir.X > 0 and speeds or 0
+					else
+						ctrl.f, ctrl.b, ctrl.l, ctrl.r = 0, 0, 0, 0
+					end
+				end
+			end)
+			table.insert(flyConnections, moveConnection)
+		end
+		
+		-- Main fly loop
+		local flyLoop = RunService.RenderStepped:Connect(function()
+			if not nowe or not bg or not bv then
+				return
+			end
+			
+			-- Calculate speed
+			if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 or ctrl.q + ctrl.e ~= 0 then
+				speed = speed + 0.5 + (speed / maxspeed)
+				if speed > maxspeed then
+					speed = maxspeed
+				end
+			elseif speed ~= 0 then
+				speed = speed - 1
+				if speed < 0 then
+					speed = 0
+				end
+			end
+			
+			-- Apply velocity
+			if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 or (ctrl.q + ctrl.e) ~= 0 then
+				bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.LookVector * (ctrl.f + ctrl.b)) + 
+							  ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l + ctrl.r, (ctrl.f + ctrl.b + ctrl.q + ctrl.e) * 0.2, 0).Position) - workspace.CurrentCamera.CoordinateFrame.Position)) * speed
+				bv.velocity = bv.velocity + Vector3.new(0, (ctrl.q + ctrl.e) * speed, 0)
+				lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r, q = ctrl.q, e = ctrl.e}
+			elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and (ctrl.q + ctrl.e) == 0 and speed ~= 0 then
+				bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.LookVector * (lastctrl.f + lastctrl.b)) + 
+							  ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l + lastctrl.r, (lastctrl.f + lastctrl.b + lastctrl.q + lastctrl.e) * 0.2, 0).Position) - workspace.CurrentCamera.CoordinateFrame.Position)) * speed
+				bv.velocity = bv.velocity + Vector3.new(0, (lastctrl.q + lastctrl.e) * speed, 0)
+			else
+				bv.velocity = Vector3.new(0, 0, 0)
+			end
+			
+			bg.cframe = workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f + ctrl.b) * 50 * speed / maxspeed), 0, 0)
+		end)
+		
+		table.insert(flyConnections, flyLoop)
+	end
+end
+
+-- Toggle Fly Button
+btns.Toggle.MouseButton1Click:Connect(function()
+	toggleFly()
+	btns.Toggle.Text = nowe and "Fly ON" or "Fly OFF"
+	
+	-- Update button color
+	local gradient = btns.Toggle:FindFirstChild("UIGradient")
+	if gradient then
+		if nowe then
+			gradient.Color = ColorSequence.new{
+				ColorSequenceKeypoint.new(0.0, Color3.fromRGB(231, 76, 60)),
+				ColorSequenceKeypoint.new(1.0, Color3.fromRGB(192, 57, 43))
+			}
+		else
+			gradient.Color = ColorSequence.new{
+				ColorSequenceKeypoint.new(0.0, Color3.fromRGB(46, 204, 113)),
+				ColorSequenceKeypoint.new(1.0, Color3.fromRGB(22, 160, 133))
+			}
+		end
+	end
+end)
+
+-- UP/DOWN Controls - Fixed for smooth movement
+local upPressed = false
+local downPressed = false
+
+btns.Up.MouseButton1Down:Connect(function()
+	upPressed = true
+	local upLoop
+	upLoop = RunService.Heartbeat:Connect(function()
+		if upPressed and nowe then
+			hrp.CFrame = hrp.CFrame + Vector3.new(0, speeds * 0.5, 0)
+		else
+			upLoop:Disconnect()
+		end
+	end)
+end)
+
+btns.Up.MouseButton1Up:Connect(function()
+	upPressed = false
+end)
+
+btns.Down.MouseButton1Down:Connect(function()
+	downPressed = true
+	local downLoop
+	downLoop = RunService.Heartbeat:Connect(function()
+		if downPressed and nowe then
+			hrp.CFrame = hrp.CFrame - Vector3.new(0, speeds * 0.5, 0)
+		else
+			downLoop:Disconnect()
+		end
+	end)
+end)
+
+btns.Down.MouseButton1Up:Connect(function()
+	downPressed = false
+end)
+
+-- Speed Control
+btns.SpeedUp.MouseButton1Click:Connect(function()
+	speeds = math.min(speeds + 1, 10)
+	speedLabel.Text = "Speed: " .. speeds
+end)
+
+btns.SpeedDown.MouseButton1Click:Connect(function()
+	if speeds <= 1 then
+		speedLabel.Text = "Speed: Cannot be less than 1"
+		wait(1)
+		speedLabel.Text = "Speed: " .. speeds
+	else
+		speeds = speeds - 1
+		speedLabel.Text = "Speed: " .. speeds
+	end
+end)
+
+-- Light Control
+btns.LightUp.MouseButton1Click:Connect(function()
+	lightBrightness = math.min(lightBrightness + 1, 10)
+	updateBodyLight()
+end)
+
+btns.LightDown.MouseButton1Click:Connect(function()
+	lightBrightness = math.max(lightBrightness - 1, 0)
+	updateBodyLight()
+end)
+
+-- Close Button
+btns.Close.MouseButton1Click:Connect(function()
+	nowe = false
+	cleanupFly()
+	
+	-- Cleanup light effects
+	for _, child in pairs(hrp:GetChildren()) do
+		if child.Name == "FlashlightGlow" or child.Name == "FlashlightParticles" or child.Name == "FlashlightSpot" then
+			child:Destroy()
+		end
+	end
+	
+	gui:Destroy()
+end)
+
+-- Character respawn handler
+player.CharacterAdded:Connect(function(newChar)
+	wait(0.7)
+	nowe = false
+	char = newChar
+	hrp = char:WaitForChild("HumanoidRootPart")
+	humanoid = char:WaitForChild("Humanoid")
+	
+	-- Store original health values
+	originalMaxHealth = humanoid.MaxHealth
+	originalHealth = humanoid.Health
+	
+	cleanupFly()
+	
+	-- Reset button
+	btns.Toggle.Text = "Fly OFF"
+	local gradient = btns.Toggle:FindFirstChild("UIGradient")
+	if gradient then
+		gradient.Color = ColorSequence.new{
+			ColorSequenceKeypoint.new(0.0, Color3.fromRGB(46, 204, 113)),
+			ColorSequenceKeypoint.new(1.0, Color3.fromRGB(22, 160, 133))
+		}
+	end
+end)
+
+-- Notification
+game:GetService("StarterGui"):SetCore("SendNotification", { 
+	Title = "FLY GUI Minimal - iOS Support";
+	Text = "Script loaded successfully! " .. (isMobile and "Touch controls enabled" or "Keyboard controls ready");
+	Duration = 3;
+})
