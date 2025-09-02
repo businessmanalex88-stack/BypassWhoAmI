@@ -1,0 +1,568 @@
+-- ESP Player Script dengan Auto Aim untuk Android Executor
+-- Script ini menampilkan informasi player seperti nama, jarak, health, highlight, dan auto aim
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+-- Konfigurasi ESP dan Auto Aim
+local ESP_CONFIG = {
+    -- ESP Settings
+    enabled = true,
+    showNames = true,
+    showDistance = true,
+    showHealth = true,
+    showBox = true,
+    showHighlight = true, -- Fitur highlight baru
+    maxDistance = 1000, -- maksimal jarak dalam studs
+    
+    -- Auto Aim Settings - FITUR BARU
+    autoAimEnabled = false,
+    autoAimKey = Enum.KeyCode.E, -- tombol untuk toggle auto aim (PC)
+    aimFOV = 150, -- Field of View untuk auto aim
+    aimSmoothness = 1, -- kecepatan aim (0.1 = lambat, 1 = instant)
+    targetPart = "Head", -- bagian yang ditarget ("Head", "HumanoidRootPart", "UpperTorso")
+    showFOVCircle = true, -- tampilkan lingkaran FOV
+    aimOnlyEnemies = true, -- hanya aim ke musuh
+    
+    -- Warna
+    allyColor = Color3.fromRGB(0, 255, 0), -- hijau untuk teman
+    enemyColor = Color3.fromRGB(255, 0, 0), -- merah untuk musuh
+    textColor = Color3.fromRGB(255, 255, 255), -- putih untuk teks
+    fovCircleColor = Color3.fromRGB(255, 255, 255), -- warna lingkaran FOV
+    
+    -- Warna highlight (lebih lembut)
+    allyHighlight = Color3.fromRGB(0, 150, 0), -- hijau lembut untuk teman
+    enemyHighlight = Color3.fromRGB(150, 0, 0), -- merah lembut untuk musuh
+    highlightTransparency = 0.7, -- transparansi highlight (0 = solid, 1 = invisible)
+    
+    -- Ukuran
+    textSize = 14,
+    boxThickness = 2
+}
+
+-- Tabel untuk menyimpan ESP objects
+local espObjects = {}
+
+-- Variables untuk Auto Aim
+local currentTarget = nil
+local fovCircle = nil
+local aimConnection = nil
+
+-- Fungsi untuk membuat FOV Circle
+local function createFOVCircle()
+    if fovCircle then
+        fovCircle:Remove()
+    end
+    
+    local circle = Drawing.new("Circle")
+    circle.Color = ESP_CONFIG.fovCircleColor
+    circle.Thickness = 2
+    circle.Transparency = 0.5
+    circle.Filled = false
+    circle.Radius = ESP_CONFIG.aimFOV
+    circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    circle.Visible = ESP_CONFIG.showFOVCircle and ESP_CONFIG.autoAimEnabled
+    
+    fovCircle = circle
+    return circle
+end
+
+-- Fungsi untuk mendapatkan target terdekat dalam FOV
+local function getClosestTarget()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        return nil
+    end
+    
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local character = player.Character
+            local targetPart = character:FindFirstChild(ESP_CONFIG.targetPart)
+            
+            if targetPart then
+                -- Cek apakah hanya target musuh
+                local isEnemy = true
+                if ESP_CONFIG.aimOnlyEnemies and player.Team and LocalPlayer.Team then
+                    isEnemy = player.Team ~= LocalPlayer.Team
+                end
+                
+                if not ESP_CONFIG.aimOnlyEnemies or isEnemy then
+                    -- Hitung jarak 3D
+                    local distance3D = (LocalPlayer.Character.HumanoidRootPart.Position - targetPart.Position).Magnitude
+                    
+                    if distance3D <= ESP_CONFIG.maxDistance then
+                        -- Convert ke screen position
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                        
+                        if onScreen then
+                            local screenDistance = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
+                            
+                            -- Cek apakah dalam FOV
+                            if screenDistance <= ESP_CONFIG.aimFOV and screenDistance < shortestDistance then
+                                closestPlayer = player
+                                shortestDistance = screenDistance
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+-- Fungsi untuk aim ke target
+local function aimAtTarget(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then
+        return
+    end
+    
+    local targetPart = targetPlayer.Character:FindFirstChild(ESP_CONFIG.targetPart)
+    if not targetPart then
+        return
+    end
+    
+    -- Hitung arah ke target
+    local targetPosition = targetPart.Position
+    local currentCFrame = Camera.CFrame
+    local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
+    
+    -- Smooth aim menggunakan lerp
+    local newCFrame = currentCFrame:Lerp(targetCFrame, ESP_CONFIG.aimSmoothness)
+    Camera.CFrame = newCFrame
+end
+-- Fungsi untuk membuat highlight
+local function createHighlight(character, isEnemy)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_Highlight"
+    highlight.Adornee = character
+    highlight.FillTransparency = ESP_CONFIG.highlightTransparency
+    highlight.OutlineTransparency = 0.5
+    
+    -- Tentukan warna highlight
+    local highlightColor = isEnemy and ESP_CONFIG.enemyHighlight or ESP_CONFIG.allyHighlight
+    highlight.FillColor = highlightColor
+    highlight.OutlineColor = highlightColor
+    
+    highlight.Parent = character
+    return highlight
+end
+
+-- Fungsi untuk membuat ESP GUI
+local function createESP(player)
+    if player == LocalPlayer then return end
+    
+    local espGui = Instance.new("BillboardGui")
+    espGui.Name = "ESP_" .. player.Name
+    espGui.AlwaysOnTop = true
+    espGui.Size = UDim2.new(0, 200, 0, 120)
+    espGui.StudsOffset = Vector3.new(0, 3, 0)
+    
+    -- Frame utama
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Parent = espGui
+    mainFrame.Size = UDim2.new(1, 0, 1, 0)
+    mainFrame.BackgroundTransparency = 1
+    
+    -- Label nama
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent = mainFrame
+    nameLabel.Size = UDim2.new(1, 0, 0.25, 0)
+    nameLabel.Position = UDim2.new(0, 0, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = player.Name
+    nameLabel.TextColor3 = ESP_CONFIG.textColor
+    nameLabel.TextSize = ESP_CONFIG.textSize
+    nameLabel.TextStrokeTransparency = 0
+    nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    nameLabel.Font = Enum.Font.SourceSansBold
+    
+    -- Label jarak
+    local distanceLabel = Instance.new("TextLabel")
+    distanceLabel.Parent = mainFrame
+    distanceLabel.Size = UDim2.new(1, 0, 0.25, 0)
+    distanceLabel.Position = UDim2.new(0, 0, 0.25, 0)
+    distanceLabel.BackgroundTransparency = 1
+    distanceLabel.Text = "0m"
+    distanceLabel.TextColor3 = ESP_CONFIG.textColor
+    distanceLabel.TextSize = ESP_CONFIG.textSize - 2
+    distanceLabel.TextStrokeTransparency = 0
+    distanceLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    distanceLabel.Font = Enum.Font.SourceSans
+    
+    -- Label health (persentase)
+    local healthLabel = Instance.new("TextLabel")
+    healthLabel.Parent = mainFrame
+    healthLabel.Size = UDim2.new(1, 0, 0.25, 0)
+    healthLabel.Position = UDim2.new(0, 0, 0.5, 0)
+    healthLabel.BackgroundTransparency = 1
+    healthLabel.Text = "100%"
+    healthLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    healthLabel.TextSize = ESP_CONFIG.textSize - 2
+    healthLabel.TextStrokeTransparency = 0
+    healthLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    healthLabel.Font = Enum.Font.SourceSans
+    
+    -- Label health (angka aktual) - FITUR BARU
+    local healthNumberLabel = Instance.new("TextLabel")
+    healthNumberLabel.Parent = mainFrame
+    healthNumberLabel.Size = UDim2.new(1, 0, 0.25, 0)
+    healthNumberLabel.Position = UDim2.new(0, 0, 0.75, 0)
+    healthNumberLabel.BackgroundTransparency = 1
+    healthNumberLabel.Text = "100/100"
+    healthNumberLabel.TextColor3 = ESP_CONFIG.textColor
+    healthNumberLabel.TextSize = ESP_CONFIG.textSize - 4
+    healthNumberLabel.TextStrokeTransparency = 0
+    healthNumberLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    healthNumberLabel.Font = Enum.Font.SourceSans
+    
+    espObjects[player] = {
+        gui = espGui,
+        nameLabel = nameLabel,
+        distanceLabel = distanceLabel,
+        healthLabel = healthLabel,
+        healthNumberLabel = healthNumberLabel,
+        player = player,
+        highlight = nil -- akan diisi saat character ada
+    }
+    
+    return espGui
+end
+
+-- Fungsi untuk update ESP
+local function updateESP(espData)
+    if not espData or not espData.player.Character then return end
+    
+    local player = espData.player
+    local character = player.Character
+    local humanoid = character:FindFirstChild("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    
+    if not rootPart or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        espData.gui.Enabled = false
+        if espData.highlight then
+            espData.highlight.Enabled = false
+        end
+        return
+    end
+    
+    -- Hitung jarak
+    local distance = (LocalPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude
+    
+    -- Sembunyikan jika terlalu jauh
+    if distance > ESP_CONFIG.maxDistance then
+        espData.gui.Enabled = false
+        if espData.highlight then
+            espData.highlight.Enabled = false
+        end
+        return
+    end
+    
+    espData.gui.Enabled = ESP_CONFIG.enabled
+    espData.gui.Adornee = rootPart
+    
+    -- Tentukan apakah enemy atau ally
+    local isEnemy = true
+    if player.Team and LocalPlayer.Team then
+        isEnemy = player.Team ~= LocalPlayer.Team
+    end
+    
+    -- Update atau buat highlight
+    if ESP_CONFIG.showHighlight then
+        if not espData.highlight or not espData.highlight.Parent then
+            espData.highlight = createHighlight(character, isEnemy)
+        end
+        espData.highlight.Enabled = true
+        
+        -- Update warna highlight berdasarkan tim
+        local highlightColor = isEnemy and ESP_CONFIG.enemyHighlight or ESP_CONFIG.allyHighlight
+        espData.highlight.FillColor = highlightColor
+        espData.highlight.OutlineColor = highlightColor
+    else
+        if espData.highlight then
+            espData.highlight.Enabled = false
+        end
+    end
+    
+    -- Update jarak
+    if ESP_CONFIG.showDistance then
+        espData.distanceLabel.Text = math.floor(distance) .. "m"
+        espData.distanceLabel.Visible = true
+    else
+        espData.distanceLabel.Visible = false
+    end
+    
+    -- Update nama
+    if ESP_CONFIG.showNames then
+        espData.nameLabel.Visible = true
+    else
+        espData.nameLabel.Visible = false
+    end
+    
+    -- Update health
+    if ESP_CONFIG.showHealth and humanoid then
+        local currentHealth = math.floor(humanoid.Health)
+        local maxHealth = math.floor(humanoid.MaxHealth)
+        local healthPercent = math.floor((currentHealth / maxHealth) * 100)
+        
+        -- Update persentase health
+        espData.healthLabel.Text = healthPercent .. "%"
+        espData.healthLabel.Visible = true
+        
+        -- Update angka health aktual - FITUR BARU
+        espData.healthNumberLabel.Text = currentHealth .. "/" .. maxHealth
+        espData.healthNumberLabel.Visible = true
+        
+        -- Ubah warna berdasarkan health
+        local healthColor
+        if healthPercent > 75 then
+            healthColor = Color3.fromRGB(0, 255, 0) -- hijau
+        elseif healthPercent > 50 then
+            healthColor = Color3.fromRGB(255, 255, 0) -- kuning
+        elseif healthPercent > 25 then
+            healthColor = Color3.fromRGB(255, 165, 0) -- orange
+        else
+            healthColor = Color3.fromRGB(255, 0, 0) -- merah
+        end
+        
+        espData.healthLabel.TextColor3 = healthColor
+        espData.healthNumberLabel.TextColor3 = healthColor
+    else
+        espData.healthLabel.Visible = false
+        espData.healthNumberLabel.Visible = false
+    end
+    
+    -- Tentukan warna nama berdasarkan tim
+    local espColor = isEnemy and ESP_CONFIG.enemyColor or ESP_CONFIG.allyColor
+    espData.nameLabel.TextColor3 = espColor
+end
+
+-- Fungsi untuk menghapus ESP
+local function removeESP(player)
+    if espObjects[player] then
+        if espObjects[player].gui then
+            espObjects[player].gui:Destroy()
+        end
+        if espObjects[player].highlight then
+            espObjects[player].highlight:Destroy()
+        end
+        espObjects[player] = nil
+    end
+end
+
+-- Event handlers
+local function onPlayerAdded(player)
+    player.CharacterAdded:Connect(function(character)
+        wait(1) -- tunggu character sepenuhnya load
+        local esp = createESP(player)
+        if esp and character:FindFirstChild("HumanoidRootPart") then
+            esp.Parent = character:FindFirstChild("HumanoidRootPart")
+        end
+    end)
+    
+    -- Handle jika character sudah ada saat player join
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local esp = createESP(player)
+        if esp then
+            esp.Parent = player.Character:FindFirstChild("HumanoidRootPart")
+        end
+    end
+end
+
+local function onPlayerRemoving(player)
+    removeESP(player)
+end
+
+-- Setup event connections
+Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerRemoving:Connect(onPlayerRemoving)
+
+-- Setup ESP untuk player yang sudah ada
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        onPlayerAdded(player)
+    end
+end
+
+-- Update loop
+RunService.Heartbeat:Connect(function()
+    -- Update ESP
+    for player, espData in pairs(espObjects) do
+        if Players:FindFirstChild(player.Name) then
+            updateESP(espData)
+        else
+            removeESP(player)
+        end
+    end
+    
+    -- Update FOV Circle
+    if fovCircle then
+        fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        fovCircle.Radius = ESP_CONFIG.aimFOV
+        fovCircle.Visible = ESP_CONFIG.showFOVCircle and ESP_CONFIG.autoAimEnabled
+        fovCircle.Color = ESP_CONFIG.fovCircleColor
+    end
+    
+    -- Auto Aim Logic
+    if ESP_CONFIG.autoAimEnabled then
+        currentTarget = getClosestTarget()
+        if currentTarget then
+            aimAtTarget(currentTarget)
+        end
+    end
+end)
+
+-- Fungsi toggle auto aim
+local function toggleAutoAim()
+    ESP_CONFIG.autoAimEnabled = not ESP_CONFIG.autoAimEnabled
+    
+    if ESP_CONFIG.autoAimEnabled then
+        if not fovCircle then
+            createFOVCircle()
+        end
+        print("Auto Aim ENABLED")
+        print("Target: " .. ESP_CONFIG.targetPart)
+        print("FOV: " .. ESP_CONFIG.aimFOV)
+        print("Smoothness: " .. ESP_CONFIG.aimSmoothness)
+    else
+        if fovCircle then
+            fovCircle.Visible = false
+        end
+        currentTarget = nil
+        print("Auto Aim DISABLED")
+    end
+end
+
+-- Fungsi untuk mengatur FOV
+local function setAimFOV(fov)
+    ESP_CONFIG.aimFOV = math.max(10, math.min(500, fov)) -- limit antara 10-500
+    if fovCircle then
+        fovCircle.Radius = ESP_CONFIG.aimFOV
+    end
+    print("Aim FOV set to: " .. ESP_CONFIG.aimFOV)
+end
+
+-- Fungsi untuk increase FOV
+local function increaseFOV()
+    setAimFOV(ESP_CONFIG.aimFOV + 10)
+end
+
+-- Fungsi untuk decrease FOV
+local function decreaseFOV()
+    setAimFOV(ESP_CONFIG.aimFOV - 10)
+end
+
+-- Fungsi untuk mengatur smoothness
+local function setAimSmoothness(smoothness)
+    ESP_CONFIG.aimSmoothness = math.max(0.01, math.min(1, smoothness)) -- limit antara 0.01-1
+    print("Aim Smoothness set to: " .. ESP_CONFIG.aimSmoothness)
+end
+
+-- Fungsi untuk mengubah target part
+local function setTargetPart(part)
+    local validParts = {"Head", "HumanoidRootPart", "UpperTorso", "Torso"}
+    if table.find(validParts, part) then
+        ESP_CONFIG.targetPart = part
+        print("Target Part set to: " .. part)
+    else
+        print("Invalid target part! Valid parts: " .. table.concat(validParts, ", "))
+    end
+end
+
+-- Fungsi toggle FOV circle
+local function toggleFOVCircle()
+    ESP_CONFIG.showFOVCircle = not ESP_CONFIG.showFOVCircle
+    print("FOV Circle " .. (ESP_CONFIG.showFOVCircle and "ENABLED" or "DISABLED"))
+end
+-- Fungsi toggle ESP
+local function toggleESP()
+    ESP_CONFIG.enabled = not ESP_CONFIG.enabled
+    print("ESP " .. (ESP_CONFIG.enabled and "Enabled" or "Disabled"))
+end
+
+-- Fungsi toggle highlight
+local function toggleHighlight()
+    ESP_CONFIG.showHighlight = not ESP_CONFIG.showHighlight
+    print("ESP Highlight " .. (ESP_CONFIG.showHighlight and "Enabled" or "Disabled"))
+end
+
+-- Fungsi untuk mengatur jarak maksimal
+local function setMaxDistance(distance)
+    ESP_CONFIG.maxDistance = distance
+    print("Max ESP Distance set to: " .. distance)
+end
+
+-- Fungsi untuk mengatur transparansi highlight
+local function setHighlightTransparency(transparency)
+    ESP_CONFIG.highlightTransparency = math.clamp(transparency, 0, 1)
+    print("Highlight transparency set to: " .. ESP_CONFIG.highlightTransparency)
+    
+    -- Update semua highlight yang ada
+    for _, espData in pairs(espObjects) do
+        if espData.highlight then
+            espData.highlight.FillTransparency = ESP_CONFIG.highlightTransparency
+        end
+    end
+end
+
+-- Input handling untuk PC (opsional)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == ESP_CONFIG.autoAimKey then
+        toggleAutoAim()
+    elseif input.KeyCode == Enum.KeyCode.Equal or input.KeyCode == Enum.KeyCode.Plus then -- + untuk increase FOV
+        increaseFOV()
+    elseif input.KeyCode == Enum.KeyCode.Minus then -- - untuk decrease FOV
+        decreaseFOV()
+    end
+end)
+
+-- Inisialisasi FOV Circle
+createFOVCircle()
+_G.ESP = {
+    toggle = toggleESP,
+    toggleHighlight = toggleHighlight,
+    setMaxDistance = setMaxDistance,
+    setHighlightTransparency = setHighlightTransparency,
+    config = ESP_CONFIG,
+    objects = espObjects
+}
+
+print("ESP Player Script with Auto Aim loaded successfully!")
+print("")
+print("=== ESP COMMANDS ===")
+print("_G.ESP.toggle() - Enable/disable ESP")
+print("_G.ESP.toggleHighlight() - Enable/disable highlight")
+print("_G.ESP.setMaxDistance(number) - Set max distance")
+print("_G.ESP.setHighlightTransparency(0-1) - Set highlight transparency")
+print("")
+print("=== AUTO AIM COMMANDS ===")
+print("_G.ESP.toggleAim() - Enable/disable auto aim")
+print("_G.ESP.setFOV(number) - Set aim FOV (10-500)")
+print("_G.ESP.increaseFOV() - Increase FOV by 10")
+print("_G.ESP.decreaseFOV() - Decrease FOV by 10")
+print("_G.ESP.setSmoothness(0.01-1) - Set aim smoothness")
+print("_G.ESP.setTarget('Part') - Set target part (Head/HumanoidRootPart/UpperTorso)")
+print("_G.ESP.toggleFOVCircle() - Show/hide FOV circle")
+print("")
+print("=== HOTKEYS (PC) ===")
+print("E - Toggle Auto Aim")
+print("+ or = - Increase FOV")
+print("- - Decrease FOV")
+print("")
+print("=== CURRENT SETTINGS ===")
+print("Auto Aim: " .. (ESP_CONFIG.autoAimEnabled and "DISABLED" or "DISABLED"))
+print("FOV: " .. ESP_CONFIG.aimFOV)
+print("Target: " .. ESP_CONFIG.targetPart)
+print("Smoothness: " .. ESP_CONFIG.aimSmoothness)
+print("Highlight Transparency: " .. ESP_CONFIG.highlightTransparency)
