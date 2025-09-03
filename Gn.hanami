@@ -1,0 +1,268 @@
+-- Advanced Teleport Script with GUI
+-- Compatible with Delta Executor and iOS
+-- Created by Assistant
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+local RootPart = Character:WaitForChild("HumanoidRootPart")
+
+-- Koordinat berurutan dari atas
+local coordinates = {
+    {x = 515, y = 141, z = -122},
+    {x = 359, y = 195, z = -614},
+    {x = -94, y = 169, z = -490},
+    {x = -935, y = 345, z = -512},
+    {x = -1278, y = 477, z = -330},
+    {x = -1976, y = 609, z = 131},
+    {x = -2766, y = 669, z = 43},
+    {x = -2613, y = 848, z = -324},
+    {x = -2593, y = 848, z = -320} -- Koordinat terakhir (walking target)
+}
+
+-- Variables
+local isRunning = false
+local currentIndex = 1
+local walkConnection = nil
+
+-- GUI Creation
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local TitleLabel = Instance.new("TextLabel")
+local StartButton = Instance.new("TextButton")
+local StopButton = Instance.new("TextButton")
+local StatusLabel = Instance.new("TextLabel")
+local MinimizeButton = Instance.new("TextButton")
+local isMinimized = false
+
+-- GUI Properties
+ScreenGui.Name = "TeleportGUI"
+ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Main Frame
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0, 10, 0, 10)
+MainFrame.Size = UDim2.new(0, 200, 0, 140)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+-- Rounded corners
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = MainFrame
+
+-- Title
+TitleLabel.Name = "TitleLabel"
+TitleLabel.Parent = MainFrame
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 0, 0, 5)
+TitleLabel.Size = UDim2.new(1, -30, 0, 25)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "Auto Teleport"
+TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleLabel.TextSize = 14
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Minimize Button
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Parent = MainFrame
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Position = UDim2.new(1, -25, 0, 5)
+MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.Text = "-"
+MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeButton.TextSize = 12
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(0, 4)
+minCorner.Parent = MinimizeButton
+
+-- Start Button
+StartButton.Name = "StartButton"
+StartButton.Parent = MainFrame
+StartButton.BackgroundColor3 = Color3.fromRGB(0, 170, 0)
+StartButton.BorderSizePixel = 0
+StartButton.Position = UDim2.new(0, 10, 0, 35)
+StartButton.Size = UDim2.new(0, 80, 0, 30)
+StartButton.Font = Enum.Font.Gotham
+StartButton.Text = "START"
+StartButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+StartButton.TextSize = 12
+StartButton.TextScaled = true
+
+local startCorner = Instance.new("UICorner")
+startCorner.CornerRadius = UDim.new(0, 6)
+startCorner.Parent = StartButton
+
+-- Stop Button
+StopButton.Name = "StopButton"
+StopButton.Parent = MainFrame
+StopButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+StopButton.BorderSizePixel = 0
+StopButton.Position = UDim2.new(0, 110, 0, 35)
+StopButton.Size = UDim2.new(0, 80, 0, 30)
+StopButton.Font = Enum.Font.Gotham
+StopButton.Text = "STOP"
+StopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+StopButton.TextSize = 12
+StopButton.TextScaled = true
+
+local stopCorner = Instance.new("UICorner")
+stopCorner.CornerRadius = UDim.new(0, 6)
+stopCorner.Parent = StopButton
+
+-- Status Label
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Parent = MainFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 10, 0, 75)
+StatusLabel.Size = UDim2.new(1, -20, 0, 50)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.Text = "Status: Stopped\nCoordinate: 1/9"
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.TextSize = 10
+StatusLabel.TextWrapped = true
+StatusLabel.TextYAlignment = Enum.TextYAlignment.Top
+
+-- Functions
+local function updateCharacter()
+    Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    Humanoid = Character:WaitForChild("Humanoid")
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+end
+
+local function updateStatus(status, coord)
+    StatusLabel.Text = string.format("Status: %s\nCoordinate: %d/9", status, coord or currentIndex)
+end
+
+local function teleportTo(position)
+    if RootPart then
+        RootPart.CFrame = CFrame.new(position.x, position.y, position.z)
+        wait(0.5) -- Delay untuk stabilitas
+    end
+end
+
+local function walkTo(targetPosition)
+    if Humanoid and RootPart then
+        Humanoid:MoveTo(Vector3.new(targetPosition.x, targetPosition.y, targetPosition.z))
+        
+        -- Wait until reached or timeout
+        local timeout = 30 -- 30 seconds timeout
+        local startTime = tick()
+        
+        repeat
+            wait(0.1)
+            local distance = (RootPart.Position - Vector3.new(targetPosition.x, targetPosition.y, targetPosition.z)).Magnitude
+            if distance < 5 then -- Close enough
+                break
+            end
+        until tick() - startTime > timeout or not isRunning
+    end
+end
+
+local function respawnPlayer()
+    if LocalPlayer.Character then
+        LocalPlayer.Character.Humanoid.Health = 0
+        wait(3) -- Wait for respawn
+        updateCharacter()
+    end
+end
+
+local function startTeleporting()
+    if isRunning then return end
+    
+    isRunning = true
+    updateStatus("Running", currentIndex)
+    
+    spawn(function()
+        while isRunning do
+            updateCharacter()
+            
+            if currentIndex <= #coordinates - 1 then
+                -- Teleport to coordinates 1-8
+                local coord = coordinates[currentIndex]
+                updateStatus("Teleporting", currentIndex)
+                teleportTo(coord)
+                wait(1)
+                currentIndex = currentIndex + 1
+            elseif currentIndex == #coordinates then
+                -- Walk to last coordinate
+                local lastCoord = coordinates[#coordinates]
+                updateStatus("Walking to final", currentIndex)
+                walkTo(lastCoord)
+                wait(2)
+                
+                -- Respawn and reset
+                updateStatus("Respawning", currentIndex)
+                respawnPlayer()
+                currentIndex = 1
+                wait(2)
+            end
+        end
+    end)
+end
+
+local function stopTeleporting()
+    isRunning = false
+    if walkConnection then
+        walkConnection:Disconnect()
+        walkConnection = nil
+    end
+    updateStatus("Stopped", currentIndex)
+end
+
+local function toggleMinimize()
+    isMinimized = not isMinimized
+    
+    if isMinimized then
+        MainFrame:TweenSize(UDim2.new(0, 200, 0, 30), "Out", "Quad", 0.3, true)
+        MinimizeButton.Text = "+"
+        StartButton.Visible = false
+        StopButton.Visible = false
+        StatusLabel.Visible = false
+    else
+        MainFrame:TweenSize(UDim2.new(0, 200, 0, 140), "Out", "Quad", 0.3, true)
+        MinimizeButton.Text = "-"
+        wait(0.3)
+        StartButton.Visible = true
+        StopButton.Visible = true
+        StatusLabel.Visible = true
+    end
+end
+
+-- Button Connections
+StartButton.MouseButton1Click:Connect(startTeleporting)
+StopButton.MouseButton1Click:Connect(stopTeleporting)
+MinimizeButton.MouseButton1Click:Connect(toggleMinimize)
+
+-- Touch support for mobile
+if UserInputService.TouchEnabled then
+    StartButton.TouchTap:Connect(startTeleporting)
+    StopButton.TouchTap:Connect(stopTeleporting)
+    MinimizeButton.TouchTap:Connect(toggleMinimize)
+end
+
+-- Character respawn handler
+LocalPlayer.CharacterAdded:Connect(function(newCharacter)
+    wait(1)
+    updateCharacter()
+end)
+
+-- Initial status
+updateStatus("Ready", 1)
+
+print("Advanced Teleport Script loaded successfully!")
+print("Compatible with Delta Executor and iOS")
+print("Features: Auto teleport, walking to final coordinate, auto respawn, loop system")
