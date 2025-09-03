@@ -1,0 +1,760 @@
+-- main.lua
+
+--[[ 
+📦 Script Terbang - Ultra Minimalist Professional Bar
+- Bar sangat kecil dan tidak mencolok
+- Design profesional dengan subtle neon accent
+- Draggable dan responsive
+- Menu compact yang efficient
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+-- Tunggu karakter
+local function getCharacter()
+    local char = player.Character
+    if not char then
+        player.CharacterAdded:Wait()
+        char = player.Character
+    end
+    return char
+end
+
+local char = getCharacter()
+local hrp = char:WaitForChild("HumanoidRootPart")
+local humanoid = char:WaitForChild("Humanoid")
+
+-- Buat GUI ultra minimal
+local gui = Instance.new("ScreenGui")
+gui.Name = "FlyMinBar"
+gui.Parent = player:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+
+-- Ultra compact main bar
+local mainBar = Instance.new("Frame", gui)
+mainBar.Name = "MainBar"
+mainBar.Size = UDim2.new(0, 80, 0, 24)
+mainBar.Position = UDim2.new(0, 20, 0, 100)
+mainBar.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+mainBar.BackgroundTransparency = 0.05
+mainBar.BorderSizePixel = 0
+
+-- Rounded corners
+local mainCorner = Instance.new("UICorner", mainBar)
+mainCorner.CornerRadius = UDim.new(0, 12)
+
+-- Subtle neon accent (very thin line)
+local neonAccent = Instance.new("Frame", mainBar)
+neonAccent.Name = "NeonAccent"
+neonAccent.Size = UDim2.new(1, -4, 0, 1)
+neonAccent.Position = UDim2.new(0, 2, 1, -2)
+neonAccent.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+neonAccent.BackgroundTransparency = 0.3
+neonAccent.BorderSizePixel = 0
+
+local accentCorner = Instance.new("UICorner", neonAccent)
+accentCorner.CornerRadius = UDim.new(0, 1)
+
+-- Subtle glow animation
+local glowTween = TweenService:Create(neonAccent, 
+    TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+    {BackgroundTransparency = 0.7}
+)
+glowTween:Play()
+
+-- Status dot (very small)
+local statusDot = Instance.new("Frame", mainBar)
+statusDot.Name = "StatusDot"
+statusDot.Size = UDim2.new(0, 5, 0, 5)
+statusDot.Position = UDim2.new(0, 6, 0.5, -2.5)
+statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+statusDot.BorderSizePixel = 0
+
+local dotCorner = Instance.new("UICorner", statusDot)
+dotCorner.CornerRadius = UDim.new(0, 2.5)
+
+-- Compact text
+local flyText = Instance.new("TextLabel", mainBar)
+flyText.Name = "FlyText"
+flyText.Size = UDim2.new(0, 35, 1, 0)
+flyText.Position = UDim2.new(0, 16, 0, 0)
+flyText.BackgroundTransparency = 1
+flyText.Text = "FLY"
+flyText.TextColor3 = Color3.fromRGB(220, 220, 220)
+flyText.TextSize = 9
+flyText.Font = Enum.Font.GothamMedium
+flyText.TextStrokeTransparency = 0.8
+flyText.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+-- Menu button (very subtle)
+local menuBtn = Instance.new("TextButton", mainBar)
+menuBtn.Name = "MenuBtn"
+menuBtn.Size = UDim2.new(0, 20, 1, 0)
+menuBtn.Position = UDim2.new(1, -20, 0, 0)
+menuBtn.BackgroundTransparency = 1
+menuBtn.Text = "⚙"
+menuBtn.TextColor3 = Color3.fromRGB(160, 160, 160)
+menuBtn.TextSize = 8
+menuBtn.Font = Enum.Font.GothamMedium
+
+-- Compact menu panel
+local menuPanel = Instance.new("Frame", gui)
+menuPanel.Name = "MenuPanel"
+menuPanel.Size = UDim2.new(0, 160, 0, 140)
+menuPanel.Position = UDim2.new(0, 110, 0, 60)
+menuPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+menuPanel.BackgroundTransparency = 0.02
+menuPanel.BorderSizePixel = 0
+menuPanel.Visible = false
+
+local menuCorner = Instance.new("UICorner", menuPanel)
+menuCorner.CornerRadius = UDim.new(0, 8)
+
+-- Subtle menu accent
+local menuAccent = Instance.new("Frame", menuPanel)
+menuAccent.Name = "MenuAccent"
+menuAccent.Size = UDim2.new(1, -6, 0, 1)
+menuAccent.Position = UDim2.new(0, 3, 0, 2)
+menuAccent.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+menuAccent.BackgroundTransparency = 0.5
+menuAccent.BorderSizePixel = 0
+
+-- Menu header
+local menuHeader = Instance.new("TextLabel", menuPanel)
+menuHeader.Name = "MenuHeader"
+menuHeader.Size = UDim2.new(1, 0, 0, 22)
+menuHeader.Position = UDim2.new(0, 0, 0, 5)
+menuHeader.BackgroundTransparency = 1
+menuHeader.Text = "FLY CONTROL"
+menuHeader.TextColor3 = Color3.fromRGB(0, 255, 127)
+menuHeader.TextSize = 8
+menuHeader.Font = Enum.Font.GothamBold
+menuHeader.TextStrokeTransparency = 0.8
+
+-- Fungsi untuk membuat tombol compact
+local function createCompactButton(name, pos, size, text, parent)
+    local btn = Instance.new("TextButton", parent or menuPanel)
+    btn.Name = name
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+    btn.BackgroundTransparency = 0.1
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Text = text
+    btn.TextSize = 7
+    btn.Font = Enum.Font.GothamMedium
+    btn.TextStrokeTransparency = 0.9
+    btn.BorderSizePixel = 0
+    
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(0, 4)
+    
+    -- Subtle hover effect
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 42)}):Play()
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(28, 28, 35)}):Play()
+    end)
+    
+    return btn
+end
+
+-- Buat tombol-tombol compact
+local btns = {
+    Toggle = createCompactButton("Toggle", UDim2.new(0, 8, 0, 30), UDim2.new(0, 144, 0, 18), "ACTIVATE FLY"),
+    
+    SpeedUp = createCompactButton("SpeedUp", UDim2.new(0, 8, 0, 55), UDim2.new(0, 30, 0, 16), "+"),
+    SpeedDown = createCompactButton("SpeedDown", UDim2.new(0, 45, 0, 55), UDim2.new(0, 30, 0, 16), "−"),
+    
+    LightUp = createCompactButton("LightUp", UDim2.new(0, 8, 0, 78), UDim2.new(0, 30, 0, 16), "+"),
+    LightDown = createCompactButton("LightDown", UDim2.new(0, 45, 0, 78), UDim2.new(0, 30, 0, 16), "−"),
+    
+    Close = createCompactButton("Close", UDim2.new(0, 8, 0, 107), UDim2.new(0, 144, 0, 18), "CLOSE")
+}
+
+-- Compact labels
+local speedLabel = Instance.new("TextLabel", menuPanel)
+speedLabel.Size = UDim2.new(0, 70, 0, 16)
+speedLabel.Position = UDim2.new(0, 82, 0, 55)
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+speedLabel.TextSize = 7
+speedLabel.Font = Enum.Font.GothamMedium
+speedLabel.Text = "Speed: 1"
+
+local lightLabel = Instance.new("TextLabel", menuPanel)
+lightLabel.Size = UDim2.new(0, 70, 0, 16)
+lightLabel.Position = UDim2.new(0, 82, 0, 78)
+lightLabel.BackgroundTransparency = 1
+lightLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+lightLabel.TextSize = 7
+lightLabel.Font = Enum.Font.GothamMedium
+lightLabel.Text = "Light: 0"
+
+-- Variables
+local speeds = 1
+local lightBrightness = 0
+local nowe = false
+local tpwalking = false
+local menuOpen = false
+
+-- Draggable functionality untuk seluruh bar
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+-- Buat seluruh mainBar draggable
+mainBar.Active = true
+mainBar.Draggable = true
+
+-- Alternative manual drag system jika Draggable property tidak bekerja
+local UserInputService = game:GetService("UserInputService")
+
+mainBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        -- Check if not clicking on menuBtn
+        local mouse = Players.LocalPlayer:GetMouse()
+        local mousePos = Vector2.new(mouse.X, mouse.Y)
+        local menuBtnPos = menuBtn.AbsolutePosition
+        local menuBtnSize = menuBtn.AbsoluteSize
+        
+        -- Only start dragging if not clicking menu button
+        if not (mousePos.X >= menuBtnPos.X and mousePos.X <= menuBtnPos.X + menuBtnSize.X and
+                mousePos.Y >= menuBtnPos.Y and mousePos.Y <= menuBtnPos.Y + menuBtnSize.Y) then
+            
+            dragging = true
+            dragStart = input.Position
+            startPos = mainBar.Position
+            
+            local connection
+            connection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    connection:Disconnect()
+                    dragging = false
+                end
+            end)
+        end
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+        local delta = input.Position - dragStart
+        mainBar.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+        
+        -- Update menu position relative to bar
+        if menuOpen then
+            menuPanel.Position = UDim2.new(0, startPos.X.Offset + delta.X + 90, 0, startPos.Y.Offset + delta.Y - 40)
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Menu draggable functionality
+local menuDragging = false
+local menuDragStart = nil
+local menuStartPos = nil
+
+menuHeader.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        menuDragging = true
+        menuDragStart = input.Position
+        menuStartPos = menuPanel.Position
+        
+        local connection
+        connection = input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                connection:Disconnect()
+                menuDragging = false
+            end
+        end)
+    end
+end)
+
+menuHeader.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        if menuDragging then
+            local delta = input.Position - menuDragStart
+            menuPanel.Position = UDim2.new(menuStartPos.X.Scale, menuStartPos.X.Offset + delta.X, menuStartPos.Y.Scale, menuStartPos.Y.Offset + delta.Y)
+        end
+    end
+end)
+
+-- Main bar click for toggle (but not on flyText area)
+mainBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and not dragging then
+        -- Only toggle if not clicking on flyText or menuBtn
+        local mouse = Players.LocalPlayer:GetMouse()
+        local mousePos = Vector2.new(mouse.X, mouse.Y)
+        local flyTextPos = flyText.AbsolutePosition
+        local flyTextSize = flyText.AbsoluteSize
+        local menuBtnPos = menuBtn.AbsolutePosition
+        local menuBtnSize = menuBtn.AbsoluteSize
+        
+        -- Check if click is not on flyText or menuBtn
+        if not (mousePos.X >= flyTextPos.X and mousePos.X <= flyTextPos.X + flyTextSize.X and
+                mousePos.Y >= flyTextPos.Y and mousePos.Y <= flyTextPos.Y + flyTextSize.Y) and
+           not (mousePos.X >= menuBtnPos.X and mousePos.X <= menuBtnPos.X + menuBtnSize.X and
+                mousePos.Y >= menuBtnPos.Y and mousePos.Y <= menuBtnPos.Y + menuBtnSize.Y) then
+            toggleFly()
+        end
+    end
+end)
+
+-- Menu toggle
+menuBtn.MouseButton1Click:Connect(function()
+    menuOpen = not menuOpen
+    
+    if menuOpen then
+        -- Position menu relative to bar
+        local barPos = mainBar.Position
+        menuPanel.Position = UDim2.new(0, barPos.X.Offset + 90, 0, barPos.Y.Offset - 40)
+        menuPanel.Visible = true
+        menuPanel.Size = UDim2.new(0, 160, 0, 0)
+        
+        TweenService:Create(menuPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), 
+            {Size = UDim2.new(0, 160, 0, 140)}):Play()
+    else
+        local closeTween = TweenService:Create(menuPanel, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), 
+            {Size = UDim2.new(0, 160, 0, 0)})
+        closeTween:Play()
+        closeTween.Completed:Connect(function()
+            menuPanel.Visible = false
+        end)
+    end
+    
+    TweenService:Create(menuBtn, TweenInfo.new(0.15), {Rotation = menuOpen and 180 or 0}):Play()
+end)
+
+-- Body light function
+local function updateBodyLight()
+    for _, child in pairs(hrp:GetChildren()) do
+        if child.Name == "FlashlightGlow" or 
+           child.Name == "FlashlightParticles" or 
+           child.Name == "FlashlightSpot" then
+            child:Destroy()
+        end
+    end
+    
+    for _, child in pairs(hrp:GetChildren()) do
+        if child:IsA("Attachment") and child.Name == "FlashlightParticles" then
+            child:Destroy()
+        end
+    end
+    
+    if lightBrightness > 0 then
+        local glowEffect = Instance.new("PointLight", hrp)
+        glowEffect.Name = "FlashlightGlow"
+        glowEffect.Brightness = lightBrightness * 0.8
+        glowEffect.Range = lightBrightness * 12
+        glowEffect.Color = Color3.fromRGB(255, 248, 220)
+        glowEffect.Shadows = true
+        
+        local spotLight = Instance.new("SpotLight", hrp)
+        spotLight.Name = "FlashlightSpot"
+        spotLight.Brightness = lightBrightness * 0.6
+        spotLight.Range = lightBrightness * 15
+        spotLight.Angle = 60 + (lightBrightness * 5)
+        spotLight.Color = Color3.fromRGB(255, 248, 220)
+        spotLight.Face = Enum.NormalId.Front
+        spotLight.Shadows = true
+        
+        local attachment = Instance.new("Attachment", hrp)
+        attachment.Name = "FlashlightParticles"
+        local particles = Instance.new("ParticleEmitter", attachment)
+        particles.Color = ColorSequence.new(Color3.fromRGB(255, 248, 220))
+        particles.Size = NumberSequence.new{
+            NumberSequenceKeypoint.new(0, 0.3),
+            NumberSequenceKeypoint.new(1, 0.1)
+        }
+        particles.Lifetime = NumberRange.new(0.8, 1.5)
+        particles.Rate = lightBrightness * 5
+        particles.SpreadAngle = Vector2.new(30, 30)
+        particles.Speed = NumberRange.new(1, 3)
+        particles.Transparency = NumberSequence.new{
+            NumberSequenceKeypoint.new(0, 0.7),
+            NumberSequenceKeypoint.new(1, 1)
+        }
+        particles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+    end
+    
+    lightLabel.Text = "Light: " .. lightBrightness
+end
+
+-- Fungsi fly utama (FIXED - Definisi fungsi sebelum pemanggilan)
+function toggleFly()
+    if nowe == true then
+        -- Turn OFF fly
+        nowe = false
+        
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Running,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,true)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,true)
+        humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+        
+        tpwalking = false
+        player.Character.Animate.Disabled = false
+        humanoid.PlatformStand = false
+        
+        -- Update UI
+        statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        flyText.TextColor3 = Color3.fromRGB(220, 220, 220)
+        btns.Toggle.Text = "ACTIVATE FLY"
+        
+    else 
+        -- Turn ON fly
+        nowe = true
+        
+        -- Start tpwalking untuk horizontal movement
+        for i = 1, speeds do
+            spawn(function()
+                local hb = RunService.Heartbeat	
+                tpwalking = true
+                local chr = player.Character
+                local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                    if hum.MoveDirection.Magnitude > 0 then
+                        chr:TranslateBy(hum.MoveDirection)
+                    end
+                end
+            end)
+        end
+        
+        player.Character.Animate.Disabled = true
+        local Char = player.Character
+        local Hum = Char:FindFirstChildOfClass("Humanoid") or Char:FindFirstChildOfClass("AnimationController")
+
+        for i,v in next, Hum:GetPlayingAnimationTracks() do
+            v:AdjustSpeed(0)
+        end
+        
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Flying,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Freefall,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.GettingUp,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Landed,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Physics,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Running,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Seated,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics,false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Swimming,false)
+        humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
+        
+        -- Update UI
+        statusDot.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+        flyText.TextColor3 = Color3.fromRGB(0, 255, 127)
+        btns.Toggle.Text = "DEACTIVATE FLY"
+
+        -- Sistem BodyGyro + BodyVelocity untuk kontrol yang halus
+        if humanoid.RigType == Enum.HumanoidRigType.R6 then
+            local torso = char.Torso
+            local ctrl = {f = 0, b = 0, l = 0, r = 0}
+            local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            local maxspeed = 50
+            local speed = 0
+
+            local bg = Instance.new("BodyGyro", torso)
+            bg.P = 9e4
+            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bg.cframe = torso.CFrame
+            local bv = Instance.new("BodyVelocity", torso)
+            bv.velocity = Vector3.new(0,0.1,0)
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+            
+            if nowe == true then
+                humanoid.PlatformStand = true
+            end
+            
+            spawn(function()
+                while nowe == true or humanoid.Health == 0 do
+                    RunService.RenderStepped:Wait()
+
+                    if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+                        speed = speed+.5+(speed/maxspeed)
+                        if speed > maxspeed then
+                            speed = maxspeed
+                        end
+                    elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
+                        speed = speed-1
+                        if speed < 0 then
+                            speed = 0
+                        end
+                    end
+                    if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
+                        bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
+                        lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+                    elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and speed ~= 0 then
+                        bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f+lastctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l+lastctrl.r,(lastctrl.f+lastctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
+                    else
+                        bv.velocity = Vector3.new(0,0,0)
+                    end
+                    bg.cframe = workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
+                end
+                ctrl = {f = 0, b = 0, l = 0, r = 0}
+                lastctrl = {f = 0, b = 0, l = 0, r = 0}
+                speed = 0
+                bg:Destroy()
+                bv:Destroy()
+                humanoid.PlatformStand = false
+                player.Character.Animate.Disabled = false
+                tpwalking = false
+            end)
+            
+        else
+            -- R15 version
+            local UpperTorso = char.UpperTorso
+            local ctrl = {f = 0, b = 0, l = 0, r = 0}
+            local lastctrl = {f = 0, b = 0, l = 0, r = 0}
+            local maxspeed = 50
+            local speed = 0
+
+            local bg = Instance.new("BodyGyro", UpperTorso)
+            bg.P = 9e4
+            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bg.cframe = UpperTorso.CFrame
+            local bv = Instance.new("BodyVelocity", UpperTorso)
+            bv.velocity = Vector3.new(0,0.1,0)
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+            
+            if nowe == true then
+                humanoid.PlatformStand = true
+            end
+            
+            spawn(function()
+                while nowe == true or humanoid.Health == 0 do
+                    wait()
+
+                    if ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0 then
+                        speed = speed+.5+(speed/maxspeed)
+                        if speed > maxspeed then
+                            speed = maxspeed
+                        end
+                    elseif not (ctrl.l + ctrl.r ~= 0 or ctrl.f + ctrl.b ~= 0) and speed ~= 0 then
+                        speed = speed-1
+                        if speed < 0 then
+                            speed = 0
+                        end
+                    end
+                    if (ctrl.l + ctrl.r) ~= 0 or (ctrl.f + ctrl.b) ~= 0 then
+                        bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (ctrl.f+ctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(ctrl.l+ctrl.r,(ctrl.f+ctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
+                        lastctrl = {f = ctrl.f, b = ctrl.b, l = ctrl.l, r = ctrl.r}
+                    elseif (ctrl.l + ctrl.r) == 0 and (ctrl.f + ctrl.b) == 0 and speed ~= 0 then
+                        bv.velocity = ((workspace.CurrentCamera.CoordinateFrame.lookVector * (lastctrl.f+lastctrl.b)) + ((workspace.CurrentCamera.CoordinateFrame * CFrame.new(lastctrl.l+lastctrl.r,(lastctrl.f+lastctrl.b)*.2,0).p) - workspace.CurrentCamera.CoordinateFrame.p))*speed
+                    else
+                        bv.velocity = Vector3.new(0,0,0)
+                    end
+
+                    bg.cframe = workspace.CurrentCamera.CoordinateFrame * CFrame.Angles(-math.rad((ctrl.f+ctrl.b)*50*speed/maxspeed),0,0)
+                end
+                ctrl = {f = 0, b = 0, l = 0, r = 0}
+                lastctrl = {f = 0, b = 0, l = 0, r = 0}
+                speed = 0
+                bg:Destroy()
+                bv:Destroy()
+                humanoid.PlatformStand = false
+                player.Character.Animate.Disabled = false
+                tpwalking = false
+            end)
+        end
+    end
+end
+
+-- Button connections
+btns.Toggle.MouseButton1Click:Connect(function()
+    toggleFly()
+end)
+
+-- Speed Control
+btns.SpeedUp.MouseButton1Click:Connect(function()
+    speeds = speeds + 1
+    speedLabel.Text = "Speed: " .. speeds
+    if nowe == true then
+        tpwalking = false
+        for i = 1, speeds do
+            spawn(function()
+                local hb = RunService.Heartbeat	
+                tpwalking = true
+                local chr = player.Character
+                local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                    if hum.MoveDirection.Magnitude > 0 then
+                        chr:TranslateBy(hum.MoveDirection)
+                    end
+                end
+            end)
+        end
+    end
+end)
+
+btns.SpeedDown.MouseButton1Click:Connect(function()
+    if speeds == 1 then
+        speedLabel.Text = "Min: 1"
+        wait(1)
+        speedLabel.Text = "Speed: " .. speeds
+    else
+        speeds = speeds - 1
+        speedLabel.Text = "Speed: " .. speeds
+        if nowe == true then
+            tpwalking = false
+            for i = 1, speeds do
+                spawn(function()
+                    local hb = RunService.Heartbeat	
+                    tpwalking = true
+                    local chr = player.Character
+                    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                    while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                        if hum.MoveDirection.Magnitude > 0 then
+                            chr:TranslateBy(hum.MoveDirection)
+                        end
+                    end
+                end)
+            end
+        end
+    end
+end)
+
+-- Light Control
+btns.LightUp.MouseButton1Click:Connect(function()
+    lightBrightness = math.min(lightBrightness + 1, 10)
+    updateBodyLight()
+end)
+
+btns.LightDown.MouseButton1Click:Connect(function()
+    lightBrightness = math.max(lightBrightness - 1, 0)
+    updateBodyLight()
+end)
+
+-- Close Button
+btns.Close.MouseButton1Click:Connect(function()
+    nowe = false
+    tpwalking = false
+    
+    -- Cleanup
+    for _, child in pairs(hrp:GetChildren()) do
+        if child.Name == "FlashlightGlow" or child.Name == "FlashlightParticles" or child.Name == "FlashlightSpot" then
+            child:Destroy()
+        end
+    end
+    
+    humanoid.PlatformStand = false
+    player.Character.Animate.Disabled = false
+    
+    gui:Destroy()
+end)
+
+-- Keyboard shortcuts
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.F then
+            toggleFly()
+        elseif input.KeyCode == Enum.KeyCode.G then
+            menuBtn.MouseButton1Click:Fire()
+        end
+    end
+end)
+
+-- Subtle status dot animation when flying
+spawn(function()
+    while true do
+        if nowe then
+            TweenService:Create(statusDot, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), 
+                {BackgroundTransparency = 0.4}):Play()
+            wait(0.8)
+            TweenService:Create(statusDot, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), 
+                {BackgroundTransparency = 0}):Play()
+            wait(0.8)
+        else
+            wait(1)
+        end
+    end
+end)
+
+-- Hover effects for main bar
+mainBar.MouseEnter:Connect(function()
+    if not dragging then
+        TweenService:Create(mainBar, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+        TweenService:Create(neonAccent, TweenInfo.new(0.2), {BackgroundTransparency = 0.1}):Play()
+    end
+end)
+
+mainBar.MouseLeave:Connect(function()
+    if not dragging then
+        TweenService:Create(mainBar, TweenInfo.new(0.2), {BackgroundTransparency = 0.05}):Play()
+        TweenService:Create(neonAccent, TweenInfo.new(0.2), {BackgroundTransparency = 0.3}):Play()
+    end
+end)
+
+-- Character respawn handler
+player.CharacterAdded:Connect(function(newChar)
+    wait(0.7)
+    char = newChar
+    hrp = char:WaitForChild("HumanoidRootPart")
+    humanoid = char:WaitForChild("Humanoid")
+    humanoid.PlatformStand = false
+    char.Animate.Disabled = false
+    
+    -- Reset UI state
+    nowe = false
+    tpwalking = false
+    statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+    flyText.TextColor3 = Color3.fromRGB(220, 220, 220)
+    btns.Toggle.Text = "ACTIVATE FLY"
+end)
+
+-- Auto-hide menu when clicking outside
+gui.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and menuOpen then
+        local mouse = Players.LocalPlayer:GetMouse()
+        local mousePos = Vector2.new(mouse.X, mouse.Y)
+        local menuPos = menuPanel.AbsolutePosition
+        local menuSize = menuPanel.AbsoluteSize
+        
+        -- Check if click is outside menu and main bar
+        if not (mousePos.X >= menuPos.X and mousePos.X <= menuPos.X + menuSize.X and
+                mousePos.Y >= menuPos.Y and mousePos.Y <= menuPos.Y + menuSize.Y) and
+           not (mousePos.X >= mainBar.AbsolutePosition.X and mousePos.X <= mainBar.AbsolutePosition.X + mainBar.AbsoluteSize.X and
+                mousePos.Y >= mainBar.AbsolutePosition.Y and mousePos.Y <= mainBar.AbsolutePosition.Y + mainBar.AbsoluteSize.Y) then
+            menuBtn.MouseButton1Click:Fire()
+        end
+    end
+end)
+
+-- Subtle notification
+game:GetService("StarterGui"):SetCore("SendNotification", { 
+    Title = "✈️ Fly Script";
+    Text = "Ultra-minimal bar loaded. Click to fly!";
+    Duration = 3;
+})
