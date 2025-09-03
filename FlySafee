@@ -1,0 +1,807 @@
+--[[ 
+📦 Script Terbang - Ultra Minimalist Professional Bar
+- Bar sangat kecil dan tidak mencolok
+- Design profesional dengan subtle neon accent
+- Draggable dan responsive
+- Menu compact yang efficient
+- Fungsi fly yang sederhana dan stabil
+- Kontrol Light dan Speed dari script pertama
+- Layout baru: kontrol seperti PS controller
+- KIRI: Belok kiri/kanan + maju/mundur
+- KANAN: Naik/turun
+]]
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+-- Tunggu karakter
+local function getCharacter()
+    local char = player.Character
+    if not char then
+        player.CharacterAdded:Wait()
+        char = player.Character
+    end
+    return char
+end
+
+local char = getCharacter()
+local hrp = char:WaitForChild("HumanoidRootPart")
+
+-- Buat GUI ultra minimal
+local gui = Instance.new("ScreenGui")
+gui.Name = "FlyMinBar"
+gui.Parent = player:WaitForChild("PlayerGui")
+gui.ResetOnSpawn = false
+
+-- Ultra compact main bar
+local mainBar = Instance.new("Frame", gui)
+mainBar.Name = "MainBar"
+mainBar.Size = UDim2.new(0, 80, 0, 24)
+mainBar.Position = UDim2.new(0, 20, 0, 100)
+mainBar.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+mainBar.BackgroundTransparency = 0.05
+mainBar.BorderSizePixel = 0
+
+-- Rounded corners
+local mainCorner = Instance.new("UICorner", mainBar)
+mainCorner.CornerRadius = UDim.new(0, 12)
+
+-- Subtle neon accent (very thin line)
+local neonAccent = Instance.new("Frame", mainBar)
+neonAccent.Name = "NeonAccent"
+neonAccent.Size = UDim2.new(1, -4, 0, 1)
+neonAccent.Position = UDim2.new(0, 2, 1, -2)
+neonAccent.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+neonAccent.BackgroundTransparency = 0.3
+neonAccent.BorderSizePixel = 0
+
+local accentCorner = Instance.new("UICorner", neonAccent)
+accentCorner.CornerRadius = UDim.new(0, 1)
+
+-- Subtle glow animation
+local glowTween = TweenService:Create(neonAccent, 
+    TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+    {BackgroundTransparency = 0.7}
+)
+glowTween:Play()
+
+-- Status dot (very small)
+local statusDot = Instance.new("Frame", mainBar)
+statusDot.Name = "StatusDot"
+statusDot.Size = UDim2.new(0, 5, 0, 5)
+statusDot.Position = UDim2.new(0, 6, 0.5, -2.5)
+statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+statusDot.BorderSizePixel = 0
+
+local dotCorner = Instance.new("UICorner", statusDot)
+dotCorner.CornerRadius = UDim.new(0, 2.5)
+
+-- Compact text
+local flyText = Instance.new("TextLabel", mainBar)
+flyText.Name = "FlyText"
+flyText.Size = UDim2.new(0, 35, 1, 0)
+flyText.Position = UDim2.new(0, 16, 0, 0)
+flyText.BackgroundTransparency = 1
+flyText.Text = "FLY"
+flyText.TextColor3 = Color3.fromRGB(220, 220, 220)
+flyText.TextSize = 9
+flyText.Font = Enum.Font.GothamMedium
+flyText.TextStrokeTransparency = 0.8
+flyText.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+-- Menu button (very subtle)
+local menuBtn = Instance.new("TextButton", mainBar)
+menuBtn.Name = "MenuBtn"
+menuBtn.Size = UDim2.new(0, 20, 1, 0)
+menuBtn.Position = UDim2.new(1, -20, 0, 0)
+menuBtn.BackgroundTransparency = 1
+menuBtn.Text = "⚙"
+menuBtn.TextColor3 = Color3.fromRGB(160, 160, 160)
+menuBtn.TextSize = 8
+menuBtn.Font = Enum.Font.GothamMedium
+
+-- Compact menu panel
+local menuPanel = Instance.new("Frame", gui)
+menuPanel.Name = "MenuPanel"
+menuPanel.Size = UDim2.new(0, 180, 0, 180)
+menuPanel.Position = UDim2.new(0, 110, 0, 60)
+menuPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+menuPanel.BackgroundTransparency = 0.02
+menuPanel.BorderSizePixel = 0
+menuPanel.Visible = false
+
+local menuCorner = Instance.new("UICorner", menuPanel)
+menuCorner.CornerRadius = UDim.new(0, 8)
+
+-- Subtle menu accent
+local menuAccent = Instance.new("Frame", menuPanel)
+menuAccent.Name = "MenuAccent"
+menuAccent.Size = UDim2.new(1, -6, 0, 1)
+menuAccent.Position = UDim2.new(0, 3, 0, 2)
+menuAccent.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+menuAccent.BackgroundTransparency = 0.5
+menuAccent.BorderSizePixel = 0
+
+-- Menu header
+local menuHeader = Instance.new("TextLabel", menuPanel)
+menuHeader.Name = "MenuHeader"
+menuHeader.Size = UDim2.new(1, 0, 0, 22)
+menuHeader.Position = UDim2.new(0, 0, 0, 5)
+menuHeader.BackgroundTransparency = 1
+menuHeader.Text = "FLY CONTROL"
+menuHeader.TextColor3 = Color3.fromRGB(0, 255, 127)
+menuHeader.TextSize = 8
+menuHeader.Font = Enum.Font.GothamBold
+menuHeader.TextStrokeTransparency = 0.8
+
+-- Fungsi untuk membuat tombol compact
+local function createCompactButton(name, pos, size, text, parent)
+    local btn = Instance.new("TextButton", parent or menuPanel)
+    btn.Name = name
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+    btn.BackgroundTransparency = 0.1
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.Text = text
+    btn.TextSize = 7
+    btn.Font = Enum.Font.GothamMedium
+    btn.TextStrokeTransparency = 0.9
+    btn.BorderSizePixel = 0
+    
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(0, 4)
+    
+    -- Subtle hover effect
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(35, 35, 42)}):Play()
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = Color3.fromRGB(28, 28, 35)}):Play()
+    end)
+    
+    return btn
+end
+
+-- Fungsi untuk membuat tombol neon hijau mewah untuk movement controls
+local function createNeonMovementButton(name, pos, size, text, parent)
+    local btn = Instance.new("TextButton", parent or gui)
+    btn.Name = name
+    btn.Size = size
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(15, 25, 20)
+    btn.BackgroundTransparency = 0.1
+    btn.TextColor3 = Color3.fromRGB(0, 255, 127)
+    btn.Text = text
+    btn.TextSize = 14
+    btn.Font = Enum.Font.GothamBold
+    btn.TextStrokeTransparency = 0.5
+    btn.TextStrokeColor3 = Color3.fromRGB(0, 120, 60)
+    btn.BorderSizePixel = 0
+    btn.Visible = false -- Initially hidden
+    
+    local corner = Instance.new("UICorner", btn)
+    corner.CornerRadius = UDim.new(0, 8)
+    
+    -- Neon border effect
+    local border = Instance.new("Frame", btn)
+    border.Name = "NeonBorder"
+    border.Size = UDim2.new(1, 4, 1, 4)
+    border.Position = UDim2.new(0, -2, 0, -2)
+    border.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+    border.BackgroundTransparency = 0.8
+    border.BorderSizePixel = 0
+    border.ZIndex = btn.ZIndex - 1
+    
+    local borderCorner = Instance.new("UICorner", border)
+    borderCorner.CornerRadius = UDim.new(0, 10)
+    
+    -- Subtle glow animation for each button
+    local btnGlowTween = TweenService:Create(border, 
+        TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {BackgroundTransparency = 0.4}
+    )
+    btnGlowTween:Play()
+    
+    -- Enhanced hover effects
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(20, 35, 25),
+            TextColor3 = Color3.fromRGB(100, 255, 180)
+        }):Play()
+        TweenService:Create(border, TweenInfo.new(0.15), {BackgroundTransparency = 0.3}):Play()
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {
+            BackgroundColor3 = Color3.fromRGB(15, 25, 20),
+            TextColor3 = Color3.fromRGB(0, 255, 127)
+        }):Play()
+        TweenService:Create(border, TweenInfo.new(0.15), {BackgroundTransparency = 0.8}):Play()
+    end)
+    
+    return btn
+end
+
+-- Variables untuk fly system yang sederhana + Light & Speed Control
+local flying = false
+local move = {
+    Forward = false, Backward = false,
+    Left = false, Right = false,
+    Up = false, Down = false
+}
+local speed = 60
+local speeds = 1 -- Multiplier untuk speed
+local lightBrightness = 0 -- Light brightness level
+local force
+local connections = {}
+local menuOpen = false
+
+-- Body light function
+local function updateBodyLight()
+    for _, child in pairs(hrp:GetChildren()) do
+        if child.Name == "FlashlightGlow" or 
+           child.Name == "FlashlightParticles" or 
+           child.Name == "FlashlightSpot" then
+            child:Destroy()
+        end
+    end
+    
+    for _, child in pairs(hrp:GetChildren()) do
+        if child:IsA("Attachment") and child.Name == "FlashlightParticles" then
+            child:Destroy()
+        end
+    end
+    
+    if lightBrightness > 0 then
+        local glowEffect = Instance.new("PointLight", hrp)
+        glowEffect.Name = "FlashlightGlow"
+        glowEffect.Brightness = lightBrightness * 0.8
+        glowEffect.Range = lightBrightness * 12
+        glowEffect.Color = Color3.fromRGB(255, 248, 220)
+        glowEffect.Shadows = true
+        
+        local spotLight = Instance.new("SpotLight", hrp)
+        spotLight.Name = "FlashlightSpot"
+        spotLight.Brightness = lightBrightness * 0.6
+        spotLight.Range = lightBrightness * 15
+        spotLight.Angle = 60 + (lightBrightness * 5)
+        spotLight.Color = Color3.fromRGB(255, 248, 220)
+        spotLight.Face = Enum.NormalId.Front
+        spotLight.Shadows = true
+        
+        local attachment = Instance.new("Attachment", hrp)
+        attachment.Name = "FlashlightParticles"
+        local particles = Instance.new("ParticleEmitter", attachment)
+        particles.Color = ColorSequence.new(Color3.fromRGB(255, 248, 220))
+        particles.Size = NumberSequence.new{
+            NumberSequenceKeypoint.new(0, 0.3),
+            NumberSequenceKeypoint.new(1, 0.1)
+        }
+        particles.Lifetime = NumberRange.new(0.8, 1.5)
+        particles.Rate = lightBrightness * 5
+        particles.SpreadAngle = Vector2.new(30, 30)
+        particles.Speed = NumberRange.new(1, 3)
+        particles.Transparency = NumberSequence.new{
+            NumberSequenceKeypoint.new(0, 0.7),
+            NumberSequenceKeypoint.new(1, 1)
+        }
+        particles.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+    end
+end
+
+-- Buat tombol-tombol compact untuk menu
+local btns = {
+    Toggle = createCompactButton("Toggle", UDim2.new(0, 8, 0, 30), UDim2.new(0, 164, 0, 18), "ACTIVATE FLY"),
+    
+    -- Speed controls
+    SpeedUp = createCompactButton("SpeedUp", UDim2.new(0, 8, 0, 60), UDim2.new(0, 30, 0, 16), "+"),
+    SpeedDown = createCompactButton("SpeedDown", UDim2.new(0, 45, 0, 60), UDim2.new(0, 30, 0, 16), "−"),
+    
+    -- Light controls
+    LightUp = createCompactButton("LightUp", UDim2.new(0, 8, 0, 85), UDim2.new(0, 30, 0, 16), "+"),
+    LightDown = createCompactButton("LightDown", UDim2.new(0, 45, 0, 85), UDim2.new(0, 30, 0, 16), "−"),
+    
+    Close = createCompactButton("Close", UDim2.new(0, 8, 0, 110), UDim2.new(0, 164, 0, 18), "CLOSE & EXIT")
+}
+
+-- Buat movement controls dengan layout PS Controller yang teratur
+-- SISI KIRI: Kontrol gerakan horizontal (A/D untuk kiri/kanan, W/S untuk maju/mundur)  
+-- SISI KANAN: Kontrol ketinggian (Space/Shift untuk naik/turun)
+local movementBtns = {
+    -- SISI KIRI - Movement Controls dalam formasi + (cross/plus)
+    Forward = createNeonMovementButton("Forward", UDim2.new(0, 120, 0.5, -140), UDim2.new(0, 50, 0, 40), "↑"),
+    Left = createNeonMovementButton("Left", UDim2.new(0, 60, 0.5, -90), UDim2.new(0, 50, 0, 40), "←"),
+    Right = createNeonMovementButton("Right", UDim2.new(0, 180, 0.5, -90), UDim2.new(0, 50, 0, 40), "→"),
+    Backward = createNeonMovementButton("Backward", UDim2.new(0, 120, 0.5, -40), UDim2.new(0, 50, 0, 40), "↓"),
+    
+    -- SISI KANAN - Altitude Controls dalam formasi vertikal
+    Up = createNeonMovementButton("Up", UDim2.new(1, -180, 0.5, -140), UDim2.new(0, 50, 0, 40), "⬆"),
+    Down = createNeonMovementButton("Down", UDim2.new(1, -180, 0.5, -40), UDim2.new(0, 50, 0, 40), "⬇")
+}
+
+-- Fungsi untuk show/hide movement controls
+local function toggleMovementControls(show)
+    for _, btn in pairs(movementBtns) do
+        btn.Visible = show
+        if show then
+            btn.Size = UDim2.new(0, 50, 0, 0)
+            TweenService:Create(btn, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), 
+                {Size = UDim2.new(0, 50, 0, 40)}):Play()
+        end
+    end
+end
+
+-- Labels untuk speed dan light
+local speedLabel = Instance.new("TextLabel", menuPanel)
+speedLabel.Size = UDim2.new(0, 90, 0, 16)
+speedLabel.Position = UDim2.new(0, 82, 0, 60)
+speedLabel.BackgroundTransparency = 1
+speedLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+speedLabel.TextSize = 7
+speedLabel.Font = Enum.Font.GothamMedium
+speedLabel.Text = "Speed: " .. speeds
+
+local lightLabel = Instance.new("TextLabel", menuPanel)
+lightLabel.Size = UDim2.new(0, 90, 0, 16)
+lightLabel.Position = UDim2.new(0, 82, 0, 85)
+lightLabel.BackgroundTransparency = 1
+lightLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+lightLabel.TextSize = 7
+lightLabel.Font = Enum.Font.GothamMedium
+lightLabel.Text = "Light: " .. lightBrightness
+
+-- Status label
+local statusLabel = Instance.new("TextLabel", menuPanel)
+statusLabel.Size = UDim2.new(0, 164, 0, 16)
+statusLabel.Position = UDim2.new(0, 8, 0, 135)
+statusLabel.BackgroundTransparency = 1
+statusLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+statusLabel.TextSize = 7
+statusLabel.Font = Enum.Font.GothamMedium
+statusLabel.Text = "Status: READY"
+
+-- Info label untuk movement controls dengan layout PS
+local infoLabel = Instance.new("TextLabel", menuPanel)
+infoLabel.Size = UDim2.new(0, 164, 0, 16)
+infoLabel.Position = UDim2.new(0, 8, 0, 155)
+infoLabel.BackgroundTransparency = 1
+infoLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
+infoLabel.TextSize = 6
+infoLabel.Font = Enum.Font.Gotham
+infoLabel.Text = "KIRI: Gerakan WASD • KANAN: Naik/Turun Space/Shift"
+
+-- Draggable functionality untuk seluruh bar
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+-- Buat seluruh mainBar draggable
+mainBar.Active = true
+mainBar.Draggable = true
+
+-- Alternative manual drag system
+mainBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        -- Check if not clicking on menuBtn
+        local mouse = Players.LocalPlayer:GetMouse()
+        local mousePos = Vector2.new(mouse.X, mouse.Y)
+        local menuBtnPos = menuBtn.AbsolutePosition
+        local menuBtnSize = menuBtn.AbsoluteSize
+        
+        -- Only start dragging if not clicking menu button
+        if not (mousePos.X >= menuBtnPos.X and mousePos.X <= menuBtnPos.X + menuBtnSize.X and
+                mousePos.Y >= menuBtnPos.Y and mousePos.Y <= menuBtnPos.Y + menuBtnSize.Y) then
+            
+            dragging = true
+            dragStart = input.Position
+            startPos = mainBar.Position
+            
+            local connection
+            connection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    connection:Disconnect()
+                    dragging = false
+                end
+            end)
+        end
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+        local delta = input.Position - dragStart
+        mainBar.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+        
+        -- Update menu position relative to bar
+        if menuOpen then
+            menuPanel.Position = UDim2.new(0, startPos.X.Offset + delta.X + 90, 0, startPos.Y.Offset + delta.Y - 40)
+        end
+    end
+end)
+
+-- Main bar click for toggle (quick toggle)
+mainBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and not dragging then
+        -- Only toggle if not clicking on flyText or menuBtn
+        local mouse = Players.LocalPlayer:GetMouse()
+        local mousePos = Vector2.new(mouse.X, mouse.Y)
+        local flyTextPos = flyText.AbsolutePosition
+        local flyTextSize = flyText.AbsoluteSize
+        local menuBtnPos = menuBtn.AbsolutePosition
+        local menuBtnSize = menuBtn.AbsoluteSize
+        
+        -- Check if click is not on flyText or menuBtn
+        if not (mousePos.X >= flyTextPos.X and mousePos.X <= flyTextPos.X + flyTextSize.X and
+                mousePos.Y >= flyTextPos.Y and mousePos.Y <= flyTextPos.Y + flyTextSize.Y) and
+           not (mousePos.X >= menuBtnPos.X and mousePos.X <= menuBtnPos.X + menuBtnSize.X and
+                mousePos.Y >= menuBtnPos.Y and mousePos.Y <= menuBtnPos.Y + menuBtnSize.Y) then
+            toggleFly()
+        end
+    end
+end)
+
+-- Menu toggle
+menuBtn.MouseButton1Click:Connect(function()
+    menuOpen = not menuOpen
+    
+    if menuOpen then
+        -- Position menu relative to bar
+        local barPos = mainBar.Position
+        menuPanel.Position = UDim2.new(0, barPos.X.Offset + 90, 0, barPos.Y.Offset - 40)
+        menuPanel.Visible = true
+        menuPanel.Size = UDim2.new(0, 180, 0, 0)
+        
+        TweenService:Create(menuPanel, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), 
+            {Size = UDim2.new(0, 180, 0, 180)}):Play()
+    else
+        local closeTween = TweenService:Create(menuPanel, TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In), 
+            {Size = UDim2.new(0, 180, 0, 0)})
+        closeTween:Play()
+        closeTween.Completed:Connect(function()
+            menuPanel.Visible = false
+        end)
+    end
+    
+    TweenService:Create(menuBtn, TweenInfo.new(0.15), {Rotation = menuOpen and 180 or 0}):Play()
+end)
+
+-- FUNGSI FLY UTAMA
+function toggleFly()
+    flying = not flying
+    
+    if flying then
+        -- Turn ON fly
+        statusDot.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+        flyText.TextColor3 = Color3.fromRGB(0, 255, 127)
+        btns.Toggle.Text = "DEACTIVATE FLY"
+        statusLabel.Text = "Status: FLYING"
+        
+        -- Show movement controls
+        toggleMovementControls(true)
+        
+        -- Buat BodyForce untuk fly
+        force = Instance.new("BodyForce", hrp)
+        
+    else
+        -- Turn OFF fly
+        statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+        flyText.TextColor3 = Color3.fromRGB(220, 220, 220)
+        btns.Toggle.Text = "ACTIVATE FLY"
+        statusLabel.Text = "Status: LANDED"
+        
+        -- Hide movement controls
+        toggleMovementControls(false)
+        
+        -- Hapus BodyForce
+        if force then 
+            force:Destroy() 
+            force = nil
+        end
+        hrp.Velocity = Vector3.zero
+        
+        -- Reset semua gerakan
+        for dir in pairs(move) do
+            move[dir] = false
+            if movementBtns[dir] then
+                movementBtns[dir]:FindFirstChild("NeonBorder").BackgroundTransparency = 0.8
+            end
+        end
+    end
+end
+
+-- Toggle Fly Button
+table.insert(connections, btns.Toggle.MouseButton1Click:Connect(function()
+    toggleFly()
+end))
+
+-- Movement Buttons (neon controls)
+for dir, btn in pairs(movementBtns) do
+    if move[dir] ~= nil then
+        table.insert(connections, btn.MouseButton1Down:Connect(function()
+            if flying then
+                move[dir] = true
+                btn:FindFirstChild("NeonBorder").BackgroundTransparency = 0.2
+                btn.TextColor3 = Color3.fromRGB(150, 255, 200)
+            end
+        end))
+        table.insert(connections, btn.MouseButton1Up:Connect(function()
+            move[dir] = false
+            btn:FindFirstChild("NeonBorder").BackgroundTransparency = 0.8
+            btn.TextColor3 = Color3.fromRGB(0, 255, 127)
+        end))
+    end
+end
+
+-- Speed Control
+table.insert(connections, btns.SpeedUp.MouseButton1Click:Connect(function()
+    speeds = speeds + 1
+    speedLabel.Text = "Speed: " .. speeds
+end))
+
+table.insert(connections, btns.SpeedDown.MouseButton1Click:Connect(function()
+    if speeds > 1 then
+        speeds = speeds - 1
+        speedLabel.Text = "Speed: " .. speeds
+    end
+end))
+
+-- Light Control
+table.insert(connections, btns.LightUp.MouseButton1Click:Connect(function()
+    lightBrightness = math.min(lightBrightness + 1, 10)
+    updateBodyLight()
+    lightLabel.Text = "Light: " .. lightBrightness
+end))
+
+table.insert(connections, btns.LightDown.MouseButton1Click:Connect(function()
+    lightBrightness = math.max(lightBrightness - 1, 0)
+    updateBodyLight()
+    lightLabel.Text = "Light: " .. lightBrightness
+end))
+
+-- Close Button (Kill Script)
+table.insert(connections, btns.Close.MouseButton1Click:Connect(function()
+    -- Matikan fly
+    flying = false
+    if force then 
+        force:Destroy() 
+        force = nil
+    end
+    hrp.Velocity = Vector3.zero
+
+    -- Hide movement controls
+    toggleMovementControls(false)
+
+    -- Bersihkan light effects
+    for _, child in pairs(hrp:GetChildren()) do
+        if child.Name == "FlashlightGlow" or child.Name == "FlashlightParticles" or child.Name == "FlashlightSpot" then
+            child:Destroy()
+        end
+    end
+
+    -- Putus semua koneksi
+    for _, conn in pairs(connections) do
+        pcall(function() conn:Disconnect() end)
+    end
+
+    -- Hancurkan GUI
+    gui:Destroy()
+
+    -- Bersihkan memori
+    force = nil
+    move = nil
+    btns = nil
+    movementBtns = nil
+    
+    -- Stop glow animation
+    glowTween:Cancel()
+end))
+
+-- Main Fly Loop
+local flyLoop = RunService.RenderStepped:Connect(function()
+    if not flying or not force then return end
+    
+    local camCF = workspace.CurrentCamera.CFrame
+    local dir = Vector3.zero
+    local currentSpeed = speed + (speeds * 10)
+
+    if move.Forward then dir = dir + camCF.LookVector end
+    if move.Backward then dir = dir - camCF.LookVector end
+    if move.Left then dir = dir - camCF.RightVector end
+    if move.Right then dir = dir + camCF.RightVector end
+    if move.Up then dir = dir + camCF.UpVector end
+    if move.Down then dir = dir - camCF.UpVector end
+
+    -- Anti-gravity force
+    force.Force = Vector3.new(0, workspace.Gravity * hrp.AssemblyMass, 0)
+    
+    -- Movement dengan speed multiplier
+    hrp.Velocity = dir.Magnitude > 0 and dir.Unit * currentSpeed or Vector3.zero
+end)
+table.insert(connections, flyLoop)
+
+-- Subtle status dot animation when flying
+spawn(function()
+    while gui and gui.Parent do
+        if flying then
+            TweenService:Create(statusDot, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), 
+                {BackgroundTransparency = 0.4}):Play()
+            wait(0.8)
+            if flying then -- Check again after wait
+                TweenService:Create(statusDot, TweenInfo.new(0.8, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), 
+                    {BackgroundTransparency = 0}):Play()
+                wait(0.8)
+            end
+        else
+            wait(1)
+        end
+    end
+end)
+
+-- Hover effects for main bar
+mainBar.MouseEnter:Connect(function()
+    if not dragging then
+        TweenService:Create(mainBar, TweenInfo.new(0.2), {BackgroundTransparency = 0}):Play()
+        TweenService:Create(neonAccent, TweenInfo.new(0.2), {BackgroundTransparency = 0.1}):Play()
+    end
+end)
+
+mainBar.MouseLeave:Connect(function()
+    if not dragging then
+        TweenService:Create(mainBar, TweenInfo.new(0.2), {BackgroundTransparency = 0.05}):Play()
+        TweenService:Create(neonAccent, TweenInfo.new(0.2), {BackgroundTransparency = 0.3}):Play()
+    end
+end)
+
+-- Character respawn handler
+player.CharacterAdded:Connect(function(newChar)
+    wait(0.7)
+    char = newChar
+    hrp = char:WaitForChild("HumanoidRootPart")
+    
+    -- Reset state
+    flying = false
+    if force then
+        force:Destroy()
+        force = nil
+    end
+    
+    -- Hide movement controls
+    toggleMovementControls(false)
+    
+    -- Reset UI
+    statusDot.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+    flyText.TextColor3 = Color3.fromRGB(220, 220, 220)
+    btns.Toggle.Text = "ACTIVATE FLY"
+    statusLabel.Text = "Status: READY"
+end)
+
+-- Keyboard shortcuts
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        if input.KeyCode == Enum.KeyCode.F then
+            toggleFly()
+        elseif input.KeyCode == Enum.KeyCode.G then
+            menuBtn.MouseButton1Click:Fire()
+        end
+    end
+end)
+
+-- Keyboard movement controls (when flying)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and flying then
+        if input.KeyCode == Enum.KeyCode.W then
+            move.Forward = true
+            if movementBtns.Forward then
+                movementBtns.Forward:FindFirstChild("NeonBorder").BackgroundTransparency = 0.2
+                movementBtns.Forward.TextColor3 = Color3.fromRGB(150, 255, 200)
+            end
+        elseif input.KeyCode == Enum.KeyCode.S then
+            move.Backward = true
+            if movementBtns.Backward then
+                movementBtns.Backward:FindFirstChild("NeonBorder").BackgroundTransparency = 0.2
+                movementBtns.Backward.TextColor3 = Color3.fromRGB(150, 255, 200)
+            end
+        elseif input.KeyCode == Enum.KeyCode.A then
+            move.Left = true
+            if movementBtns.Left then
+                movementBtns.Left:FindFirstChild("NeonBorder").BackgroundTransparency = 0.2
+                movementBtns.Left.TextColor3 = Color3.fromRGB(150, 255, 200)
+            end
+        elseif input.KeyCode == Enum.KeyCode.D then
+            move.Right = true
+            if movementBtns.Right then
+                movementBtns.Right:FindFirstChild("NeonBorder").BackgroundTransparency = 0.2
+                movementBtns.Right.TextColor3 = Color3.fromRGB(150, 255, 200)
+            end
+        elseif input.KeyCode == Enum.KeyCode.Space then
+            move.Up = true
+            if movementBtns.Up then
+                movementBtns.Up:FindFirstChild("NeonBorder").BackgroundTransparency = 0.2
+                movementBtns.Up.TextColor3 = Color3.fromRGB(150, 255, 200)
+            end
+        elseif input.KeyCode == Enum.KeyCode.LeftShift then
+            move.Down = true
+            if movementBtns.Down then
+                movementBtns.Down:FindFirstChild("NeonBorder").BackgroundTransparency = 0.2
+                movementBtns.Down.TextColor3 = Color3.fromRGB(150, 255, 200)
+            end
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if not gameProcessed and flying then
+        if input.KeyCode == Enum.KeyCode.W then
+            move.Forward = false
+            if movementBtns.Forward then
+                movementBtns.Forward:FindFirstChild("NeonBorder").BackgroundTransparency = 0.8
+                movementBtns.Forward.TextColor3 = Color3.fromRGB(0, 255, 127)
+            end
+        elseif input.KeyCode == Enum.KeyCode.S then
+            move.Backward = false
+            if movementBtns.Backward then
+                movementBtns.Backward:FindFirstChild("NeonBorder").BackgroundTransparency = 0.8
+                movementBtns.Backward.TextColor3 = Color3.fromRGB(0, 255, 127)
+            end
+        elseif input.KeyCode == Enum.KeyCode.A then
+            move.Left = false
+            if movementBtns.Left then
+                movementBtns.Left:FindFirstChild("NeonBorder").BackgroundTransparency = 0.8
+                movementBtns.Left.TextColor3 = Color3.fromRGB(0, 255, 127)
+            end
+        elseif input.KeyCode == Enum.KeyCode.D then
+            move.Right = false
+            if movementBtns.Right then
+                movementBtns.Right:FindFirstChild("NeonBorder").BackgroundTransparency = 0.8
+                movementBtns.Right.TextColor3 = Color3.fromRGB(0, 255, 127)
+            end
+        elseif input.KeyCode == Enum.KeyCode.Space then
+            move.Up = false
+            if movementBtns.Up then
+                movementBtns.Up:FindFirstChild("NeonBorder").BackgroundTransparency = 0.8
+                movementBtns.Up.TextColor3 = Color3.fromRGB(0, 255, 127)
+            end
+        elseif input.KeyCode == Enum.KeyCode.LeftShift then
+            move.Down = false
+            if movementBtns.Down then
+                movementBtns.Down:FindFirstChild("NeonBorder").BackgroundTransparency = 0.8
+                movementBtns.Down.TextColor3 = Color3.fromRGB(0, 255, 127)
+            end
+        end
+    end
+end)
+
+-- Auto-hide menu when clicking outside
+gui.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 and menuOpen then
+        local mouse = Players.LocalPlayer:GetMouse()
+        local mousePos = Vector2.new(mouse.X, mouse.Y)
+        local menuPos = menuPanel.AbsolutePosition
+        local menuSize = menuPanel.AbsoluteSize
+        
+        -- Check if click is outside menu and main bar
+        if not (mousePos.X >= menuPos.X and mousePos.X <= menuPos.X + menuSize.X and
+                mousePos.Y >= menuPos.Y and mousePos.Y <= menuPos.Y + menuSize.Y) and
+           not (mousePos.X >= mainBar.AbsolutePosition.X and mousePos.X <= mainBar.AbsolutePosition.X + mainBar.AbsoluteSize.X and
+                mousePos.Y >= mainBar.AbsolutePosition.Y and mousePos.Y <= mainBar.AbsolutePosition.Y + mainBar.AbsoluteSize.Y) then
+            menuBtn.MouseButton1Click:Fire()
+        end
+    end
+end)
+
+-- Subtle notification
+game:GetService("StarterGui"):SetCore("SendNotification", { 
+    Title = "✈️ Fly Script Enhanced";
+    Text = "Layout PS Controller - KIRI: Movement, KANAN: Altitude";
+    Duration = 3;
+})
