@@ -1,5 +1,5 @@
 -- =====================================================
--- WhoAmI Bypass - Professional Edition v2.0
+-- WarpahVip Bypass - Professional Edition v2.0
 -- Enhanced security and user experience
 -- =====================================================
 
@@ -103,13 +103,13 @@ local Utils = {
 -- GUI Creation
 local function createGui()
     -- Clean up existing GUI
-    if playerGui:FindFirstChild("WhoAmIBypassGui") then
-        playerGui:FindFirstChild("WhoAmIBypassGui"):Destroy()
+    if playerGui:FindFirstChild("WarpahVipBypassGui") then
+        playerGui:FindFirstChild("WarpahVipBypassGui"):Destroy()
     end
     
     -- Create ScreenGui
     screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "WhoAmIBypassGui"
+    screenGui.Name = "WarpahVipBypassGui"
     screenGui.Parent = playerGui
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.ResetOnSpawn = false
@@ -129,9 +129,9 @@ local function createGui()
     loadingCorner.CornerRadius = UDim.new(0, 12)
     loadingCorner.Parent = loadingContainer
     
-    -- Subtle border
+    -- Subtle border (Green theme)
     local loadingBorder = Instance.new("UIStroke")
-    loadingBorder.Color = Color3.fromRGB(255, 50, 50)
+    loadingBorder.Color = Color3.fromRGB(0, 255, 127) -- Bright green
     loadingBorder.Thickness = 1
     loadingBorder.Transparency = 0.7
     loadingBorder.Parent = loadingContainer
@@ -204,11 +204,11 @@ local function createMainFrame()
     shadowCorner.CornerRadius = UDim.new(0, 20)
     shadowCorner.Parent = shadowFrame
     
-    -- Animated border gradient
+    -- Animated border gradient (Green theme)
     local borderFrame = Instance.new("Frame")
     borderFrame.Size = UDim2.new(1, 4, 1, 4)
     borderFrame.Position = UDim2.new(0, -2, 0, -2)
-    borderFrame.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    borderFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 127) -- Bright green
     borderFrame.BorderSizePixel = 0
     borderFrame.ZIndex = -1
     borderFrame.Parent = mainFrame
@@ -217,11 +217,11 @@ local function createMainFrame()
     borderCorner.CornerRadius = UDim.new(0, 18)
     borderCorner.Parent = borderFrame
     
-    -- Border glow animation
+    -- Border glow animation (Green theme)
     local glowTween = Services.TweenService:Create(
         borderFrame,
         TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-        {BackgroundColor3 = Color3.fromRGB(255, 100, 100)}
+        {BackgroundColor3 = Color3.fromRGB(50, 255, 150)} -- Lighter green
     )
     glowTween:Play()
     
@@ -257,13 +257,13 @@ local function createMainFrame()
     logoCorner.CornerRadius = UDim.new(0, 8)
     logoCorner.Parent = logo
     
-    -- Title
+    -- Title (Changed to WarpahVip)
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(0, 250, 0, 25)
     title.Position = UDim2.new(0, 75, 0, 15)
     title.BackgroundTransparency = 1
-    title.Text = "WhoAmI Bypass System"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Text = "WarpahVip Bypass System"
+    title.TextColor3 = Color3.fromRGB(0, 255, 127) -- Bright green text
     title.TextSize = 18
     title.Font = Enum.Font.GothamBold
     title.TextXAlignment = Enum.TextXAlignment.Left
@@ -275,7 +275,7 @@ local function createMainFrame()
     subtitle.Position = UDim2.new(0, 75, 0, 38)
     subtitle.BackgroundTransparency = 1
     subtitle.Text = "Professional Security Suite"
-    subtitle.TextColor3 = Color3.fromRGB(180, 180, 180)
+    subtitle.TextColor3 = Color3.fromRGB(180, 255, 200) -- Light green
     subtitle.TextSize = 12
     subtitle.Font = Enum.Font.Gotham
     subtitle.TextXAlignment = Enum.TextXAlignment.Left
@@ -293,7 +293,7 @@ local function createMainFrame()
     inputLabel.TextXAlignment = Enum.TextXAlignment.Left
     inputLabel.Parent = mainFrame
     
-    -- Key textbox with modern styling
+    -- Key textbox with modern styling (Green theme)
     local keyInput = Instance.new("TextBox")
     keyInput.Name = "KeyInput"
     keyInput.Size = UDim2.new(1, -40, 0, 35)
@@ -302,10 +302,10 @@ local function createMainFrame()
     keyInput.Text = ""
     keyInput.ClearTextOnFocus = false
     keyInput.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
-    keyInput.BorderColor3 = Color3.fromRGB(50, 60, 80)
+    keyInput.BorderColor3 = Color3.fromRGB(50, 100, 70) -- Green tint
     keyInput.BorderSizePixel = 1
     keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keyInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+    keyInput.PlaceholderColor3 = Color3.fromRGB(120, 150, 130) -- Green tint
     keyInput.TextSize = 14
     keyInput.Font = Enum.Font.Gotham
     keyInput.Parent = mainFrame
@@ -314,35 +314,35 @@ local function createMainFrame()
     inputCorner.CornerRadius = UDim.new(0, 8)
     inputCorner.Parent = keyInput
     
-    -- Input focus effects
+    -- Input focus effects (Green theme)
     keyInput.Focused:Connect(function()
-        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(255, 50, 50)}):Play()
+        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(0, 255, 127)}):Play()
     end)
     
     keyInput.FocusLost:Connect(function()
-        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(50, 60, 80)}):Play()
+        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(50, 100, 70)}):Play()
     end)
     
-    -- Status text
+    -- Status text (Green theme)
     local statusText = Instance.new("TextLabel")
     statusText.Name = "StatusText"
     statusText.Size = UDim2.new(1, -40, 0, 18)
     statusText.Position = UDim2.new(0, 20, 0, 165)
     statusText.BackgroundTransparency = 1
     statusText.Text = ""
-    statusText.TextColor3 = Color3.fromRGB(255, 180, 180)
+    statusText.TextColor3 = Color3.fromRGB(180, 255, 200) -- Light green
     statusText.TextSize = 12
     statusText.Font = Enum.Font.Gotham
     statusText.TextXAlignment = Enum.TextXAlignment.Left
     statusText.Parent = mainFrame
     
-    -- Submit button
+    -- Submit button (Green theme)
     local submitButton = Instance.new("TextButton")
     submitButton.Name = "SubmitButton"
     submitButton.Size = UDim2.new(1, -40, 0, 35)
     submitButton.Position = UDim2.new(0, 20, 0, 185)
     submitButton.Text = "🔓 Authenticate"
-    submitButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    submitButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100) -- Green
     submitButton.BorderSizePixel = 0
     submitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     submitButton.TextSize = 14
@@ -353,13 +353,13 @@ local function createMainFrame()
     submitCorner.CornerRadius = UDim.new(0, 8)
     submitCorner.Parent = submitButton
     
-    -- Button hover effects
+    -- Button hover effects (Green theme)
     submitButton.MouseEnter:Connect(function()
-        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 80, 80)}):Play()
+        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 255, 127)}):Play()
     end)
     
     submitButton.MouseLeave:Connect(function()
-        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)}):Play()
+        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 200, 100)}):Play()
     end)
     
     -- Links section
@@ -390,9 +390,9 @@ local function createMainFrame()
     keyButton.Size = UDim2.new(0.48, 0, 1, 0)
     keyButton.Position = UDim2.new(0.52, 0, 0, 0)
     keyButton.Text = "🔑 Get Key"
-    keyButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    keyButton.BackgroundColor3 = Color3.fromRGB(0, 180, 90) -- Green theme for key button
     keyButton.BorderSizePixel = 0
-    keyButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+    keyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     keyButton.TextSize = 12
     keyButton.Font = Enum.Font.GothamMedium
     keyButton.Parent = linksFrame
@@ -594,7 +594,7 @@ local function initialize()
                 -- Error animation
                 Utils.shakeFrame(frame)
                 submitButton.Text = "🔓 Authenticate"
-                submitButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                submitButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
             end
         end)
     end)
@@ -606,7 +606,7 @@ local function initialize()
             statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
         else
             statusText.Text = "Discord: " .. Config.DISCORD_LINK
-            statusText.TextColor3 = Color3.fromRGB(180, 180, 255)
+            statusText.TextColor3 = Color3.fromRGB(180, 255, 200)
         end
     end)
     
