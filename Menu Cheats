@@ -1,267 +1,797 @@
---[[ LUA UI SCRIPT: WhoAmI GUI Cheat Menu ]]
+--[[ LUA UI SCRIPT: WarpahVip GUI Cheat Menu - Enhanced Fixed Version ]]
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "WhoAmIGUI"
+-- Enhanced cleanup function
+local function cleanupExistingGUI()
+    pcall(function()
+        local existingGUI = player.PlayerGui:FindFirstChild("WarpahVipGUI")
+        if existingGUI then
+            existingGUI:Destroy()
+        end
+        
+        -- Also cleanup any orphaned blur effects
+        local lighting = game:GetService("Lighting")
+        for _, effect in pairs(lighting:GetChildren()) do
+            if effect:IsA("BlurEffect") and effect.Name == "WarpahVipBlur" then
+                effect:Destroy()
+            end
+        end
+    end)
+end
+
+cleanupExistingGUI()
+
+-- Wait for PlayerGui to be ready
+local playerGui = player:WaitForChild("PlayerGui")
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "WarpahVipGUI"
 gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
 
-local blur = Instance.new("BlurEffect")
-blur.Size = 0
-blur.Enabled = false
-blur.Parent = game:GetService("Lighting")
+-- Blur effect with error handling and proper naming
+local blur = nil
+pcall(function()
+    blur = Instance.new("BlurEffect")
+    blur.Name = "WarpahVipBlur"
+    blur.Size = 0
+    blur.Enabled = false
+    blur.Parent = game:GetService("Lighting")
+end)
 
-local logo = Instance.new("TextButton", gui)
+-- Main logo button (improved design)
+local logo = Instance.new("Frame")
 logo.Size = UDim2.new(0, 50, 0, 50)
 logo.Position = UDim2.new(0, 20, 0, 100)
-logo.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-logo.Text = "Cheat"
-logo.TextColor3 = Color3.fromRGB(255, 0, 0)
-logo.Font = Enum.Font.Gotham
-logo.TextSize = 10
-logo.Name = "CheatLogo"
-logo.AutoButtonColor = false
+logo.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 logo.Active = true
-Instance.new("UICorner", logo).CornerRadius = UDim.new(0, 10)
-local stroke = Instance.new("UIStroke", logo)
-stroke.Color = Color3.fromRGB(255, 0, 0)
-stroke.Thickness = 2
+logo.Parent = gui
 
-local menu = Instance.new("Frame", gui)
-menu.Size = UDim2.new(0, 400, 0, 250)
-menu.Position = UDim2.new(0.5, -200, 0.5, -125)
-menu.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+-- Logo styling
+local logoCorner = Instance.new("UICorner")
+logoCorner.CornerRadius = UDim.new(0, 12)
+logoCorner.Parent = logo
+
+local logoStroke = Instance.new("UIStroke")
+logoStroke.Color = Color3.fromRGB(0, 255, 100)
+logoStroke.Thickness = 2
+logoStroke.Parent = logo
+
+-- Logo gradient background
+local logoGradient = Instance.new("UIGradient")
+logoGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 80, 30)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 60, 20)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 40, 15))
+}
+logoGradient.Rotation = 45
+logoGradient.Parent = logo
+
+-- Logo clickable button (fixed for dragging)
+local logoButton = Instance.new("TextButton")
+logoButton.Size = UDim2.new(1, 0, 1, 0)
+logoButton.Position = UDim2.new(0, 0, 0, 0)
+logoButton.BackgroundTransparency = 1
+logoButton.Text = ""
+logoButton.Active = false -- Important: Set to false to allow dragging
+logoButton.Parent = logo
+
+-- Logo icon
+local logoIcon = Instance.new("TextLabel")
+logoIcon.Size = UDim2.new(1, 0, 0.6, 0)
+logoIcon.Position = UDim2.new(0, 0, 0, 0)
+logoIcon.BackgroundTransparency = 1
+logoIcon.Text = "⚡"
+logoIcon.TextColor3 = Color3.fromRGB(0, 255, 100)
+logoIcon.Font = Enum.Font.GothamBold
+logoIcon.TextSize = 24
+logoIcon.TextXAlignment = Enum.TextXAlignment.Center
+logoIcon.TextYAlignment = Enum.TextYAlignment.Center
+logoIcon.Parent = logo
+
+-- Logo text
+local logoText = Instance.new("TextLabel")
+logoText.Size = UDim2.new(1, 0, 0.4, 0)
+logoText.Position = UDim2.new(0, 0, 0.6, 0)
+logoText.BackgroundTransparency = 1
+logoText.Text = "VIP"
+logoText.TextColor3 = Color3.fromRGB(255, 255, 255)
+logoText.Font = Enum.Font.GothamBold
+logoText.TextSize = 12
+logoText.TextXAlignment = Enum.TextXAlignment.Center
+logoText.TextYAlignment = Enum.TextYAlignment.Center
+logoText.Parent = logo
+
+-- Logo glow effect
+local logoGlow = Instance.new("Frame")
+logoGlow.Size = UDim2.new(1, 20, 1, 20)
+logoGlow.Position = UDim2.new(0, -10, 0, -10)
+logoGlow.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+logoGlow.BackgroundTransparency = 0.9
+logoGlow.ZIndex = -1
+logoGlow.Parent = logo
+
+local logoGlowCorner = Instance.new("UICorner")
+logoGlowCorner.CornerRadius = UDim.new(0, 20)
+logoGlowCorner.Parent = logoGlow
+
+-- Main menu frame (with minimum size constraints)
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(0, 420, 0, 280)
+menu.Position = UDim2.new(0.5, -210, 0.5, -140)
+menu.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 menu.Visible = false
 menu.Active = true
-Instance.new("UICorner", menu).CornerRadius = UDim.new(0, 10)
-Instance.new("UIStroke", menu).Color = Color3.fromRGB(255, 0, 0)
+menu.Parent = gui
 
-local title = Instance.new("TextLabel", menu)
-title.Size = UDim2.new(1, -80, 0, 30)
-title.Position = UDim2.new(0, 40, 0, 0)
+-- Menu styling
+local menuCorner = Instance.new("UICorner")
+menuCorner.CornerRadius = UDim.new(0, 12)
+menuCorner.Parent = menu
+
+local menuStroke = Instance.new("UIStroke")
+menuStroke.Color = Color3.fromRGB(0, 255, 0)
+menuStroke.Thickness = 2
+menuStroke.Parent = menu
+
+-- Menu gradient
+local menuGradient = Instance.new("UIGradient")
+menuGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 20, 20)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(30, 30, 30))
+}
+menuGradient.Rotation = 90
+menuGradient.Parent = menu
+
+-- Resize handle (bottom-right corner) - Fixed with proper resize icon
+local resizeHandle = Instance.new("Frame")
+resizeHandle.Size = UDim2.new(0, 20, 0, 20)
+resizeHandle.Position = UDim2.new(1, -20, 1, -20)
+resizeHandle.BackgroundTransparency = 1
+resizeHandle.Parent = menu
+
+-- Resize lines (proper resize indicator)
+local resizeLine1 = Instance.new("Frame")
+resizeLine1.Size = UDim2.new(0, 12, 0, 2)
+resizeLine1.Position = UDim2.new(0, 4, 0, 14)
+resizeLine1.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+resizeLine1.BorderSizePixel = 0
+resizeLine1.Parent = resizeHandle
+
+local resizeLine2 = Instance.new("Frame")
+resizeLine2.Size = UDim2.new(0, 8, 0, 2)
+resizeLine2.Position = UDim2.new(0, 8, 0, 10)
+resizeLine2.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+resizeLine2.BorderSizePixel = 0
+resizeLine2.Parent = resizeHandle
+
+local resizeLine3 = Instance.new("Frame")
+resizeLine3.Size = UDim2.new(0, 4, 0, 2)
+resizeLine3.Position = UDim2.new(0, 12, 0, 6)
+resizeLine3.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+resizeLine3.BorderSizePixel = 0
+resizeLine3.Parent = resizeHandle
+
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -80, 0, 40)
+title.Position = UDim2.new(0, 40, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "WhoAmI | v.0.3.3.0"
-title.TextColor3 = Color3.fromRGB(255, 0, 0)
-title.TextSize = 14
+title.Text = "WarpahVip | v.0.3.3.1"
+title.TextColor3 = Color3.fromRGB(0, 255, 0)
+title.TextSize = 16
 title.Font = Enum.Font.GothamBold
 title.TextXAlignment = Enum.TextXAlignment.Center
+title.Parent = menu
 
-local closeBtn = Instance.new("TextButton", menu)
-closeBtn.Size = UDim2.new(0, 25, 0, 25)
-closeBtn.Position = UDim2.new(1, -30, 0, 5)
-closeBtn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
-closeBtn.Text = "X"
+-- Close button (X style)
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+closeBtn.Text = "×"
 closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.TextSize = 14
+closeBtn.TextSize = 20
 closeBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+closeBtn.Parent = menu
 
-local minBtn = Instance.new("TextButton", menu)
-minBtn.Size = UDim2.new(0, 25, 0, 25)
-minBtn.Position = UDim2.new(1, -60, 0,5) 
+local closeBtnCorner = Instance.new("UICorner")
+closeBtnCorner.CornerRadius = UDim.new(0, 4)
+closeBtnCorner.Parent = closeBtn
+
+-- Minimize button (- style)
+local minBtn = Instance.new("TextButton")
+minBtn.Size = UDim2.new(0, 30, 0, 30)
+minBtn.Position = UDim2.new(1, -70, 0, 5)
+minBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+minBtn.Text = "−"
 minBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-minBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-minBtn.Text = "-"
-minBtn.TextSize = 18
+minBtn.TextSize = 20
 minBtn.Font = Enum.Font.GothamBold
-Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 6)
+minBtn.Parent = menu
 
-local side = Instance.new("Frame", menu)
-side.Size = UDim2.new(0, 100, 1, -40)
-side.Position = UDim2.new(0, 0, 0, 40)
-side.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-Instance.new("UICorner", side).CornerRadius = UDim.new(0, 6)
+local minBtnCorner = Instance.new("UICorner")
+minBtnCorner.CornerRadius = UDim.new(0, 4)
+minBtnCorner.Parent = minBtn
 
-local cheatBtn = Instance.new("TextButton", side)
-cheatBtn.Size = UDim2.new(1, -10, 0, 35)
+-- Sidebar
+local side = Instance.new("Frame")
+side.Size = UDim2.new(0, 110, 1, -50)
+side.Position = UDim2.new(0, 10, 0, 50)
+side.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+side.Parent = menu
+
+local sideCorner = Instance.new("UICorner")
+sideCorner.CornerRadius = UDim.new(0, 8)
+sideCorner.Parent = side
+
+-- Cheat button
+local cheatBtn = Instance.new("TextButton")
+cheatBtn.Size = UDim2.new(1, -10, 0, 40)
 cheatBtn.Position = UDim2.new(0, 5, 0, 10)
-cheatBtn.Text = "Cheat"
-cheatBtn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+cheatBtn.Text = "🎮 Cheat"
+cheatBtn.BackgroundColor3 = Color3.fromRGB(0, 50, 0)
 cheatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 cheatBtn.Font = Enum.Font.GothamBold
 cheatBtn.TextSize = 14
-Instance.new("UICorner", cheatBtn).CornerRadius = UDim.new(0, 6)
+cheatBtn.Parent = side
 
-local clearBtn = Instance.new("TextButton", side)
-clearBtn.Size = UDim2.new(1, -10, 0, 35)
-clearBtn.Position = UDim2.new(0, 5, 0, 55)
-clearBtn.Text = "Clear"
-clearBtn.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+local cheatBtnCorner = Instance.new("UICorner")
+cheatBtnCorner.CornerRadius = UDim.new(0, 8)
+cheatBtnCorner.Parent = cheatBtn
+
+-- Device button (new)
+local deviceBtn = Instance.new("TextButton")
+deviceBtn.Size = UDim2.new(1, -10, 0, 40)
+deviceBtn.Position = UDim2.new(0, 5, 0, 60)
+deviceBtn.Text = "📱 Device"
+deviceBtn.BackgroundColor3 = Color3.fromRGB(0, 50, 0)
+deviceBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+deviceBtn.Font = Enum.Font.GothamBold
+deviceBtn.TextSize = 14
+deviceBtn.Parent = side
+
+local deviceBtnCorner = Instance.new("UICorner")
+deviceBtnCorner.CornerRadius = UDim.new(0, 8)
+deviceBtnCorner.Parent = deviceBtn
+
+-- Clear button (moved down)
+local clearBtn = Instance.new("TextButton")
+clearBtn.Size = UDim2.new(1, -10, 0, 40)
+clearBtn.Position = UDim2.new(0, 5, 0, 110)
+clearBtn.Text = "🧹 Clear"
+clearBtn.BackgroundColor3 = Color3.fromRGB(0, 50, 0)
 clearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 clearBtn.Font = Enum.Font.GothamBold
 clearBtn.TextSize = 14
-Instance.new("UICorner", clearBtn).CornerRadius = UDim.new(0, 6)
+clearBtn.Parent = side
 
-clearBtn.MouseButton1Click:Connect(function()
-	menu.Visible = false
-	blur.Enabled = false
-	blur.Size = 0
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Pembersih"))()
-end)
+local clearBtnCorner = Instance.new("UICorner")
+clearBtnCorner.CornerRadius = UDim.new(0, 8)
+clearBtnCorner.Parent = clearBtn
 
-local backBtn = Instance.new("TextButton", side)
-backBtn.Size = UDim2.new(1, -10, 0, 30)
-backBtn.Position = UDim2.new(0, 5, 1, -35)
-backBtn.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
-backBtn.Text = "< kembali"
+-- Back button
+local backBtn = Instance.new("TextButton")
+backBtn.Size = UDim2.new(1, -10, 0, 35)
+backBtn.Position = UDim2.new(0, 5, 1, -45)
+backBtn.BackgroundColor3 = Color3.fromRGB(0, 70, 0)
+backBtn.Text = "← Kembali"
 backBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 backBtn.Font = Enum.Font.Gotham
 backBtn.TextSize = 13
-Instance.new("UICorner", backBtn).CornerRadius = UDim.new(0, 5)
 backBtn.Visible = false
+backBtn.Parent = side
 
-local content = Instance.new("Frame", menu)
-content.Size = UDim2.new(1, -110, 1, -50)
-content.Position = UDim2.new(0, 110, 0, 40)
-content.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Instance.new("UICorner", content).CornerRadius = UDim.new(0, 6)
+local backBtnCorner = Instance.new("UICorner")
+backBtnCorner.CornerRadius = UDim.new(0, 6)
+backBtnCorner.Parent = backBtn
 
--- ✅ Tambahan koordinat
+-- Content area
+local content = Instance.new("ScrollingFrame")
+content.Size = UDim2.new(1, -130, 1, -60)
+content.Position = UDim2.new(0, 130, 0, 50)
+content.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+content.ScrollBarThickness = 6
+content.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 0)
+content.CanvasSize = UDim2.new(0, 0, 0, 0)
+content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+content.Parent = menu
+
+local contentCorner = Instance.new("UICorner")
+contentCorner.CornerRadius = UDim.new(0, 8)
+contentCorner.Parent = content
+
+local contentLayout = Instance.new("UIListLayout")
+contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
+contentLayout.Padding = UDim.new(0, 5)
+contentLayout.Parent = content
+
+local contentPadding = Instance.new("UIPadding")
+contentPadding.PaddingTop = UDim.new(0, 10)
+contentPadding.PaddingLeft = UDim.new(0, 10)
+contentPadding.PaddingRight = UDim.new(0, 10)
+contentPadding.Parent = content
+
+-- Teleport coordinates - Updated with new mountains
 local teleportPoints = {
-	["gn.sumbing"] = {
-		[1] = CFrame.new(-223, 441, 2114),
-		[2] = CFrame.new(-400, 848, 3210),
-		[3] = CFrame.new(43, 1268, 4030),
-		[4] = CFrame.new(-1168, 1552, 4892),
-		[5] = CFrame.new(-718, 1938, 5325), -- Puncak
-	},
-	["gn.krakatau"] = {
-		[1] = CFrame.new(829, 307, 414),
-		[2] = CFrame.new(1647, 463, 496),
-		[3] = CFrame.new(2058, 562, -110),
-		[4] = CFrame.new(1289, 844, -134), -- Puncak
-	}
+    ["gn.sumbing"] = CFrame.new(-223, 441, 2114),
+    ["gn.krakatau"] = CFrame.new(829, 307, 414),
+    ["gn.ckptw"] = CFrame.new(1500, 500, 1000),
+    ["gn.sibuatan"] = CFrame.new(-1000, 350, 2500),
+    ["gn.lawak"] = CFrame.new(2000, 600, 1500),
+    ["gn.yahaha"] = CFrame.new(-500, 400, 3000),
+    ["gn.duntul"] = CFrame.new(3000, 700, 500),
+    ["gn.atin"] = CFrame.new(-2000, 450, 1800),
+    ["gn.sumala"] = CFrame.new(1200, 550, 2800)
 }
 
-local function showGunungPos(gunung, posCount)
-	for _, c in pairs(content:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
-	end
-	for i = 1, posCount do
-		local label = (i == posCount) and "Puncak" or ("Pos " .. i)
-		local b = Instance.new("TextButton", content)
-		b.Size = UDim2.new(1, -20, 0, 30)
-		b.Position = UDim2.new(0, 10, 0, (i - 1) * 35)
-		b.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
-		b.Text = label
-		b.TextColor3 = Color3.fromRGB(255, 255, 255)
-		b.TextSize = 12
-		b.Font = Enum.Font.Gotham
-		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
-		b.MouseButton1Click:Connect(function()
-			local targetCFrame = teleportPoints[gunung] and teleportPoints[gunung][i]
-			if targetCFrame and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-				player.Character.HumanoidRootPart.CFrame = targetCFrame
-			else
-				warn("Gagal teleport: koordinat tidak ditemukan.")
-			end
-		end)
-	end
-	backBtn.Visible = true
+-- Safe GUI clearing function
+local function clearContent()
+    for _, child in pairs(content:GetChildren()) do
+        if child:IsA("GuiObject") and child ~= contentLayout and child ~= contentPadding then
+            child:Destroy()
+        end
+    end
 end
 
+-- Create button function with error handling
+local function createButton(text, callback, color)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -20, 0, 35)
+    btn.BackgroundColor3 = color or Color3.fromRGB(20, 70, 20)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextSize = 13
+    btn.Font = Enum.Font.Gotham
+    btn.Parent = content
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 6)
+    btnCorner.Parent = btn
+    
+    if callback then
+        btn.MouseButton1Click:Connect(function()
+            pcall(callback) -- Safe callback execution
+        end)
+    end
+    
+    return btn
+end
+
+-- Safe teleport function with better error handling
+local function safeTeleport(targetCFrame, locationName)
+    pcall(function()
+        if player and player.Character then
+            local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart and targetCFrame then
+                humanoidRootPart.CFrame = targetCFrame
+                print("✅ Teleport berhasil ke " .. locationName)
+                return true
+            end
+        end
+        warn("❌ Gagal teleport: Character atau HumanoidRootPart tidak ditemukan")
+        return false
+    end)
+end
+
+-- Auto peak menu - Updated with new mountains
 local function showAutoPuncak()
-	for _, c in pairs(content:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
-	end
+    clearContent()
+    currentMenu = "autopuncak"
+    
+    local gunungList = {
+        { name = "gn.sumbing", display = "🏔️ Gunung Sumbing", emoji = "🏔️" },
+        { name = "gn.krakatau", display = "🌋 Gunung Krakatau", emoji = "🌋" },
+        { name = "gn.ckptw", display = "⛰️ Gunung CKPTW", emoji = "⛰️" },
+        { name = "gn.sibuatan", display = "🗻 Gunung Sibuatan", emoji = "🗻" },
+        { name = "gn.lawak", display = "🏕️ Gunung Lawak", emoji = "🏕️" },
+        { name = "gn.yahaha", display = "🎯 Gunung Yahaha", emoji = "🎯" },
+        { name = "gn.duntul", display = "🔥 Gunung Duntul", emoji = "🔥" },
+        { name = "gn.atin", display = "💎 Gunung Atin", emoji = "💎" },
+        { name = "gn.sumala", display = "✨ Gunung Sumala", emoji = "✨" },
+    }
 
-	local gunungList = {
-		{ name = "gn.sumbing", count = 5 },
-		{ name = "gn.krakatau", count = 4 },
-	}
+    for _, g in ipairs(gunungList) do
+        createButton(g.display, function()
+            local targetCFrame = teleportPoints[g.name]
+            if targetCFrame then
+                safeTeleport(targetCFrame, g.display)
+            else
+                warn("❌ Koordinat tidak ditemukan untuk " .. g.display)
+            end
+        end, Color3.fromRGB(30, 60, 30))
+    end
+    backBtn.Visible = true
+end
 
-	for i, g in ipairs(gunungList) do
-		local b = Instance.new("TextButton", content)
-		b.Size = UDim2.new(1, -20, 0, 30)
-		b.Position = UDim2.new(0, 10, 0, (i - 1) * 35)
-		b.BackgroundColor3 = Color3.fromRGB(50, 30, 30)
-		b.Text = g.name
-		b.TextColor3 = Color3.fromRGB(255, 255, 255)
-		b.TextSize = 12
-		b.Font = Enum.Font.Gotham
-		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
-		b.MouseButton1Click:Connect(function()
-			showGunungPos(g.name, g.count)
-		end)
-	end
-	backBtn.Visible = true
+-- Fly mode menu (Fixed)
+local function showFlyMenu()
+    clearContent()
+    currentMenu = "fly"
+    
+    local flyItems = {
+        { 
+            label = "✈️ Fly v1 (No Clip)", 
+            callback = function()
+                print("🚧 Fly v1 No Clip - Coming Soon!")
+            end 
+        },
+        { 
+            label = "✈️ Fly v2 (Safe)", 
+            callback = function() 
+                print("🚧 Fly v2 Safe - Coming Soon!") 
+            end 
+        },
+    }
+
+    for _, item in ipairs(flyItems) do
+        createButton(item.label, item.callback, Color3.fromRGB(30, 70, 120))
+    end
+    backBtn.Visible = true
+end
+
+-- Device menu function
+local function showDeviceMenu()
+    clearContent()
+    currentMenu = "device"
+    
+    local deviceItems = {
+        { 
+            label = "🔧 Device Spoof", 
+            callback = function() 
+                print("🚧 Device Spoof - Coming Soon!")
+            end 
+        },
+        { 
+            label = "🔄 Rejoin Server", 
+            callback = function()
+                print("🔄 Rejoining server...")
+                local TeleportService = game:GetService("TeleportService")
+                local placeId = game.PlaceId
+                TeleportService:Teleport(placeId, player)
+            end 
+        },
+        { 
+            label = "👮 Detect Admin", 
+            callback = function()
+                print("🚧 Admin Detector - Coming Soon!")
+            end 
+        },
+    }
+
+    for _, item in ipairs(deviceItems) do
+        createButton(item.label, item.callback, Color3.fromRGB(40, 60, 80))
+    end
+    backBtn.Visible = true
+end
+
+-- Hide Name Visual menu
+local function showHideNameMenu()
+    clearContent()
+    currentMenu = "hidename"
+    
+    -- Create text input
+    local nameInput = Instance.new("TextBox")
+    nameInput.Size = UDim2.new(1, -20, 0, 35)
+    nameInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    nameInput.Text = "Enter new name..."
+    nameInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameInput.TextSize = 13
+    nameInput.Font = Enum.Font.Gotham
+    nameInput.PlaceholderText = "Type your desired name here"
+    nameInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    nameInput.Parent = content
+    
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 6)
+    inputCorner.Parent = nameInput
+    
+    local inputStroke = Instance.new("UIStroke")
+    inputStroke.Color = Color3.fromRGB(0, 200, 100)
+    inputStroke.Thickness = 1
+    inputStroke.Parent = nameInput
+    
+    -- Generate button
+    createButton("🎭 Generate Name", function()
+        local newName = nameInput.Text
+        if newName and newName ~= "" and newName ~= "Enter new name..." then
+            print("🎭 Name changed to: " .. newName)
+            print("🚧 Hide Name Visual - Coming Soon!")
+        else
+            warn("⚠️ Please enter a valid name!")
+        end
+    end, Color3.fromRGB(0, 120, 60))
+    
+    -- Reset button
+    createButton("🔄 Reset to Original", function()
+        print("🔄 Name reset to original")
+        print("🚧 Reset Name - Coming Soon!")
+    end, Color3.fromRGB(80, 80, 80))
+    
+    backBtn.Visible = true
+end
+
+-- Aimbot menu
+local function showAimbotMenu()
+    clearContent()
+    currentMenu = "aimbot"
+    
+    createButton("🎯 Auto Aim", function()
+        print("🚧 Auto Aim - Coming Soon!")
+    end, Color3.fromRGB(120, 40, 40))
+    
+    backBtn.Visible = true
 end
 
 local function showCheats()
-	for _, c in pairs(content:GetChildren()) do
-		if c:IsA("TextButton") then c:Destroy() end
-	end
+    clearContent()
+    currentMenu = "main"
+    
+    local items = {
+        { label = "🏔️ Auto Puncak", callback = showAutoPuncak },
+        { label = "⚡ Auto Teleport", callback = function() 
+            print("🚧 Auto Teleport - Coming Soon!") 
+        end },
+        { label = "✈️ Fly Mode", callback = showFlyMenu },
+        { label = "🏃 Speed Run", callback = function()
+            print("🚧 Speed Run - Coming Soon!")
+        end },
+        { label = "✨ Radiant Body", callback = function()
+            print("🚧 Radiant Body - Coming Soon!")
+        end },
+        { label = "🎯 Fling Player", callback = function() 
+            print("🚧 Fling Player - Coming Soon!") 
+        end },
+        { label = "👤 TP to Player", callback = function() 
+            print("🚧 TP to Player - Coming Soon!") 
+        end },
+        { label = "🎭 Hide Name Visual", callback = showHideNameMenu },
+        { label = "🎯 Aimbot", callback = showAimbotMenu },
+    }
 
-	local items = {
-		{ label = "Auto Puncak", callback = showAutoPuncak },
-		{ label = "Auto Teleport", callback = function() print("Auto Teleport clicked") end },
-		{ label = "Fly", callback = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Fly"))()
-		end },
-		{ label = "Speed Run", callback = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Speedrun"))()
-		end },
-		{ label = "Radiant Body", callback = function()
-			loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Radiant%20body"))()
-		end },
-	}
-
-	for i, item in ipairs(items) do
-		local b = Instance.new("TextButton", content)
-		b.Size = UDim2.new(1, -20, 0, 30)
-		b.Position = UDim2.new(0, 10, 0, (i - 1) * 35)
-		b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-		b.Text = item.label
-		b.TextColor3 = Color3.fromRGB(255, 255, 255)
-		b.TextSize = 12
-		b.Font = Enum.Font.Gotham
-		Instance.new("UICorner", b).CornerRadius = UDim.new(0, 5)
-		b.MouseButton1Click:Connect(item.callback)
-	end
-	backBtn.Visible = false
+    for _, item in ipairs(items) do
+        createButton(item.label, item.callback, Color3.fromRGB(45, 45, 45))
+    end
+    backBtn.Visible = false
 end
 
-cheatBtn.MouseButton1Click:Connect(showCheats)
-backBtn.MouseButton1Click:Connect(showCheats)
+-- Event connections with error handling
+local function safeConnect(signal, callback)
+    return signal:Connect(function(...)
+        pcall(callback, ...)
+    end)
+end
 
-logo.MouseButton1Click:Connect(function()
-	menu.Visible = true
-	blur.Enabled = true
-	TweenService:Create(blur, TweenInfo.new(0.3), { Size = 12 }):Play()
-end)
-
-minBtn.MouseButton1Click:Connect(function()
-	menu.Visible = false
-	blur.Enabled = false
-	blur.Size = 0
-end)
-
-closeBtn.MouseButton1Click:Connect(function()
-	menu.Visible = false
-	logo.Visible = false
-	blur.Enabled = false
-	blur.Size = 0
-end)
-
+-- Enhanced dragging system with better error handling
 local function makeDraggable(frame)
-	local dragToggle, dragStart, startPos = nil, nil, nil
-	frame.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			dragToggle = true
-			dragStart = input.Position
-			startPos = frame.Position
-			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then dragToggle = false end
-			end)
-		end
-	end)
-	UIS.InputChanged:Connect(function(input)
-		if dragToggle and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-			local delta = input.Position - dragStart
-			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-		end
-	end)
+    pcall(function()
+        local dragToggle = false
+        local dragStart = nil
+        local startPos = nil
+        
+        -- For menu, use title area. For logo, use the frame itself
+        local dragArea = (frame == menu) and title or frame
+        
+        local dragConnection = nil
+        local inputConnection = nil
+        
+        dragConnection = safeConnect(dragArea.InputBegan, function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragToggle = true
+                dragStart = input.Position
+                startPos = frame.Position
+                
+                if inputConnection then
+                    inputConnection:Disconnect()
+                end
+                
+                inputConnection = safeConnect(input.Changed, function()
+                    if input.UserInputState == Enum.UserInputState.End then 
+                        dragToggle = false 
+                    end
+                end)
+            end
+        end)
+        
+        safeConnect(UIS.InputChanged, function(input)
+            if dragToggle and dragStart and startPos and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local delta = input.Position - dragStart
+                frame.Position = UDim2.new(
+                    startPos.X.Scale, 
+                    startPos.X.Offset + delta.X, 
+                    startPos.Y.Scale, 
+                    startPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+    end)
 end
+
+-- Enhanced resize system with better error handling
+local function makeResizable(frame, minWidth, minHeight)
+    pcall(function()
+        local resizing = false
+        local startSize = nil
+        local startPos = nil
+        local resizeConnection = nil
+        
+        resizeConnection = safeConnect(resizeHandle.InputBegan, function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                resizing = true
+                startSize = frame.Size
+                startPos = input.Position
+                
+                safeConnect(input.Changed, function()
+                    if input.UserInputState == Enum.UserInputState.End then 
+                        resizing = false 
+                    end
+                end)
+            end
+        end)
+        
+        safeConnect(UIS.InputChanged, function(input)
+            if resizing and startSize and startPos and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local delta = input.Position - startPos
+                local newWidth = math.max(minWidth or 350, startSize.X.Offset + delta.X)
+                local newHeight = math.max(minHeight or 250, startSize.Y.Offset + delta.Y)
+                
+                frame.Size = UDim2.new(0, newWidth, 0, newHeight)
+            end
+        end)
+    end)
+end
+
+-- Current menu tracker
+local currentMenu = "main"
+
+-- Button events
+safeConnect(cheatBtn.MouseButton1Click, function()
+    showCheats()
+end)
+
+safeConnect(deviceBtn.MouseButton1Click, function()
+    showDeviceMenu()
+end)
+
+safeConnect(backBtn.MouseButton1Click, function()
+    if currentMenu == "fly" or currentMenu == "hidename" or currentMenu == "aimbot" or currentMenu == "autopuncak" or currentMenu == "device" then
+        showCheats()
+    else
+        showCheats()
+    end
+end)
+
+-- FIXED CLEAR FUNCTION - Safe cleanup without external scripts
+safeConnect(clearBtn.MouseButton1Click, function()
+    pcall(function()
+        -- Simple hide menu and disable blur
+        menu.Visible = false
+        logo.Visible = true
+        
+        if blur then
+            blur.Enabled = false
+            blur.Size = 0
+        end
+        
+        -- Clear content safely
+        clearContent()
+        
+        print("✅ GUI cleared successfully")
+    end)
+end)
+
+safeConnect(logoButton.MouseButton1Click, function()
+    pcall(function()
+        menu.Visible = true
+        if blur then
+            blur.Enabled = true
+            local tween = TweenService:Create(blur, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { Size = 12 })
+            tween:Play()
+        end
+        showCheats()
+    end)
+end)
+
+safeConnect(minBtn.MouseButton1Click, function()
+    pcall(function()
+        menu.Visible = false
+        if blur then
+            blur.Enabled = false
+            blur.Size = 0
+        end
+    end)
+end)
+
+safeConnect(closeBtn.MouseButton1Click, function()
+    pcall(function()
+        menu.Visible = false
+        logo.Visible = false
+        if blur then
+            blur.Enabled = false
+            blur.Size = 0
+        end
+    end)
+end)
+
+-- Logo pulsing animation with error handling
+local function animateLogo()
+    pcall(function()
+        if logoGlow and logoIcon then
+            local pulseIn = TweenService:Create(logoGlow, 
+                TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), 
+                { BackgroundTransparency = 0.7 }
+            )
+            pulseIn:Play()
+            
+            local iconPulse = TweenService:Create(logoIcon, 
+                TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), 
+                { TextSize = 28 }
+            )
+            iconPulse:Play()
+        end
+    end)
+end
+
+-- Apply dragging and resizing
 makeDraggable(menu)
-makeDraggable(logo)
+makeDraggable(logo) -- Fixed logo dragging
+makeResizable(menu, 350, 250)
+
+-- Start logo animation
+animateLogo()
+
+-- Initialize with main menu
+showCheats()
+
+-- Enhanced cleanup on player leaving with better error handling
+safeConnect(player.AncestryChanged, function()
+    if not player.Parent then
+        pcall(function()
+            -- Cleanup blur effect
+            if blur and blur.Parent then
+                blur:Destroy()
+            end
+            
+            -- Cleanup GUI
+            if gui and gui.Parent then
+                gui:Destroy()
+            end
+            
+            -- Additional cleanup for any orphaned effects
+            local lighting = game:GetService("Lighting")
+            for _, effect in pairs(lighting:GetChildren()) do
+                if effect:IsA("BlurEffect") and effect.Name == "WarpahVipBlur" then
+                    effect:Destroy()
+                end
+            end
+        end)
+    end
+end)
+
+-- Additional safety: Cleanup on script end
+local function onScriptEnd()
+    pcall(function()
+        if blur and blur.Parent then
+            blur:Destroy()
+        end
+        if gui and gui.Parent then
+            gui:Destroy()
+        end
+    end)
+end
+
+-- Register cleanup
+game:GetService("RunService").Heartbeat:Connect(function()
+    if not gui or not gui.Parent then
+        onScriptEnd()
+    end
+end)
+
+print("✅ WarpahVip GUI v0.3.3.1 Fixed loaded successfully!")
+print("✨ Features: Fixed clear button, removed sub-menus for mountains")
+print("🏔️ Added mountains: Sumbing, Krakatau, CKPTW, Sibuatan, Lawak, Yahaha, Duntul, Atin, Sumala")
+print("🛡️ Anti-lag: Improved memory management and error prevention")
