@@ -1,0 +1,432 @@
+-- Warpah Summits - Professional Design (Fixed)
+-- Clean, Elegant UI for Delta Executor
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Destroy existing GUI if it exists
+pcall(function()
+    if playerGui:FindFirstChild("WarpahSummitsGUI") then
+        playerGui.WarpahSummitsGUI:Destroy()
+    end
+end)
+
+-- Create main GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "WarpahSummitsGUI"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Main Frame (Draggable)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 320, 0, 180)
+mainFrame.Position = UDim2.new(0.5, -160, 0.3, -90)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+-- Professional neon green outline
+local outline = Instance.new("UIStroke")
+outline.Color = Color3.fromRGB(0, 255, 65)
+outline.Thickness = 2
+outline.Parent = mainFrame
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 6)
+mainCorner.Parent = mainFrame
+
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 35)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+titleBar.BorderSizePixel = 0
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 6)
+titleCorner.Parent = titleBar
+
+-- Title gradient effect
+local titleGradient = Instance.new("UIGradient")
+titleGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 25)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 40))
+}
+titleGradient.Rotation = 90
+titleGradient.Parent = titleBar
+
+-- Title Text (Centered, no version)
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(1, -70, 1, 0)
+titleLabel.Position = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "Warpah Summits"
+titleLabel.TextColor3 = Color3.fromRGB(0, 255, 65)
+titleLabel.TextSize = 16
+titleLabel.Font = Enum.Font.GothamSemibold
+titleLabel.TextXAlignment = Enum.TextXAlignment.Center
+titleLabel.Parent = titleBar
+
+-- Professional minimize button
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Name = "MinimizeButton"
+minimizeBtn.Size = UDim2.new(0, 28, 0, 22)
+minimizeBtn.Position = UDim2.new(1, -60, 0, 7)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+minimizeBtn.Text = "—"
+minimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeBtn.TextSize = 14
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.BorderSizePixel = 0
+minimizeBtn.Parent = titleBar
+
+local minimizeCorner = Instance.new("UICorner")
+minimizeCorner.CornerRadius = UDim.new(0, 4)
+minimizeCorner.Parent = minimizeBtn
+
+-- Professional close button  
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "CloseButton"
+closeBtn.Size = UDim2.new(0, 28, 0, 22)
+closeBtn.Position = UDim2.new(1, -30, 0, 7)
+closeBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+closeBtn.Text = "×"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 16
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.BorderSizePixel = 0
+closeBtn.Parent = titleBar
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 4)
+closeCorner.Parent = closeBtn
+
+-- Main Content Area
+local contentFrame = Instance.new("Frame")
+contentFrame.Name = "ContentFrame"
+contentFrame.Size = UDim2.new(1, 0, 1, -35)
+contentFrame.Position = UDim2.new(0, 0, 0, 35)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = mainFrame
+
+-- Professional Auto Summit Button
+local autoSummitBtn = Instance.new("TextButton")
+autoSummitBtn.Name = "AutoSummitButton"
+autoSummitBtn.Size = UDim2.new(0, 280, 0, 80)
+autoSummitBtn.Position = UDim2.new(0.5, -140, 0.5, -40)
+autoSummitBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 50)
+autoSummitBtn.Text = "Auto Summit"
+autoSummitBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+autoSummitBtn.TextSize = 20
+autoSummitBtn.Font = Enum.Font.GothamBold
+autoSummitBtn.BorderSizePixel = 0
+autoSummitBtn.Parent = contentFrame
+
+local autoSummitCorner = Instance.new("UICorner")
+autoSummitCorner.CornerRadius = UDim.new(0, 8)
+autoSummitCorner.Parent = autoSummitBtn
+
+-- Professional gradient for main button
+local buttonGradient = Instance.new("UIGradient")
+buttonGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 220, 60)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 180, 40))
+}
+buttonGradient.Rotation = 90
+buttonGradient.Parent = autoSummitBtn
+
+-- Summit Selection Frame
+local summitFrame = Instance.new("Frame")
+summitFrame.Name = "SummitFrame"
+summitFrame.Size = UDim2.new(0, 300, 0, 420)
+summitFrame.Position = UDim2.new(0.5, -150, 0.5, -210)
+summitFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+summitFrame.BorderSizePixel = 0
+summitFrame.Visible = false
+summitFrame.Active = true
+summitFrame.Draggable = true
+summitFrame.Parent = screenGui
+
+-- Professional outline for summit frame
+local summitOutline = Instance.new("UIStroke")
+summitOutline.Color = Color3.fromRGB(0, 255, 65)
+summitOutline.Thickness = 2
+summitOutline.Parent = summitFrame
+
+local summitCorner = Instance.new("UICorner")
+summitCorner.CornerRadius = UDim.new(0, 6)
+summitCorner.Parent = summitFrame
+
+-- Summit Title Bar
+local summitTitleBar = Instance.new("Frame")
+summitTitleBar.Size = UDim2.new(1, 0, 0, 35)
+summitTitleBar.Position = UDim2.new(0, 0, 0, 0)
+summitTitleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+summitTitleBar.BorderSizePixel = 0
+summitTitleBar.Parent = summitFrame
+
+local summitTitleCorner = Instance.new("UICorner")
+summitTitleCorner.CornerRadius = UDim.new(0, 6)
+summitTitleCorner.Parent = summitTitleBar
+
+-- Summit title gradient
+local summitTitleGradient = Instance.new("UIGradient")
+summitTitleGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 25)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 40))
+}
+summitTitleGradient.Rotation = 90
+summitTitleGradient.Parent = summitTitleBar
+
+-- Summit Title Text
+local summitTitleLabel = Instance.new("TextLabel")
+summitTitleLabel.Size = UDim2.new(1, -50, 1, 0)
+summitTitleLabel.Position = UDim2.new(0, 0, 0, 0)
+summitTitleLabel.BackgroundTransparency = 1
+summitTitleLabel.Text = "⛰️ Select Mountain"
+summitTitleLabel.TextColor3 = Color3.fromRGB(0, 255, 65)
+summitTitleLabel.TextSize = 16
+summitTitleLabel.Font = Enum.Font.GothamSemibold
+summitTitleLabel.TextXAlignment = Enum.TextXAlignment.Center
+summitTitleLabel.Parent = summitTitleBar
+
+-- Close button for summit frame
+local closeSummitBtn = Instance.new("TextButton")
+closeSummitBtn.Size = UDim2.new(0, 28, 0, 22)
+closeSummitBtn.Position = UDim2.new(1, -30, 0, 7)
+closeSummitBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+closeSummitBtn.Text = "×"
+closeSummitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeSummitBtn.TextSize = 16
+closeSummitBtn.Font = Enum.Font.GothamBold
+closeSummitBtn.BorderSizePixel = 0
+closeSummitBtn.Parent = summitTitleBar
+
+local closeSummitCorner = Instance.new("UICorner")
+closeSummitCorner.CornerRadius = UDim.new(0, 4)
+closeSummitCorner.Parent = closeSummitBtn
+
+-- Scrolling Frame for Mountains
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Size = UDim2.new(1, -20, 1, -50)
+scrollFrame.Position = UDim2.new(0, 10, 0, 45)
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.ScrollBarThickness = 6
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 65)
+scrollFrame.ScrollBarImageTransparency = 0.3
+scrollFrame.Parent = summitFrame
+
+-- List layout
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 3)
+listLayout.Parent = scrollFrame
+
+-- Mountain data
+local mountains = {
+    {name = "Mt.Atin", icon = "⛰️"},
+    {name = "Mt.Akhirat", icon = "💀"},
+    {name = "Mt.Arunika", icon = "🌋"},
+    {name = "Mt.Bandahara", icon = "💰"},
+    {name = "Mt.CKPTW", icon = "⚡"},
+    {name = "Mt.Daun", icon = "🍃"},
+    {name = "Mt.Duntul", icon = "🗻"},
+    {name = "Mt.Hanami", icon = "🌸"},
+    {name = "Mt.Kahung", icon = "⛰️"},
+    {name = "Mt.Sumala", icon = "🏞️"},
+    {name = "Mt.Sibuatan", icon = "🌊"},
+    {name = "Mt.Yahaha", icon = "😂"},
+    {name = "Mt.Yahayuk", icon = "🎭"}
+}
+
+-- Function to create mountain button
+local function createMountainButton(mountain, index)
+    local btnFrame = Instance.new("Frame")
+    btnFrame.Size = UDim2.new(1, -5, 0, 32)
+    btnFrame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    btnFrame.BorderSizePixel = 0
+    btnFrame.Parent = scrollFrame
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = btnFrame
+    
+    -- Button gradient
+    local btnGradient = Instance.new("UIGradient")
+    btnGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 45)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(35, 35, 35))
+    }
+    btnGradient.Rotation = 90
+    btnGradient.Parent = btnFrame
+    
+    -- Icon label
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Size = UDim2.new(0, 30, 1, 0)
+    iconLabel.Position = UDim2.new(0, 5, 0, 0)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = mountain.icon
+    iconLabel.TextColor3 = Color3.fromRGB(0, 255, 65)
+    iconLabel.TextSize = 16
+    iconLabel.Font = Enum.Font.Gotham
+    iconLabel.TextXAlignment = Enum.TextXAlignment.Center
+    iconLabel.TextYAlignment = Enum.TextYAlignment.Center
+    iconLabel.Parent = btnFrame
+    
+    -- Mountain name label
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, -40, 1, 0)
+    nameLabel.Position = UDim2.new(0, 35, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = mountain.name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = 14
+    nameLabel.Font = Enum.Font.Gotham
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.TextYAlignment = Enum.TextYAlignment.Center
+    nameLabel.Parent = btnFrame
+    
+    -- Invisible button for click detection
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.BackgroundTransparency = 1
+    btn.Text = ""
+    btn.Parent = btnFrame
+    
+    -- Hover effects
+    btn.MouseEnter:Connect(function()
+        btnGradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 180, 40)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 140, 30))
+        }
+        nameLabel.TextColor3 = Color3.fromRGB(0, 0, 0)
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        btnGradient.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 45)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(35, 35, 35))
+        }
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end)
+    
+    -- Button click function
+    btn.MouseButton1Click:Connect(function()
+        pcall(function()
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "✅ " .. mountain.name,
+                Text = mountain.name .. " activated!",
+                Duration = 3
+            })
+        end)
+        
+        print("🎯 " .. mountain.name .. " function executed")
+        
+        -- Add your mountain function here
+        -- Example: 
+        -- if mountain.name == "Mt.Atin" then
+        --     -- Your Mt.Atin function
+        -- end
+        
+        summitFrame.Visible = false
+    end)
+end
+
+-- Create all mountain buttons
+for i, mountain in ipairs(mountains) do
+    createMountainButton(mountain, i)
+end
+
+-- Set scroll canvas size
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#mountains * 35) + 10)
+
+-- Button functions
+local isMinimized = false
+
+minimizeBtn.MouseButton1Click:Connect(function()
+    if not isMinimized then
+        local tween = TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 320, 0, 35)})
+        tween:Play()
+        contentFrame.Visible = false
+        isMinimized = true
+    else
+        local tween = TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 320, 0, 180)})
+        tween:Play()
+        contentFrame.Visible = true
+        isMinimized = false
+    end
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+autoSummitBtn.MouseButton1Click:Connect(function()
+    summitFrame.Visible = true
+end)
+
+closeSummitBtn.MouseButton1Click:Connect(function()
+    summitFrame.Visible = false
+end)
+
+-- Hover effects
+autoSummitBtn.MouseEnter:Connect(function()
+    buttonGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 240, 70)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 200, 50))
+    }
+end)
+
+autoSummitBtn.MouseLeave:Connect(function()
+    buttonGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 220, 60)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 180, 40))
+    }
+end)
+
+minimizeBtn.MouseEnter:Connect(function()
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+end)
+
+minimizeBtn.MouseLeave:Connect(function()
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+end)
+
+closeBtn.MouseEnter:Connect(function()
+    closeBtn.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
+end)
+
+closeBtn.MouseLeave:Connect(function()
+    closeBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+end)
+
+closeSummitBtn.MouseEnter:Connect(function()
+    closeSummitBtn.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
+end)
+
+closeSummitBtn.MouseLeave:Connect(function()
+    closeSummitBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+end)
+
+-- Welcome notification
+pcall(function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "🏔️ Warpah Summits",
+        Text = "Professional UI loaded successfully!",
+        Duration = 3
+    })
+end)
+
+print("✨ Warpah Summits - Professional Edition loaded!")
+print("🎨 Clean, elegant design ready for use!")
