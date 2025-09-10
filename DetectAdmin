@@ -1,0 +1,619 @@
+-- Compact Admin & Creator Detector
+-- Detects server owners, admins, moderators with minimalist GUI
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local GroupService = game:GetService("GroupService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Detection data
+local detectedStaff = {}
+local serverOwner = nil
+local gameCreatorId = nil
+local updateTimer = 0
+
+-- Enhanced detection methods
+local staffKeywords = {
+    "admin", "mod", "moderator", "staff", "owner", "creator", 
+    "dev", "developer", "manager", "supervisor", "helper",
+    "founder", "leader", "chief", "director", "operator"
+}
+
+local adminBadges = {
+    1, 2, 3, 4, 5, 2124, 2125, 2126, 2127, 2128,
+    15, 16, 17, 18, 19, 20, 21, 22, 23, 24
+}
+
+-- Get game info
+local function getGameInfo()
+    local success, result = pcall(function()
+        return game.CreatorId, game.CreatorType
+    end)
+    if success then
+        gameCreatorId = result
+    end
+end
+
+-- Check if player has admin privileges
+local function checkAdminPrivileges(targetPlayer)
+    -- Check if they can use admin commands or have special permissions
+    local success, hasPrivileges = pcall(function()
+        -- This is a basic check - games may implement their own admin systems
+        return targetPlayer:GetRankInGroup(game.CreatorId) >= 100 or 
+               targetPlayer.UserId == game.CreatorId
+    end)
+    return success and hasPrivileges
+end
+
+-- Enhanced staff detection
+local function detectStaffMember(targetPlayer)
+    local playerId = targetPlayer.UserId
+    local playerName = targetPlayer.Name:lower()
+    local displayName = targetPlayer.DisplayName:lower()
+    
+    local staffInfo = {
+        player = targetPlayer,
+        userId = playerId,
+        name = targetPlayer.Name,
+        displayName = targetPlayer.DisplayName,
+        isGameCreator = playerId == gameCreatorId,
+        isServerOwner = false,
+        hasAdminBadge = false,
+        hasStaffKeywords = false,
+        hasAdminPrivileges = false,
+        groupRank = 0,
+        staffType = "Unknown",
+        status = "Online",
+        lastSeen = os.time()
+    }
+    
+    -- Check if game creator
+    if staffInfo.isGameCreator then
+        staffInfo.staffType = "Game Creator"
+        staffInfo.isServerOwner = true
+    end
+    
+    -- Check admin badges
+    for _, badgeId in ipairs(adminBadges) do
+        local success, hasBadge = pcall(function()
+            return game:GetService("BadgeService"):UserHasBadgeAsync(playerId, badgeId)
+        end)
+        if success and hasBadge then
+            staffInfo.hasAdminBadge = true
+            staffInfo.staffType = "Admin"
+            break
+        end
+    end
+    
+    -- Check staff keywords in name
+    for _, keyword in ipairs(staffKeywords) do
+        if string.find(playerName, keyword) or string.find(displayName, keyword) then
+            staffInfo.hasStaffKeywords = true
+            if staffInfo.staffType == "Unknown" then
+                if keyword == "owner" or keyword == "creator" then
+                    staffInfo.staffType = "Owner"
+                elseif keyword == "admin" then
+                    staffInfo.staffType = "Admin"
+                elseif keyword == "mod" or keyword == "moderator" then
+                    staffInfo.staffType = "Moderator"
+                else
+                    staffInfo.staffType = "Staff"
+                end
+            end
+            break
+        end
+    end
+    
+    -- Check group rank
+    local success, groups = pcall(function()
+        return GroupService:GetGroupsAsync(playerId)
+    end)
+    if success then
+        for _, group in ipairs(groups) do
+            if group.Rank >= 100 then
+                staffInfo.groupRank = group.Rank
+                if staffInfo.staffType == "Unknown" then
+                    if group.Rank >= 250 then
+                        staffInfo.staffType = "Owner"
+                    elseif group.Rank >= 200 then
+                        staffInfo.staffType = "Admin"
+                    elseif group.Rank >= 150 then
+                        staffInfo.staffType = "Moderator"
+                    else
+                        staffInfo.staffType = "Staff"
+                    end
+                end
+                break
+            end
+        end
+    end
+    
+    -- Check admin privileges
+    staffInfo.hasAdminPrivileges = checkAdminPrivileges(targetPlayer)
+    
+    -- Determine if this player is staff
+    local isStaff = staffInfo.isGameCreator or staffInfo.hasAdminBadge or 
+                   staffInfo.hasStaffKeywords or staffInfo.groupRank >= 100 or
+                   staffInfo.hasAdminPrivileges
+    
+    if isStaff then
+        detectedStaff[playerId] = staffInfo
+        
+        -- Set server owner
+        if staffInfo.isGameCreator or (staffInfo.groupRank >= 250 and not serverOwner) then
+            serverOwner = staffInfo
+        end
+        
+        return true
+    end
+    
+    return false
+end
+
+-- Create compact GUI
+local function createCompactGUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CompactAdminDetector"
+    screenGui.Parent = playerGui
+    screenGui.ResetOnSpawn = false
+    
+    -- Main compact frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 280, 0, 320)
+    mainFrame.Position = UDim2.new(1, -290, 0, 10)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 8)
+    mainCorner.Parent = mainFrame
+    
+    -- Header
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 25)
+    header.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+    header.BorderSizePixel = 0
+    header.Parent = mainFrame
+    
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 8)
+    headerCorner.Parent = header
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -50, 1, 0)
+    title.Position = UDim2.new(0, 8, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Staff Detector"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 10
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = header
+    
+    local close = Instance.new("TextButton")
+    close.Size = UDim2.new(0, 20, 0, 20)
+    close.Position = UDim2.new(1, -25, 0, 2.5)
+    close.BackgroundColor3 = Color3.fromRGB(255, 59, 48)
+    close.BorderSizePixel = 0
+    close.Text = "×"
+    close.TextColor3 = Color3.fromRGB(255, 255, 255)
+    close.TextSize = 12
+    close.Font = Enum.Font.GothamBold
+    close.Parent = header
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 10)
+    closeCorner.Parent = close
+    
+    -- Server info section
+    local serverInfo = Instance.new("Frame")
+    serverInfo.Size = UDim2.new(1, -16, 0, 35)
+    serverInfo.Position = UDim2.new(0, 8, 0, 30)
+    serverInfo.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    serverInfo.BorderSizePixel = 0
+    serverInfo.Parent = mainFrame
+    
+    local infoCorner = Instance.new("UICorner")
+    infoCorner.CornerRadius = UDim.new(0, 5)
+    infoCorner.Parent = serverInfo
+    
+    local serverLabel = Instance.new("TextLabel")
+    serverLabel.Size = UDim2.new(1, -10, 0, 15)
+    serverLabel.Position = UDim2.new(0, 5, 0, 2)
+    serverLabel.BackgroundTransparency = 1
+    serverLabel.Text = "Server Owner: Loading..."
+    serverLabel.TextColor3 = Color3.fromRGB(255, 193, 7)
+    serverLabel.TextSize = 8
+    serverLabel.Font = Enum.Font.GothamMedium
+    serverLabel.TextXAlignment = Enum.TextXAlignment.Left
+    serverLabel.Parent = serverInfo
+    
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(1, -10, 0, 15)
+    statusLabel.Position = UDim2.new(0, 5, 0, 17)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "Status: Scanning..."
+    statusLabel.TextColor3 = Color3.fromRGB(52, 152, 219)
+    statusLabel.TextSize = 8
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Parent = serverInfo
+    
+    -- Controls
+    local controlFrame = Instance.new("Frame")
+    controlFrame.Size = UDim2.new(1, -16, 0, 20)
+    controlFrame.Position = UDim2.new(0, 8, 0, 70)
+    controlFrame.BackgroundTransparency = 1
+    controlFrame.Parent = mainFrame
+    
+    local rejoinBtn = Instance.new("TextButton")
+    rejoinBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    rejoinBtn.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+    rejoinBtn.BorderSizePixel = 0
+    rejoinBtn.Text = "Rejoin"
+    rejoinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    rejoinBtn.TextSize = 8
+    rejoinBtn.Font = Enum.Font.GothamMedium
+    rejoinBtn.Parent = controlFrame
+    
+    local rejoinCorner = Instance.new("UICorner")
+    rejoinCorner.CornerRadius = UDim.new(0, 4)
+    rejoinCorner.Parent = rejoinBtn
+    
+    local refreshBtn = Instance.new("TextButton")
+    refreshBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    refreshBtn.Position = UDim2.new(0.52, 0, 0, 0)
+    refreshBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+    refreshBtn.BorderSizePixel = 0
+    refreshBtn.Text = "Refresh"
+    refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    refreshBtn.TextSize = 8
+    refreshBtn.Font = Enum.Font.GothamMedium
+    refreshBtn.Parent = controlFrame
+    
+    local refreshCorner = Instance.new("UICorner")
+    refreshCorner.CornerRadius = UDim.new(0, 4)
+    refreshCorner.Parent = refreshBtn
+    
+    -- Staff list
+    local listFrame = Instance.new("ScrollingFrame")
+    listFrame.Size = UDim2.new(1, -16, 1, -100)
+    listFrame.Position = UDim2.new(0, 8, 0, 95)
+    listFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    listFrame.BorderSizePixel = 0
+    listFrame.ScrollBarThickness = 2
+    listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    listFrame.Parent = mainFrame
+    
+    local listCorner = Instance.new("UICorner")
+    listCorner.CornerRadius = UDim.new(0, 5)
+    listCorner.Parent = listFrame
+    
+    -- Improved teleport function
+    local function teleportToPlayer(targetPlayer)
+        local success, errorMsg = pcall(function()
+            if not targetPlayer or not targetPlayer.Parent then
+                statusLabel.Text = "Error: Player not found"
+                return
+            end
+            
+            local myCharacter = player.Character or player.CharacterAdded:Wait()
+            local targetCharacter = targetPlayer.Character
+            
+            if not myCharacter then
+                statusLabel.Text = "Error: Your character not found"
+                return
+            end
+            
+            if not targetCharacter then
+                statusLabel.Text = "Error: Target character not found"
+                return
+            end
+            
+            local myHRP = myCharacter:FindFirstChild("HumanoidRootPart")
+            local targetHRP = targetCharacter:FindFirstChild("HumanoidRootPart")
+            
+            if not myHRP then
+                statusLabel.Text = "Error: Your HumanoidRootPart not found"
+                return
+            end
+            
+            if not targetHRP then
+                statusLabel.Text = "Error: Target HumanoidRootPart not found"
+                return
+            end
+            
+            -- Calculate teleport position (slightly behind the target)
+            local targetCFrame = targetHRP.CFrame
+            local offset = targetCFrame.LookVector * -5 -- 5 studs behind
+            local teleportCFrame = targetCFrame + offset
+            
+            -- Teleport with slight upward offset to avoid clipping
+            myHRP.CFrame = teleportCFrame + Vector3.new(0, 3, 0)
+            
+            statusLabel.Text = "Teleported to " .. targetPlayer.Name
+            
+            -- Reset status text after 3 seconds
+            wait(3)
+            statusLabel.Text = "Status: Ready"
+        end)
+        
+        if not success then
+            statusLabel.Text = "Teleport failed: " .. tostring(errorMsg)
+            wait(3)
+            statusLabel.Text = "Status: Ready"
+        end
+    end
+    
+    -- Create staff entry
+    local function createStaffEntry(staffInfo, yPos)
+        local entry = Instance.new("Frame")
+        entry.Name = "Entry_" .. staffInfo.userId
+        entry.Size = UDim2.new(1, -10, 0, 40)
+        entry.Position = UDim2.new(0, 5, 0, yPos)
+        entry.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+        entry.BorderSizePixel = 0
+        entry.Parent = listFrame
+        
+        local entryCorner = Instance.new("UICorner")
+        entryCorner.CornerRadius = UDim.new(0, 4)
+        entryCorner.Parent = entry
+        
+        -- Status dot
+        local statusDot = Instance.new("Frame")
+        statusDot.Size = UDim2.new(0, 6, 0, 6)
+        statusDot.Position = UDim2.new(0, 5, 0, 5)
+        statusDot.BackgroundColor3 = staffInfo.status == "Online" and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(149, 165, 166)
+        statusDot.BorderSizePixel = 0
+        statusDot.Parent = entry
+        
+        local dotCorner = Instance.new("UICorner")
+        dotCorner.CornerRadius = UDim.new(0, 3)
+        dotCorner.Parent = statusDot
+        
+        -- Name
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(0, 100, 0, 12)
+        nameLabel.Position = UDim2.new(0, 15, 0, 3)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = staffInfo.name
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextSize = 8
+        nameLabel.Font = Enum.Font.GothamBold
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+        nameLabel.Parent = entry
+        
+        -- Type badge
+        local typeBadge = Instance.new("TextLabel")
+        typeBadge.Size = UDim2.new(0, 60, 0, 10)
+        typeBadge.Position = UDim2.new(0, 15, 0, 15)
+        typeBadge.BackgroundTransparency = 1
+        typeBadge.Text = staffInfo.staffType
+        typeBadge.TextSize = 7
+        typeBadge.Font = Enum.Font.Gotham
+        typeBadge.TextXAlignment = Enum.TextXAlignment.Left
+        typeBadge.Parent = entry
+        
+        -- Set color based on type
+        if staffInfo.staffType == "Game Creator" or staffInfo.staffType == "Owner" then
+            typeBadge.TextColor3 = Color3.fromRGB(255, 193, 7)
+        elseif staffInfo.staffType == "Admin" then
+            typeBadge.TextColor3 = Color3.fromRGB(231, 76, 60)
+        elseif staffInfo.staffType == "Moderator" then
+            typeBadge.TextColor3 = Color3.fromRGB(155, 89, 182)
+        else
+            typeBadge.TextColor3 = Color3.fromRGB(52, 152, 219)
+        end
+        
+        -- Online status
+        local onlineLabel = Instance.new("TextLabel")
+        onlineLabel.Size = UDim2.new(0, 40, 0, 10)
+        onlineLabel.Position = UDim2.new(0, 15, 0, 25)
+        onlineLabel.BackgroundTransparency = 1
+        onlineLabel.Text = staffInfo.status
+        onlineLabel.TextColor3 = staffInfo.status == "Online" and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(149, 165, 166)
+        onlineLabel.TextSize = 6
+        onlineLabel.Font = Enum.Font.Gotham
+        onlineLabel.TextXAlignment = Enum.TextXAlignment.Left
+        onlineLabel.Parent = entry
+        
+        -- Teleport button (only if online)
+        if staffInfo.status == "Online" then
+            local teleportBtn = Instance.new("TextButton")
+            teleportBtn.Size = UDim2.new(0, 35, 0, 15)
+            teleportBtn.Position = UDim2.new(1, -40, 0, 12)
+            teleportBtn.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
+            teleportBtn.BorderSizePixel = 0
+            teleportBtn.Text = "TP"
+            teleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            teleportBtn.TextSize = 7
+            teleportBtn.Font = Enum.Font.GothamBold
+            teleportBtn.Parent = entry
+            
+            local tpCorner = Instance.new("UICorner")
+            tpCorner.CornerRadius = UDim.new(0, 3)
+            tpCorner.Parent = teleportBtn
+            
+            -- Fixed teleport function
+            teleportBtn.MouseButton1Click:Connect(function()
+                -- Get current player reference
+                local targetPlayer = Players:GetPlayerByUserId(staffInfo.userId)
+                
+                if targetPlayer and targetPlayer.Parent then
+                    spawn(function()
+                        teleportToPlayer(targetPlayer)
+                    end)
+                else
+                    statusLabel.Text = "Error: Player not in server"
+                    wait(3)
+                    statusLabel.Text = "Status: Ready"
+                end
+            end)
+        end
+        
+        return entry
+    end
+    
+    -- Update display
+    local function updateDisplay()
+        -- Clear existing entries
+        for _, child in ipairs(listFrame:GetChildren()) do
+            if string.find(child.Name, "Entry_") then
+                child:Destroy()
+            end
+        end
+        
+        -- Update server owner info
+        if serverOwner then
+            serverLabel.Text = "Server Owner: " .. serverOwner.name .. " (" .. serverOwner.status .. ")"
+        elseif gameCreatorId then
+            local creator = Players:GetPlayerByUserId(gameCreatorId)
+            if creator then
+                serverLabel.Text = "Game Creator: " .. creator.Name .. " (Online)"
+            else
+                serverLabel.Text = "Game Creator: Offline"
+            end
+        else
+            serverLabel.Text = "Server Owner: Unknown"
+        end
+        
+        -- Add staff entries
+        local yPos = 5
+        local onlineCount = 0
+        local totalCount = 0
+        
+        for _, staffInfo in pairs(detectedStaff) do
+            createStaffEntry(staffInfo, yPos)
+            yPos = yPos + 45
+            totalCount = totalCount + 1
+            if staffInfo.status == "Online" then
+                onlineCount = onlineCount + 1
+            end
+        end
+        
+        -- Update canvas size
+        listFrame.CanvasSize = UDim2.new(0, 0, 0, yPos)
+        
+        -- Update status
+        statusLabel.Text = "Staff: " .. onlineCount .. " online, " .. (totalCount - onlineCount) .. " offline"
+    end
+    
+    -- Button functions
+    rejoinBtn.MouseButton1Click:Connect(function()
+        TeleportService:Teleport(game.PlaceId, player)
+    end)
+    
+    refreshBtn.MouseButton1Click:Connect(function()
+        detectedStaff = {}
+        serverOwner = nil
+        for _, targetPlayer in ipairs(Players:GetPlayers()) do
+            if targetPlayer ~= player then
+                detectStaffMember(targetPlayer)
+            end
+        end
+        updateDisplay()
+    end)
+    
+    close.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+    
+    -- Drag functionality
+    local dragging = false
+    local dragStart, startPos
+    
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    return {
+        gui = screenGui,
+        update = updateDisplay
+    }
+end
+
+-- Initialize
+getGameInfo()
+local gui = createCompactGUI()
+
+-- Initial scan
+for _, targetPlayer in ipairs(Players:GetPlayers()) do
+    if targetPlayer ~= player then
+        detectStaffMember(targetPlayer)
+    end
+end
+gui.update()
+
+-- Monitor events
+Players.PlayerAdded:Connect(function(newPlayer)
+    wait(2)
+    if detectStaffMember(newPlayer) then
+        gui.update()
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(leavingPlayer)
+    if detectedStaff[leavingPlayer.UserId] then
+        detectedStaff[leavingPlayer.UserId].status = "Offline"
+        detectedStaff[leavingPlayer.UserId].player = nil
+        gui.update()
+    end
+end)
+
+-- Continuous monitoring
+RunService.Heartbeat:Connect(function()
+    updateTimer = updateTimer + 1
+    if updateTimer >= 180 then -- Update every 3 seconds
+        for userId, staffInfo in pairs(detectedStaff) do
+            local targetPlayer = Players:GetPlayerByUserId(userId)
+            if targetPlayer then
+                staffInfo.status = "Online"
+                staffInfo.player = targetPlayer
+            else
+                staffInfo.status = "Offline"
+                staffInfo.player = nil
+            end
+        end
+        gui.update()
+        updateTimer = 0
+    end
+end)
+
+-- Hotkey toggle (F7)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.F7 then
+        if gui.gui and gui.gui.Parent then
+            gui.gui.MainFrame.Visible = not gui.gui.MainFrame.Visible
+        end
+    end
+end)
+
+print("Compact Staff Detector loaded!")
+print("Press F7 to toggle")
+print("Detects: Game Creator, Owner, Admin, Moderator, Staff")
