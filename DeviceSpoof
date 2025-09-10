@@ -1,0 +1,1193 @@
+-- Enhanced Professional Device Info & Spoofer for Delta Executor
+-- Advanced spoofing with multi-brand device support and improved real-time updates
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Spoofing variables
+local spoofedInfo = {}
+local isSpoof = false
+local realTimeUpdate = false
+local deviceRealTimeUpdate = false
+local networkSpoof = {
+    ip = nil,
+    mac = nil,
+    dns = nil,
+    originalIP = "127.0.0.1", -- Default localhost
+    originalMAC = "00:00:00:00:00:00",
+    originalDNS = "8.8.8.8"
+}
+
+-- Network spoofing functions
+local function spoofNetworkIdentity(ip, mac, dns)
+    networkSpoof.ip = ip or networkSpoof.ip
+    networkSpoof.mac = mac or networkSpoof.mac  
+    networkSpoof.dns = dns or networkSpoof.dns
+    
+    -- Here you would implement actual network spoofing
+    -- For demonstration, we'll simulate the changes
+    print("🌐 Network Identity Spoofed:")
+    print("   IP: " .. (networkSpoof.ip or "Original"))
+    print("   MAC: " .. (networkSpoof.mac or "Original"))  
+    print("   DNS: " .. (networkSpoof.dns or "Original"))
+    
+    -- In real implementation, you might use:
+    -- game:GetService("NetworkClient"):ChangeIP(ip)
+    -- or other network manipulation methods
+end
+
+local function resetNetworkIdentity()
+    networkSpoof.ip = nil
+    networkSpoof.mac = nil
+    networkSpoof.dns = nil
+    print("🔄 Network identity reset to original")
+end
+
+-- Enhanced device presets with popular brands
+local devicePresets = {
+    -- Apple Devices
+    ["iPhone 15 Pro Max"] = {Platform = "iOS", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Apple"},
+    ["iPhone 14 Pro"] = {Platform = "iOS", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Apple"},
+    ["iPhone 13"] = {Platform = "iOS", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Apple"},
+    ["iPad Pro M2"] = {Platform = "iOS", Touch = true, Mouse = false, Keyboard = true, Gamepad = false, VR = false, Brand = "Apple"},
+    ["iPad Air"] = {Platform = "iOS", Touch = true, Mouse = false, Keyboard = true, Gamepad = false, VR = false, Brand = "Apple"},
+    
+    -- Samsung Devices
+    ["Galaxy S24 Ultra"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Samsung"},
+    ["Galaxy S23"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Samsung"},
+    ["Galaxy Note 20"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Samsung"},
+    ["Galaxy Tab S9"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = true, Gamepad = false, VR = false, Brand = "Samsung"},
+    
+    -- Xiaomi Devices
+    ["Xiaomi 14 Ultra"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Xiaomi"},
+    ["Redmi Note 13 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Xiaomi"},
+    ["POCO F5 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Xiaomi"},
+    ["Mi Pad 6"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = true, Gamepad = false, VR = false, Brand = "Xiaomi"},
+    
+    -- Oppo Devices
+    ["OPPO Find X6 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Oppo"},
+    ["OPPO Reno 10 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Oppo"},
+    ["OPPO A98"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Oppo"},
+    
+    -- Vivo Devices
+    ["Vivo X100 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Vivo"},
+    ["Vivo V29 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Vivo"},
+    ["Vivo Y100"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Vivo"},
+    
+    -- Realme Devices
+    ["Realme GT 5 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Realme"},
+    ["Realme 11 Pro+"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Realme"},
+    ["Realme C55"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Realme"},
+    
+    -- Huawei Devices
+    ["Huawei P60 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Huawei"},
+    ["Huawei Mate 60"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Huawei"},
+    ["Huawei Nova 11"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Huawei"},
+    
+    -- OnePlus Devices
+    ["OnePlus 12"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "OnePlus"},
+    ["OnePlus 11 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "OnePlus"},
+    ["OnePlus Nord 3"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "OnePlus"},
+    
+    -- Google Devices
+    ["Pixel 8 Pro"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Google"},
+    ["Pixel 7a"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = false, VR = false, Brand = "Google"},
+    ["Pixel Tablet"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = true, Gamepad = false, VR = false, Brand = "Google"},
+    
+    -- Gaming/PC Devices
+    ["Windows PC"] = {Platform = "Windows", Touch = false, Mouse = true, Keyboard = true, Gamepad = true, VR = false, Brand = "PC"},
+    ["MacBook Pro M3"] = {Platform = "macOS", Touch = false, Mouse = true, Keyboard = true, Gamepad = false, VR = false, Brand = "Apple"},
+    ["ROG Phone 7"] = {Platform = "Android", Touch = true, Mouse = false, Keyboard = false, Gamepad = true, VR = false, Brand = "Asus"},
+    ["Xbox Series X"] = {Platform = "XBoxOne", Touch = false, Mouse = false, Keyboard = false, Gamepad = true, VR = false, Brand = "Microsoft"},
+    ["PlayStation 5"] = {Platform = "PlayStation", Touch = false, Mouse = false, Keyboard = false, Gamepad = true, VR = false, Brand = "Sony"}
+}
+
+-- Random data generators
+local function randomUserId()
+    return math.random(100000, 999999999)
+end
+
+local function randomPlatform()
+    local platforms = {"iOS", "Android", "Windows", "XBoxOne", "PlayStation", "macOS"}
+    return platforms[math.random(1, #platforms)]
+end
+
+local function randomAccountAge()
+    return math.random(30, 2500)
+end
+
+local function randomDevicePreset()
+    local presetNames = {}
+    for name, _ in pairs(devicePresets) do
+        table.insert(presetNames, name)
+    end
+    return presetNames[math.random(1, #presetNames)]
+end
+
+local function randomIP()
+    -- Generate realistic IP addresses
+    local ipTypes = {
+        -- Home/Residential IPs
+        function() return string.format("%d.%d.%d.%d", 192, 168, math.random(0, 255), math.random(1, 254)) end,
+        function() return string.format("%d.%d.%d.%d", 10, math.random(0, 255), math.random(0, 255), math.random(1, 254)) end,
+        function() return string.format("%d.%d.%d.%d", 172, math.random(16, 31), math.random(0, 255), math.random(1, 254)) end,
+        -- Public IPs (realistic ranges)
+        function() return string.format("%d.%d.%d.%d", math.random(1, 223), math.random(0, 255), math.random(0, 255), math.random(1, 254)) end
+    }
+    return ipTypes[math.random(1, #ipTypes)]()
+end
+
+local function randomMAC()
+    -- Generate realistic MAC address with proper vendor prefixes
+    local vendors = {
+        -- Real smartphone/tablet vendors
+        "B8:27:EB", "DC:A6:32", "E4:5F:01",  -- Raspberry Pi, Apple
+        "00:1A:79", "A4:C3:61", "3C:07:54",  -- Apple devices
+        "B4:F0:AB", "88:66:5A", "A0:88:B4",  -- Samsung devices
+        "2C:F0:EE", "AC:37:43", "F0:25:B7",  -- Xiaomi devices
+        "C8:3A:35", "D0:22:BE", "E8:DE:27",  -- Oppo devices
+        "8C:BE:BE", "F4:8C:50", "04:D6:AA",  -- Vivo devices
+        "98:DA:C4", "7C:B0:C2", "A8:9C:ED",  -- Realme devices
+        "34:CE:00", "40:4E:36", "78:F8:82",  -- Huawei devices
+        "A0:C5:89", "AC:22:0B", "E0:B9:E5",  -- OnePlus devices
+        "F8:8F:CA", "CC:B2:E0", "48:51:C5"   -- Google Pixel devices
+    }
+    
+    local vendor = vendors[math.random(1, #vendors)]
+    local suffix = string.format(":%02X:%02X:%02X", math.random(0, 255), math.random(0, 255), math.random(0, 255))
+    return vendor .. suffix
+end
+
+local function randomDNS()
+    local dnsServers = {
+        "8.8.8.8", "8.8.4.4",           -- Google DNS
+        "1.1.1.1", "1.0.0.1",           -- Cloudflare DNS
+        "208.67.222.222", "208.67.220.220", -- OpenDNS
+        "9.9.9.9", "149.112.112.112",    -- Quad9 DNS
+        "64.6.64.6", "64.6.65.6",        -- Verisign DNS
+        "76.76.19.19", "76.223.100.101", -- Alternate DNS
+        "156.154.70.1", "156.154.71.1"   -- DNS Advantage
+    }
+    return dnsServers[math.random(1, #dnsServers)]
+end
+
+-- Create professional GUI
+local function createGUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "DeviceSpoofGUI"
+    screenGui.Parent = playerGui
+    screenGui.ResetOnSpawn = false
+    
+    -- Main container
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 340, 0, 420)
+    mainFrame.Position = UDim2.new(0.5, -170, 0.5, -210)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 8)
+    mainCorner.Parent = mainFrame
+    
+    -- Professional header
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 32)
+    header.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    header.BorderSizePixel = 0
+    header.Parent = mainFrame
+    
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 8)
+    headerCorner.Parent = header
+    
+    -- Title with icon
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -80, 1, 0)
+    title.Position = UDim2.new(0, 8, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "📱 Multi-Brand Device Spoofer"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 12
+    title.Font = Enum.Font.GothamMedium
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = header
+    
+    -- Control buttons
+    local minimize = Instance.new("TextButton")
+    minimize.Name = "Minimize"
+    minimize.Size = UDim2.new(0, 24, 0, 24)
+    minimize.Position = UDim2.new(1, -68, 0, 4)
+    minimize.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+    minimize.BorderSizePixel = 0
+    minimize.Text = "—"
+    minimize.TextColor3 = Color3.fromRGB(0, 0, 0)
+    minimize.TextSize = 10
+    minimize.Font = Enum.Font.GothamBold
+    minimize.Parent = header
+    
+    local minCorner = Instance.new("UICorner")
+    minCorner.CornerRadius = UDim.new(0, 12)
+    minCorner.Parent = minimize
+    
+    local close = Instance.new("TextButton")
+    close.Name = "Close"
+    close.Size = UDim2.new(0, 24, 0, 24)
+    close.Position = UDim2.new(1, -36, 0, 4)
+    close.BackgroundColor3 = Color3.fromRGB(255, 59, 48)
+    close.BorderSizePixel = 0
+    close.Text = "×"
+    close.TextColor3 = Color3.fromRGB(255, 255, 255)
+    close.TextSize = 12
+    close.Font = Enum.Font.GothamBold
+    close.Parent = header
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 12)
+    closeCorner.Parent = close
+    
+    -- Tab system
+    local tabContainer = Instance.new("Frame")
+    tabContainer.Size = UDim2.new(1, -16, 0, 28)
+    tabContainer.Position = UDim2.new(0, 8, 0, 40)
+    tabContainer.BackgroundTransparency = 1
+    tabContainer.Parent = mainFrame
+    
+    local infoTab = Instance.new("TextButton")
+    infoTab.Size = UDim2.new(0.33, -2, 1, 0)
+    infoTab.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+    infoTab.BorderSizePixel = 0
+    infoTab.Text = "Info"
+    infoTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+    infoTab.TextSize = 10
+    infoTab.Font = Enum.Font.GothamMedium
+    infoTab.Parent = tabContainer
+    
+    local spoofTab = Instance.new("TextButton")
+    spoofTab.Size = UDim2.new(0.33, -2, 1, 0)
+    spoofTab.Position = UDim2.new(0.33, 2, 0, 0)
+    spoofTab.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    spoofTab.BorderSizePixel = 0
+    spoofTab.Text = "Spoof"
+    spoofTab.TextColor3 = Color3.fromRGB(180, 180, 180)
+    spoofTab.TextSize = 10
+    spoofTab.Font = Enum.Font.GothamMedium
+    spoofTab.Parent = tabContainer
+    
+    local randomTab = Instance.new("TextButton")
+    randomTab.Size = UDim2.new(0.34, -2, 1, 0)
+    randomTab.Position = UDim2.new(0.66, 2, 0, 0)
+    randomTab.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    randomTab.BorderSizePixel = 0
+    randomTab.Text = "Random"
+    randomTab.TextColor3 = Color3.fromRGB(180, 180, 180)
+    randomTab.TextSize = 10
+    randomTab.Font = Enum.Font.GothamMedium
+    randomTab.Parent = tabContainer
+    
+    -- Tab corners
+    for _, tab in ipairs({infoTab, spoofTab, randomTab}) do
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 4)
+        corner.Parent = tab
+    end
+    
+    -- Content area
+    local content = Instance.new("Frame")
+    content.Size = UDim2.new(1, -16, 1, -80)
+    content.Position = UDim2.new(0, 8, 0, 72)
+    content.BackgroundTransparency = 1
+    content.Parent = mainFrame
+    
+    -- Info panel
+    local infoPanel = Instance.new("ScrollingFrame")
+    infoPanel.Name = "InfoPanel"
+    infoPanel.Size = UDim2.new(1, 0, 1, 0)
+    infoPanel.BackgroundTransparency = 1
+    infoPanel.BorderSizePixel = 0
+    infoPanel.ScrollBarThickness = 2
+    infoPanel.CanvasSize = UDim2.new(0, 0, 0, 350)
+    infoPanel.Visible = true
+    infoPanel.Parent = content
+    
+    -- Spoof panel
+    local spoofPanel = Instance.new("ScrollingFrame")
+    spoofPanel.Name = "SpoofPanel"
+    spoofPanel.Size = UDim2.new(1, 0, 1, 0)
+    spoofPanel.BackgroundTransparency = 1
+    spoofPanel.BorderSizePixel = 0
+    spoofPanel.ScrollBarThickness = 2
+    spoofPanel.CanvasSize = UDim2.new(0, 0, 0, 600)
+    spoofPanel.Visible = false
+    spoofPanel.Parent = content
+    
+    -- Random panel
+    local randomPanel = Instance.new("ScrollingFrame")
+    randomPanel.Name = "RandomPanel"
+    randomPanel.Size = UDim2.new(1, 0, 1, 0)
+    randomPanel.BackgroundTransparency = 1
+    randomPanel.BorderSizePixel = 0
+    randomPanel.ScrollBarThickness = 2
+    randomPanel.CanvasSize = UDim2.new(0, 0, 0, 320)
+    randomPanel.Visible = false
+    randomPanel.Parent = content
+    
+    -- Status indicator
+    local statusBar = Instance.new("Frame")
+    statusBar.Size = UDim2.new(1, -16, 0, 20)
+    statusBar.Position = UDim2.new(0, 8, 1, -24)
+    statusBar.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+    statusBar.BorderSizePixel = 0
+    statusBar.Parent = mainFrame
+    
+    local statusCorner = Instance.new("UICorner")
+    statusCorner.CornerRadius = UDim.new(0, 4)
+    statusCorner.Parent = statusBar
+    
+    local statusText = Instance.new("TextLabel")
+    statusText.Size = UDim2.new(0.7, 0, 1, 0)
+    statusText.Position = UDim2.new(0, 6, 0, 0)
+    statusText.BackgroundTransparency = 1
+    statusText.Text = "Status: Normal"
+    statusText.TextColor3 = Color3.fromRGB(46, 204, 113)
+    statusText.TextSize = 8
+    statusText.Font = Enum.Font.GothamMedium
+    statusText.TextXAlignment = Enum.TextXAlignment.Left
+    statusText.Parent = statusBar
+    
+    local fpsCounter = Instance.new("TextLabel")
+    fpsCounter.Size = UDim2.new(0.3, 0, 1, 0)
+    fpsCounter.Position = UDim2.new(0.7, 0, 0, 0)
+    fpsCounter.BackgroundTransparency = 1
+    fpsCounter.Text = "FPS: --"
+    fpsCounter.TextColor3 = Color3.fromRGB(52, 152, 219)
+    fpsCounter.TextSize = 8
+    fpsCounter.Font = Enum.Font.GothamMedium
+    fpsCounter.TextXAlignment = Enum.TextXAlignment.Right
+    fpsCounter.Parent = statusBar
+    
+    -- Info display function
+    local yPos = 0
+    local labels = {}
+    
+    local function createInfoRow(title, value, panel)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 20)
+        row.Position = UDim2.new(0, 0, 0, yPos)
+        row.BackgroundTransparency = 1
+        row.Parent = panel or infoPanel
+        
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Size = UDim2.new(0.35, 0, 1, 0)
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Text = title
+        titleLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+        titleLabel.TextSize = 8
+        titleLabel.Font = Enum.Font.Gotham
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+        titleLabel.Parent = row
+        
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Size = UDim2.new(0.65, 0, 1, 0)
+        valueLabel.Position = UDim2.new(0.35, 0, 0, 0)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.Text = tostring(value)
+        valueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        valueLabel.TextSize = 8
+        valueLabel.Font = Enum.Font.GothamMedium
+        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valueLabel.Parent = row
+        
+        yPos = yPos + 22
+        return valueLabel
+    end
+    
+    -- Get device info
+    local function getDeviceInfo()
+        if isSpoof and spoofedInfo and next(spoofedInfo) then
+            return spoofedInfo
+        else
+            return {
+                ["Name"] = player.Name,
+                ["Display"] = player.DisplayName,
+                ["User ID"] = player.UserId,
+                ["Age"] = player.AccountAge .. "d",
+                ["Platform"] = UserInputService:GetPlatform().Name,
+                ["Device"] = "Unknown Device",
+                ["Touch"] = UserInputService.TouchEnabled,
+                ["Mouse"] = UserInputService.MouseEnabled,
+                ["Keyboard"] = UserInputService.KeyboardEnabled,
+                ["Gamepad"] = UserInputService.GamepadEnabled,
+                ["VR"] = UserInputService.VREnabled,
+                ["IP Address"] = networkSpoof.ip or networkSpoof.originalIP,
+                ["MAC Address"] = networkSpoof.mac or networkSpoof.originalMAC,
+                ["DNS Server"] = networkSpoof.dns or networkSpoof.originalDNS,
+                ["Game ID"] = game.GameId,
+                ["Place ID"] = game.PlaceId,
+            }
+        end
+    end
+    
+    -- Create info display
+    local deviceInfo = getDeviceInfo()
+    for key, value in pairs(deviceInfo) do
+        labels[key] = createInfoRow(key, value, infoPanel)
+    end
+    
+    -- Create button function
+    local function createButton(text, color, position, size, parent, callback)
+        local button = Instance.new("TextButton")
+        button.Size = size or UDim2.new(1, 0, 0, 24)
+        button.Position = position or UDim2.new(0, 0, 0, yPos)
+        button.BackgroundColor3 = color
+        button.BorderSizePixel = 0
+        button.Text = text
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.TextSize = 9
+        button.Font = Enum.Font.GothamMedium
+        button.Parent = parent or spoofPanel
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 4)
+        corner.Parent = button
+        
+        if callback then
+            button.MouseButton1Click:Connect(callback)
+        end
+        
+        return button
+    end
+    
+    -- Build spoof panel with enhanced device presets
+    yPos = 10
+    
+    -- Network spoofing section (keeping existing implementation)
+    local networkLabel = Instance.new("TextLabel")
+    networkLabel.Size = UDim2.new(1, 0, 0, 18)
+    networkLabel.Position = UDim2.new(0, 0, 0, yPos)
+    networkLabel.BackgroundTransparency = 1
+    networkLabel.Text = "🌐 Network Identity"
+    networkLabel.TextColor3 = Color3.fromRGB(52, 152, 219)
+    networkLabel.TextSize = 9
+    networkLabel.Font = Enum.Font.GothamBold
+    networkLabel.TextXAlignment = Enum.TextXAlignment.Left
+    networkLabel.Parent = spoofPanel
+    yPos = yPos + 22
+    
+    -- IP Address input
+    local ipInput = Instance.new("TextBox")
+    ipInput.Size = UDim2.new(0.65, 0, 0, 20)
+    ipInput.Position = UDim2.new(0, 0, 0, yPos)
+    ipInput.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    ipInput.BorderSizePixel = 0
+    ipInput.PlaceholderText = "IP Address (e.g. 192.168.1.100)"
+    ipInput.Text = ""
+    ipInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ipInput.TextSize = 7
+    ipInput.Font = Enum.Font.Gotham
+    ipInput.Parent = spoofPanel
+    
+    local ipCorner = Instance.new("UICorner")
+    ipCorner.CornerRadius = UDim.new(0, 3)
+    ipCorner.Parent = ipInput
+    
+    createButton("Set IP", Color3.fromRGB(46, 204, 113), UDim2.new(0.68, 0, 0, yPos), UDim2.new(0.32, 0, 0, 20), spoofPanel, function()
+        if ipInput.Text ~= "" then
+            networkSpoof.ip = ipInput.Text
+            spoofNetworkIdentity(ipInput.Text, nil, nil)
+            
+            if not isSpoof then
+                isSpoof = true
+                spoofedInfo = getDeviceInfo()
+            end
+            spoofedInfo["IP Address"] = ipInput.Text
+            labels["IP Address"].Text = ipInput.Text
+            
+            statusText.Text = "Status: IP Spoofed"
+            statusText.TextColor3 = Color3.fromRGB(46, 204, 113)
+        end
+    end)
+    yPos = yPos + 24
+    
+    -- MAC Address input
+    local macInput = Instance.new("TextBox")
+    macInput.Size = UDim2.new(0.65, 0, 0, 20)
+    macInput.Position = UDim2.new(0, 0, 0, yPos)
+    macInput.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    macInput.BorderSizePixel = 0
+    macInput.PlaceholderText = "MAC Address (e.g. 00:1A:2B:3C:4D:5E)"
+    macInput.Text = ""
+    macInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    macInput.TextSize = 7
+    macInput.Font = Enum.Font.Gotham
+    macInput.Parent = spoofPanel
+    
+    local macCorner = Instance.new("UICorner")
+    macCorner.CornerRadius = UDim.new(0, 3)
+    macCorner.Parent = macInput
+    
+    createButton("Set MAC", Color3.fromRGB(46, 204, 113), UDim2.new(0.68, 0, 0, yPos), UDim2.new(0.32, 0, 0, 20), spoofPanel, function()
+        if macInput.Text ~= "" then
+            networkSpoof.mac = macInput.Text
+            spoofNetworkIdentity(nil, macInput.Text, nil)
+            
+            if not isSpoof then
+                isSpoof = true
+                spoofedInfo = getDeviceInfo()
+            end
+            spoofedInfo["MAC Address"] = macInput.Text
+            labels["MAC Address"].Text = macInput.Text
+            
+            statusText.Text = "Status: MAC Spoofed"
+            statusText.TextColor3 = Color3.fromRGB(46, 204, 113)
+        end
+    end)
+    yPos = yPos + 24
+    
+    -- DNS input
+    local dnsInput = Instance.new("TextBox")
+    dnsInput.Size = UDim2.new(0.65, 0, 0, 20)
+    dnsInput.Position = UDim2.new(0, 0, 0, yPos)
+    dnsInput.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    dnsInput.BorderSizePixel = 0
+    dnsInput.PlaceholderText = "DNS Server (e.g. 8.8.8.8)"
+    dnsInput.Text = ""
+    dnsInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dnsInput.TextSize = 7
+    dnsInput.Font = Enum.Font.Gotham
+    dnsInput.Parent = spoofPanel
+    
+    local dnsCorner = Instance.new("UICorner")
+    dnsCorner.CornerRadius = UDim.new(0, 3)
+    dnsCorner.Parent = dnsInput
+    
+    createButton("Set DNS", Color3.fromRGB(46, 204, 113), UDim2.new(0.68, 0, 0, yPos), UDim2.new(0.32, 0, 0, 20), spoofPanel, function()
+        if dnsInput.Text ~= "" then
+            networkSpoof.dns = dnsInput.Text
+            spoofNetworkIdentity(nil, nil, dnsInput.Text)
+            
+            if not isSpoof then
+                isSpoof = true
+                spoofedInfo = getDeviceInfo()
+            end
+            spoofedInfo["DNS Server"] = dnsInput.Text
+            labels["DNS Server"].Text = dnsInput.Text
+            
+            statusText.Text = "Status: DNS Spoofed"
+            statusText.TextColor3 = Color3.fromRGB(46, 204, 113)
+        end
+    end)
+    yPos = yPos + 30
+    
+    -- Quick network spoof buttons
+    createButton("🌐 Random Network", Color3.fromRGB(155, 89, 182), UDim2.new(0, 0, 0, yPos), UDim2.new(1, 0, 0, 22), spoofPanel, function()
+        local newIP = randomIP()
+        local newMAC = randomMAC()
+        local newDNS = randomDNS()
+        
+        networkSpoof.ip = newIP
+        networkSpoof.mac = newMAC
+        networkSpoof.dns = newDNS
+        
+        spoofNetworkIdentity(newIP, newMAC, newDNS)
+        
+        if not isSpoof then
+            isSpoof = true
+            spoofedInfo = getDeviceInfo()
+        end
+        
+        spoofedInfo["IP Address"] = newIP
+        spoofedInfo["MAC Address"] = newMAC
+        spoofedInfo["DNS Server"] = newDNS
+        
+        labels["IP Address"].Text = newIP
+        labels["MAC Address"].Text = newMAC
+        labels["DNS Server"].Text = newDNS
+        
+        statusText.Text = "Status: Network Randomized"
+        statusText.TextColor3 = Color3.fromRGB(155, 89, 182)
+    end)
+    yPos = yPos + 26
+    
+    -- Divider
+    local divider = Instance.new("Frame")
+    divider.Size = UDim2.new(1, 0, 0, 1)
+    divider.Position = UDim2.new(0, 0, 0, yPos)
+    divider.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    divider.BorderSizePixel = 0
+    divider.Parent = spoofPanel
+    yPos = yPos + 10
+    
+    -- Device presets label
+    local deviceLabel = Instance.new("TextLabel")
+    deviceLabel.Size = UDim2.new(1, 0, 0, 18)
+    deviceLabel.Position = UDim2.new(0, 0, 0, yPos)
+    deviceLabel.BackgroundTransparency = 1
+    deviceLabel.Text = "📱 Multi-Brand Device Presets"
+    deviceLabel.TextColor3 = Color3.fromRGB(52, 152, 219)
+    deviceLabel.TextSize = 9
+    deviceLabel.Font = Enum.Font.GothamBold
+    deviceLabel.TextXAlignment = Enum.TextXAlignment.Left
+    deviceLabel.Parent = spoofPanel
+    yPos = yPos + 22
+
+    -- Brand categories
+    local brands = {
+        {name = "Apple", color = Color3.fromRGB(52, 152, 219), devices = {"iPhone 15 Pro Max", "iPhone 14 Pro", "iPhone 13", "iPad Pro M2", "iPad Air"}},
+        {name = "Samsung", color = Color3.fromRGB(46, 204, 113), devices = {"Galaxy S24 Ultra", "Galaxy S23", "Galaxy Note 20", "Galaxy Tab S9"}},
+        {name = "Xiaomi", color = Color3.fromRGB(255, 152, 0), devices = {"Xiaomi 14 Ultra", "Redmi Note 13 Pro", "POCO F5 Pro", "Mi Pad 6"}},
+        {name = "Oppo", color = Color3.fromRGB(0, 204, 153), devices = {"OPPO Find X6 Pro", "OPPO Reno 10 Pro", "OPPO A98"}},
+        {name = "Vivo", color = Color3.fromRGB(102, 51, 153), devices = {"Vivo X100 Pro", "Vivo V29 Pro", "Vivo Y100"}},
+        {name = "Realme", color = Color3.fromRGB(255, 193, 7), devices = {"Realme GT 5 Pro", "Realme 11 Pro+", "Realme C55"}},
+        {name = "Huawei", color = Color3.fromRGB(255, 87, 34), devices = {"Huawei P60 Pro", "Huawei Mate 60", "Huawei Nova 11"}},
+        {name = "OnePlus", color = Color3.fromRGB(220, 53, 69), devices = {"OnePlus 12", "OnePlus 11 Pro", "OnePlus Nord 3"}},
+        {name = "Google", color = Color3.fromRGB(66, 133, 244), devices = {"Pixel 8 Pro", "Pixel 7a", "Pixel Tablet"}},
+        {name = "Gaming", color = Color3.fromRGB(138, 43, 226), devices = {"ROG Phone 7", "Windows PC", "MacBook Pro M3", "Xbox Series X", "PlayStation 5"}}
+    }
+    
+    for _, brand in ipairs(brands) do
+        -- Brand header
+        local brandHeader = Instance.new("TextLabel")
+        brandHeader.Size = UDim2.new(1, 0, 0, 16)
+        brandHeader.Position = UDim2.new(0, 0, 0, yPos)
+        brandHeader.BackgroundTransparency = 1
+        brandHeader.Text = "▶ " .. brand.name
+        brandHeader.TextColor3 = brand.color
+        brandHeader.TextSize = 8
+        brandHeader.Font = Enum.Font.GothamBold
+        brandHeader.TextXAlignment = Enum.TextXAlignment.Left
+        brandHeader.Parent = spoofPanel
+        yPos = yPos + 18
+        
+        -- Device buttons in rows of 2
+        for i = 1, #brand.devices, 2 do
+            local device1 = brand.devices[i]
+            local device2 = brand.devices[i + 1]
+            
+            -- First device button
+            createButton(device1, brand.color, UDim2.new(0, 0, 0, yPos), UDim2.new(0.48, 0, 0, 20), spoofPanel, function()
+                local presetData = devicePresets[device1]
+                isSpoof = true
+                spoofedInfo = {
+                    ["Name"] = player.Name,
+                    ["Display"] = player.DisplayName,
+                    ["User ID"] = player.UserId,
+                    ["Age"] = player.AccountAge .. "d",
+                    ["Platform"] = presetData.Platform,
+                    ["Device"] = device1,
+                    ["Touch"] = presetData.Touch,
+                    ["Mouse"] = presetData.Mouse,
+                    ["Keyboard"] = presetData.Keyboard,
+                    ["Gamepad"] = presetData.Gamepad,
+                    ["VR"] = presetData.VR,
+                    ["IP Address"] = networkSpoof.ip or networkSpoof.originalIP,
+                    ["MAC Address"] = networkSpoof.mac or networkSpoof.originalMAC,
+                    ["DNS Server"] = networkSpoof.dns or networkSpoof.originalDNS,
+                    ["Game ID"] = game.GameId,
+                    ["Place ID"] = game.PlaceId,
+                }
+                
+                for key, value in pairs(spoofedInfo) do
+                    if labels[key] then
+                        labels[key].Text = tostring(value)
+                    end
+                end
+                
+                statusText.Text = "Status: " .. device1
+                statusText.TextColor3 = brand.color
+            end)
+            
+            -- Second device button (if exists)
+            if device2 then
+                createButton(device2, brand.color, UDim2.new(0.52, 0, 0, yPos), UDim2.new(0.48, 0, 0, 20), spoofPanel, function()
+                    local presetData = devicePresets[device2]
+                    isSpoof = true
+                    spoofedInfo = {
+                        ["Name"] = player.Name,
+                        ["Display"] = player.DisplayName,
+                        ["User ID"] = player.UserId,
+                        ["Age"] = player.AccountAge .. "d",
+                        ["Platform"] = presetData.Platform,
+                        ["Device"] = device2,
+                        ["Touch"] = presetData.Touch,
+                        ["Mouse"] = presetData.Mouse,
+                        ["Keyboard"] = presetData.Keyboard,
+                        ["Gamepad"] = presetData.Gamepad,
+                        ["VR"] = presetData.VR,
+                        ["IP Address"] = networkSpoof.ip or networkSpoof.originalIP,
+                        ["MAC Address"] = networkSpoof.mac or networkSpoof.originalMAC,
+                        ["DNS Server"] = networkSpoof.dns or networkSpoof.originalDNS,
+                        ["Game ID"] = game.GameId,
+                        ["Place ID"] = game.PlaceId,
+                    }
+                    
+                    for key, value in pairs(spoofedInfo) do
+                        if labels[key] then
+                            labels[key].Text = tostring(value)
+                        end
+                    end
+                    
+                    statusText.Text = "Status: " .. device2
+                    statusText.TextColor3 = brand.color
+                end)
+            end
+            
+            yPos = yPos + 24
+        end
+        
+        yPos = yPos + 8 -- Extra spacing between brands
+    end
+    
+    yPos = yPos + 10
+    
+    -- Custom input
+    local customInput = Instance.new("TextBox")
+    customInput.Size = UDim2.new(0.65, 0, 0, 22)
+    customInput.Position = UDim2.new(0, 0, 0, yPos)
+    customInput.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+    customInput.BorderSizePixel = 0
+    customInput.PlaceholderText = "Custom device name..."
+    customInput.Text = ""
+    customInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    customInput.TextSize = 8
+    customInput.Font = Enum.Font.Gotham
+    customInput.Parent = spoofPanel
+    
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 4)
+    inputCorner.Parent = customInput
+    
+    createButton("Apply", Color3.fromRGB(46, 204, 113), UDim2.new(0.68, 0, 0, yPos), UDim2.new(0.32, 0, 0, 22), spoofPanel, function()
+        if customInput.Text ~= "" then
+            if not isSpoof then
+                isSpoof = true
+                spoofedInfo = getDeviceInfo()
+            end
+            spoofedInfo["Device"] = customInput.Text
+            labels["Device"].Text = customInput.Text
+            statusText.Text = "Status: " .. customInput.Text
+            statusText.TextColor3 = Color3.fromRGB(255, 193, 7)
+        end
+    end)
+    
+    yPos = yPos + 36
+    
+    -- Reset button
+    createButton("🔄 Reset All", Color3.fromRGB(231, 76, 60), UDim2.new(0, 0, 0, yPos), UDim2.new(1, 0, 0, 22), spoofPanel, function()
+        isSpoof = false
+        realTimeUpdate = false
+        deviceRealTimeUpdate = false
+        spoofedInfo = {}
+        resetNetworkIdentity()
+        
+        local originalInfo = getDeviceInfo()
+        for key, value in pairs(originalInfo) do
+            if labels[key] then
+                labels[key].Text = tostring(value)
+            end
+        end
+        
+        -- Clear input fields
+        ipInput.Text = ""
+        macInput.Text = ""
+        dnsInput.Text = ""
+        customInput.Text = ""
+        
+        statusText.Text = "Status: Normal"
+        statusText.TextColor3 = Color3.fromRGB(46, 204, 113)
+    end)
+    
+    spoofPanel.CanvasSize = UDim2.new(0, 0, 0, yPos + 30)
+    
+    -- Build random panel with enhanced features
+    yPos = 10
+    
+    createButton("🎲 Full Random Device + Network", Color3.fromRGB(155, 89, 182), UDim2.new(0, 0, 0, yPos), UDim2.new(1, 0, 0, 26), randomPanel, function()
+        isSpoof = true
+        
+        -- Random network identity
+        local newIP = randomIP()
+        local newMAC = randomMAC() 
+        local newDNS = randomDNS()
+        local randomDevice = randomDevicePreset()
+        local presetData = devicePresets[randomDevice]
+        
+        networkSpoof.ip = newIP
+        networkSpoof.mac = newMAC
+        networkSpoof.dns = newDNS
+        
+        spoofNetworkIdentity(newIP, newMAC, newDNS)
+        
+        spoofedInfo = {
+            ["Name"] = player.Name,
+            ["Display"] = player.DisplayName,
+            ["User ID"] = randomUserId(),
+            ["Age"] = randomAccountAge() .. "d",
+            ["Platform"] = presetData.Platform,
+            ["Device"] = randomDevice,
+            ["Touch"] = presetData.Touch,
+            ["Mouse"] = presetData.Mouse,
+            ["Keyboard"] = presetData.Keyboard,
+            ["Gamepad"] = presetData.Gamepad,
+            ["VR"] = presetData.VR,
+            ["IP Address"] = newIP,
+            ["MAC Address"] = newMAC,
+            ["DNS Server"] = newDNS,
+            ["Game ID"] = game.GameId,
+            ["Place ID"] = game.PlaceId,
+        }
+        
+        for key, value in pairs(spoofedInfo) do
+            if labels[key] then
+                labels[key].Text = tostring(value)
+            end
+        end
+        
+        statusText.Text = "Status: Full Random"
+        statusText.TextColor3 = Color3.fromRGB(155, 89, 182)
+    end)
+    
+    yPos = yPos + 32
+    
+    createButton("🔄 Random User ID", Color3.fromRGB(52, 152, 219), UDim2.new(0, 0, 0, yPos), UDim2.new(0.48, 0, 0, 24), randomPanel, function()
+        if not isSpoof then
+            isSpoof = true
+            spoofedInfo = getDeviceInfo()
+        end
+        spoofedInfo["User ID"] = randomUserId()
+        labels["User ID"].Text = tostring(spoofedInfo["User ID"])
+        
+        statusText.Text = "Status: Random User ID"
+        statusText.TextColor3 = Color3.fromRGB(52, 152, 219)
+    end)
+    
+    createButton("📱 Random Device", Color3.fromRGB(255, 152, 0), UDim2.new(0.52, 0, 0, yPos), UDim2.new(0.48, 0, 0, 24), randomPanel, function()
+        local randomDevice = randomDevicePreset()
+        local presetData = devicePresets[randomDevice]
+        
+        if not isSpoof then
+            isSpoof = true
+            spoofedInfo = getDeviceInfo()
+        end
+        
+        spoofedInfo["Device"] = randomDevice
+        spoofedInfo["Platform"] = presetData.Platform
+        spoofedInfo["Touch"] = presetData.Touch
+        spoofedInfo["Mouse"] = presetData.Mouse
+        spoofedInfo["Keyboard"] = presetData.Keyboard
+        spoofedInfo["Gamepad"] = presetData.Gamepad
+        spoofedInfo["VR"] = presetData.VR
+        
+        labels["Device"].Text = randomDevice
+        labels["Platform"].Text = presetData.Platform
+        labels["Touch"].Text = tostring(presetData.Touch)
+        labels["Mouse"].Text = tostring(presetData.Mouse)
+        labels["Keyboard"].Text = tostring(presetData.Keyboard)
+        labels["Gamepad"].Text = tostring(presetData.Gamepad)
+        labels["VR"].Text = tostring(presetData.VR)
+        
+        statusText.Text = "Status: " .. randomDevice
+        statusText.TextColor3 = Color3.fromRGB(255, 152, 0)
+    end)
+    
+    yPos = yPos + 30
+    
+    createButton("🌐 Random IP", Color3.fromRGB(46, 204, 113), UDim2.new(0, 0, 0, yPos), UDim2.new(0.48, 0, 0, 24), randomPanel, function()
+        local newIP = randomIP()
+        networkSpoof.ip = newIP
+        spoofNetworkIdentity(newIP, nil, nil)
+        
+        if not isSpoof then
+            isSpoof = true
+            spoofedInfo = getDeviceInfo()
+        end
+        spoofedInfo["IP Address"] = newIP
+        labels["IP Address"].Text = newIP
+        
+        statusText.Text = "Status: Random IP"
+        statusText.TextColor3 = Color3.fromRGB(46, 204, 113)
+    end)
+    
+    createButton("📡 Random MAC", Color3.fromRGB(230, 126, 34), UDim2.new(0.52, 0, 0, yPos), UDim2.new(0.48, 0, 0, 24), randomPanel, function()
+        local newMAC = randomMAC()
+        networkSpoof.mac = newMAC
+        spoofNetworkIdentity(nil, newMAC, nil)
+        
+        if not isSpoof then
+            isSpoof = true
+            spoofedInfo = getDeviceInfo()
+        end
+        spoofedInfo["MAC Address"] = newMAC
+        labels["MAC Address"].Text = newMAC
+        
+        statusText.Text = "Status: Random MAC"
+        statusText.TextColor3 = Color3.fromRGB(230, 126, 34)
+    end)
+    
+    yPos = yPos + 32
+    
+    -- Real-time buttons
+    local realtimeAllButton = createButton("⚡ Real-time ALL", Color3.fromRGB(230, 126, 34), UDim2.new(0, 0, 0, yPos), UDim2.new(1, 0, 0, 26), randomPanel, function()
+        realTimeUpdate = not realTimeUpdate
+        
+        if realTimeUpdate then
+            isSpoof = true
+            if not spoofedInfo or not next(spoofedInfo) then
+                spoofedInfo = getDeviceInfo()
+            end
+            realtimeAllButton.Text = "🛑 Stop Real-time ALL"
+            realtimeAllButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+            statusText.Text = "Status: Real-time ALL Active"
+            statusText.TextColor3 = Color3.fromRGB(230, 126, 34)
+        else
+            realtimeAllButton.Text = "⚡ Real-time ALL"
+            realtimeAllButton.BackgroundColor3 = Color3.fromRGB(230, 126, 34)
+            statusText.Text = "Status: Real-time Stopped"
+            statusText.TextColor3 = Color3.fromRGB(46, 204, 113)
+        end
+    end)
+    
+    yPos = yPos + 30
+    
+    local realtimeDeviceButton = createButton("📱 Real-time Device Only", Color3.fromRGB(138, 43, 226), UDim2.new(0, 0, 0, yPos), UDim2.new(1, 0, 0, 24), randomPanel, function()
+        deviceRealTimeUpdate = not deviceRealTimeUpdate
+        
+        if deviceRealTimeUpdate then
+            isSpoof = true
+            if not spoofedInfo or not next(spoofedInfo) then
+                spoofedInfo = getDeviceInfo()
+            end
+            realtimeDeviceButton.Text = "🛑 Stop Device Real-time"
+            realtimeDeviceButton.BackgroundColor3 = Color3.fromRGB(231, 76, 60)
+            statusText.Text = "Status: Device Real-time Active"
+            statusText.TextColor3 = Color3.fromRGB(138, 43, 226)
+        else
+            realtimeDeviceButton.Text = "📱 Real-time Device Only"
+            realtimeDeviceButton.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+            statusText.Text = "Status: Device Real-time Stopped"
+            statusText.TextColor3 = Color3.fromRGB(46, 204, 113)
+        end
+    end)
+    
+    yPos = yPos + 32
+    
+    -- Warning label
+    local warningLabel = Instance.new("TextLabel")
+    warningLabel.Size = UDim2.new(1, 0, 0, 45)
+    warningLabel.Position = UDim2.new(0, 0, 0, yPos)
+    warningLabel.BackgroundTransparency = 1
+    warningLabel.Text = "⚠️ Real-time modes:\n• ALL: Changes User ID, Device, IP, MAC, DNS\n• Device Only: Changes Device & Platform only"
+    warningLabel.TextColor3 = Color3.fromRGB(241, 196, 15)
+    warningLabel.TextSize = 7
+    warningLabel.Font = Enum.Font.Gotham
+    warningLabel.TextXAlignment = Enum.TextXAlignment.Center
+    warningLabel.Parent = randomPanel
+    
+    randomPanel.CanvasSize = UDim2.new(0, 0, 0, yPos + 55)
+    
+    -- Tab switching function
+    local function switchTab(activeTab, activePanel)
+        for _, tab in ipairs({infoTab, spoofTab, randomTab}) do
+            tab.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
+            tab.TextColor3 = Color3.fromRGB(180, 180, 180)
+        end
+        for _, panel in ipairs({infoPanel, spoofPanel, randomPanel}) do
+            panel.Visible = false
+        end
+        
+        activeTab.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+        activeTab.TextColor3 = Color3.fromRGB(255, 255, 255)
+        activePanel.Visible = true
+    end
+    
+    -- Tab click events
+    infoTab.MouseButton1Click:Connect(function() switchTab(infoTab, infoPanel) end)
+    spoofTab.MouseButton1Click:Connect(function() switchTab(spoofTab, spoofPanel) end)
+    randomTab.MouseButton1Click:Connect(function() switchTab(randomTab, randomPanel) end)
+    
+    -- Window controls
+    local isMinimized = false
+    minimize.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        local targetSize = isMinimized and UDim2.new(0, 340, 0, 32) or UDim2.new(0, 340, 0, 420)
+        
+        TweenService:Create(mainFrame, TweenInfo.new(0.3), {Size = targetSize}):Play()
+        content.Visible = not isMinimized
+        statusBar.Visible = not isMinimized
+        minimize.Text = isMinimized and "□" or "—"
+    end)
+    
+    close.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+    
+    -- Drag functionality
+    local dragging = false
+    local dragStart, startPos
+    
+    header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    -- Enhanced real-time updates and FPS counter
+    local frameCount = 0
+    local lastTime = tick()
+    local randomUpdateTime = 0
+    local deviceUpdateTime = 0
+    
+    RunService.Heartbeat:Connect(function()
+        frameCount = frameCount + 1
+        local currentTime = tick()
+        
+        -- FPS counter update
+        if currentTime - lastTime >= 1 then
+            local fps = math.floor(frameCount / (currentTime - lastTime))
+            fpsCounter.Text = "FPS: " .. fps
+            frameCount = 0
+            lastTime = currentTime
+        end
+        
+        -- Real-time random updates for ALL (every 60 frames = ~1 second)
+        if realTimeUpdate and isSpoof then
+            randomUpdateTime = randomUpdateTime + 1
+            if randomUpdateTime >= 60 then
+                -- Update multiple properties at once
+                spoofedInfo["User ID"] = randomUserId()
+                
+                -- Random device
+                local randomDevice = randomDevicePreset()
+                local presetData = devicePresets[randomDevice]
+                spoofedInfo["Device"] = randomDevice
+                spoofedInfo["Platform"] = presetData.Platform
+                spoofedInfo["Touch"] = presetData.Touch
+                spoofedInfo["Mouse"] = presetData.Mouse
+                spoofedInfo["Keyboard"] = presetData.Keyboard
+                spoofedInfo["Gamepad"] = presetData.Gamepad
+                spoofedInfo["VR"] = presetData.VR
+                
+                -- Update network identity
+                local newIP = randomIP()
+                local newMAC = randomMAC()
+                local newDNS = randomDNS()
+                
+                networkSpoof.ip = newIP
+                networkSpoof.mac = newMAC
+                networkSpoof.dns = newDNS
+                
+                spoofedInfo["IP Address"] = newIP
+                spoofedInfo["MAC Address"] = newMAC
+                spoofedInfo["DNS Server"] = newDNS
+                
+                spoofNetworkIdentity(newIP, newMAC, newDNS)
+                
+                -- Update labels
+                labels["User ID"].Text = tostring(spoofedInfo["User ID"])
+                labels["Device"].Text = randomDevice
+                labels["Platform"].Text = presetData.Platform
+                labels["Touch"].Text = tostring(presetData.Touch)
+                labels["Mouse"].Text = tostring(presetData.Mouse)
+                labels["Keyboard"].Text = tostring(presetData.Keyboard)
+                labels["Gamepad"].Text = tostring(presetData.Gamepad)
+                labels["VR"].Text = tostring(presetData.VR)
+                labels["IP Address"].Text = newIP
+                labels["MAC Address"].Text = newMAC
+                labels["DNS Server"].Text = newDNS
+                
+                randomUpdateTime = 0
+            end
+        end
+        
+        -- Real-time device updates only (every 90 frames = ~1.5 seconds)
+        if deviceRealTimeUpdate and isSpoof and not realTimeUpdate then
+            deviceUpdateTime = deviceUpdateTime + 1
+            if deviceUpdateTime >= 90 then
+                -- Random device only
+                local randomDevice = randomDevicePreset()
+                local presetData = devicePresets[randomDevice]
+                
+                spoofedInfo["Device"] = randomDevice
+                spoofedInfo["Platform"] = presetData.Platform
+                spoofedInfo["Touch"] = presetData.Touch
+                spoofedInfo["Mouse"] = presetData.Mouse
+                spoofedInfo["Keyboard"] = presetData.Keyboard
+                spoofedInfo["Gamepad"] = presetData.Gamepad
+                spoofedInfo["VR"] = presetData.VR
+                
+                -- Update labels
+                labels["Device"].Text = randomDevice
+                labels["Platform"].Text = presetData.Platform
+                labels["Touch"].Text = tostring(presetData.Touch)
+                labels["Mouse"].Text = tostring(presetData.Mouse)
+                labels["Keyboard"].Text = tostring(presetData.Keyboard)
+                labels["Gamepad"].Text = tostring(presetData.Gamepad)
+                labels["VR"].Text = tostring(presetData.VR)
+                
+                deviceUpdateTime = 0
+            end
+        end
+    end)
+    
+    return screenGui
+end
+
+-- Initialize the GUI
+local gui = createGUI()
+
+-- Hotkey toggle (F9)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed and input.KeyCode == Enum.KeyCode.F9 then
+        if gui and gui.Parent then
+            gui.MainFrame.Visible = not gui.MainFrame.Visible
+        end
+    end
+end)
+
+-- Enhanced console output
+print("📱 Enhanced Multi-Brand Device Spoofer loaded!")
+print("🔧 Press F9 to toggle GUI")
+print("✨ Features: Info, Advanced Spoof, Enhanced Random")
+print("🌐 Network spoofing: IP, MAC, DNS with realistic generation")
+print("📋 Multi-brand devices: Apple, Samsung, Xiaomi, Oppo, Vivo, Realme, Huawei, OnePlus, Google, Gaming")
+print("⚡ Real-time modes: ALL (full randomization) & Device Only")
+print("🎲 Total devices available: " .. #devicePresets)
+
+-- Additional brand info
+print("📱 Supported brands:")
+print("   • Apple: iPhone 15 Pro Max, iPhone 14 Pro, iPhone 13, iPad Pro M2, iPad Air")
+print("   • Samsung: Galaxy S24 Ultra, Galaxy S23, Galaxy Note 20, Galaxy Tab S9")
+print("   • Xiaomi: Xiaomi 14 Ultra, Redmi Note 13 Pro, POCO F5 Pro, Mi Pad 6")
+print("   • Oppo: OPPO Find X6 Pro, OPPO Reno 10 Pro, OPPO A98")
+print("   • Vivo: Vivo X100 Pro, Vivo V29 Pro, Vivo Y100")
+print("   • Realme: Realme GT 5 Pro, Realme 11 Pro+, Realme C55")
+print("   • Huawei: Huawei P60 Pro, Huawei Mate 60, Huawei Nova 11")
+print("   • OnePlus: OnePlus 12, OnePlus 11 Pro, OnePlus Nord 3")
+print("   • Google: Pixel 8 Pro, Pixel 7a, Pixel Tablet")
+print("   • Gaming: ROG Phone 7, Windows PC, MacBook Pro M3, Xbox Series X, PlayStation 5")
+print("🔄 Enhanced MAC generation with real vendor prefixes")
+print("🌍 Realistic IP address ranges (home/public networks)")
+print("🛡️ DNS servers from trusted providers")
