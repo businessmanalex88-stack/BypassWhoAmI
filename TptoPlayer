@@ -1,0 +1,553 @@
+-- Simple Player Detector - Click Name to Teleport
+-- Design sama, tapi klik nama = teleport, deteksi jauh, data stabil
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+
+local localPlayer = Players.LocalPlayer
+local gui = nil
+local mainFrame = nil
+local contentFrame = nil
+local headerFrame = nil
+local isMinimized = false
+local updateConnection = nil
+local lastUpdate = 0
+
+-- Cache untuk data yang stabil (anti kedip-kedip)
+local playerDataCache = {}
+
+-- Config sama seperti asli
+local config = {
+    guiSize = UDim2.new(0, 280, 0, 350),
+    minSize = UDim2.new(0, 280, 0, 40),
+    position = UDim2.new(0, 50, 0, 100),
+    updateRate = 2,  -- Update normal
+    playerEntryHeight = 55,
+    maxDetectionRange = math.huge -- Range tak terbatas tapi deteksi simple
+}
+
+-- Warna sama
+local colors = {
+    primary = Color3.fromRGB(15, 20, 25),
+    secondary = Color3.fromRGB(25, 30, 35),
+    accent = Color3.fromRGB(64, 156, 255),
+    success = Color3.fromRGB(34, 197, 94),
+    danger = Color3.fromRGB(239, 68, 68),
+    warning = Color3.fromRGB(245, 158, 11),
+    text = Color3.fromRGB(248, 250, 252),
+    textSub = Color3.fromRGB(148, 163, 184),
+    border = Color3.fromRGB(51, 65, 85),
+    hover = Color3.fromRGB(55, 65, 81)
+}
+
+-- SIMPLE Functions
+local function round(num)
+    return math.floor(num + 0.5)
+end
+
+local function formatPosition(pos)
+    if pos then
+        return string.format("X:%.0f Y:%.0f Z:%.0f", pos.X, pos.Y, pos.Z)
+    end
+    return "No Position"
+end
+
+-- Get position dengan range jauh - FIXED SIMPLE DETECTION
+local function getCharacterPosition(player)
+    if player and player.Parent and player.Character and player.Character.Parent then
+        local rootPart = player.Character:FindFirstChild("HumanoidRootPart")
+        if rootPart then
+            return rootPart.Position
+        end
+    end
+    return nil
+end
+
+-- Distance calculation
+local function getDistance(pos1, pos2)
+    if pos1 and pos2 then
+        return round((pos1 - pos2).Magnitude)
+    end
+    return 0
+end
+
+-- TELEPORT - Langsung ke posisi player (range jauh)
+local function teleportToPlayer(targetPlayer)
+    local success = pcall(function()
+        local localChar = localPlayer.Character
+        local targetChar = targetPlayer.Character
+        
+        if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then
+            return false
+        end
+        
+        if not targetChar or not targetChar.Parent or not targetChar:FindFirstChild("HumanoidRootPart") then
+            return false
+        end
+        
+        -- Check if target player is actually alive
+        local targetHumanoid = targetChar:FindFirstChild("Humanoid")
+        if not targetHumanoid or targetHumanoid.Health <= 0 then
+            return false
+        end
+        
+        -- Teleport langsung ke posisi player (tanpa jarak limit)
+        local targetCFrame = targetChar.HumanoidRootPart.CFrame
+        localChar.HumanoidRootPart.CFrame = targetCFrame + Vector3.new(0, 3, 0)
+        
+        return true
+    end)
+    
+    return success
+end
+
+-- Create Modern Button (sama seperti asli)
+local function createModernButton(parent, size, position, text, bgColor, textColor, onClick)
+    local button = Instance.new("TextButton")
+    button.Size = size
+    button.Position = position
+    button.BackgroundColor3 = bgColor
+    button.Text = text
+    button.TextColor3 = textColor or colors.text
+    button.Font = Enum.Font.GothamSemibold
+    button.TextSize = 11
+    button.BorderSizePixel = 0
+    button.ClipsDescendants = true
+    button.Parent = parent
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = button
+    
+    local shadow = Instance.new("Frame")
+    shadow.Size = UDim2.new(1, 2, 1, 2)
+    shadow.Position = UDim2.new(0, 1, 0, 1)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.8
+    shadow.BorderSizePixel = 0
+    shadow.ZIndex = button.ZIndex - 1
+    shadow.Parent = button
+    
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 6)
+    shadowCorner.Parent = shadow
+    
+    if onClick then
+        button.MouseButton1Click:Connect(onClick)
+    end
+    
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            BackgroundColor3 = colors.hover,
+            Size = size + UDim2.new(0, 2, 0, 2)
+        }):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
+            BackgroundColor3 = bgColor,
+            Size = size
+        }):Play()
+    end)
+    
+    return button
+end
+
+-- Update player data cache - FIXED SIMPLE DETECTION
+local function updatePlayerDataCache()
+    local localPos = getCharacterPosition(localPlayer)
+    
+    -- Clear cache lama
+    playerDataCache = {}
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Parent then
+            local pos = getCharacterPosition(player)
+            
+            -- Simple detection - kalau ada posisi, masukkan
+            if pos then
+                local distance = getDistance(localPos, pos)
+                
+                playerDataCache[player.UserId] = {
+                    player = player,
+                    distance = distance,
+                    position = pos,
+                    hasCharacter = true
+                }
+            end
+        end
+    end
+end
+
+-- Update player list (menggunakan cache) - HANYA PLAYER AKTIF
+local function updatePlayerList()
+    if not contentFrame or not contentFrame.Parent then return end
+    
+    -- Update cache dulu
+    updatePlayerDataCache()
+    
+    -- Clear existing entries
+    for _, child in pairs(contentFrame:GetChildren()) do
+        if child.Name:find("PlayerEntry") then
+            child:Destroy()
+        end
+    end
+    
+    -- Convert cache to array and sort by distance
+    local playerList = {}
+    for _, data in pairs(playerDataCache) do
+        table.insert(playerList, data)
+    end
+    
+    table.sort(playerList, function(a, b)
+        return a.distance < b.distance
+    end)
+    
+    -- Create player entries - HANYA YANG AKTIF
+    for i, data in pairs(playerList) do
+        local yPos = (i - 1) * config.playerEntryHeight + 5
+        
+        -- Main container - CLICKABLE untuk teleport
+        local container = Instance.new("TextButton")
+        container.Name = "PlayerEntry" .. i
+        container.Size = UDim2.new(1, -10, 0, config.playerEntryHeight - 5)
+        container.Position = UDim2.new(0, 5, 0, yPos)
+        container.BackgroundColor3 = colors.secondary
+        container.BorderSizePixel = 0
+        container.Text = ""
+        container.AutoButtonColor = false
+        container.Parent = contentFrame
+        
+        -- KLIK UNTUK TELEPORT
+        container.MouseButton1Click:Connect(function()
+            container.BackgroundColor3 = colors.warning
+            local success = teleportToPlayer(data.player)
+            
+            if success then
+                container.BackgroundColor3 = colors.success
+                print("Teleported to " .. data.player.Name)
+            else
+                container.BackgroundColor3 = colors.danger
+                print("Failed to teleport to " .. data.player.Name)
+            end
+            
+            wait(2)
+            container.BackgroundColor3 = colors.secondary
+        end)
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = container
+        
+        local gradient = Instance.new("UIGradient")
+        gradient.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, colors.secondary),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(colors.secondary.R + 0.02, colors.secondary.G + 0.02, colors.secondary.B + 0.02))
+        })
+        gradient.Rotation = 90
+        gradient.Parent = container
+        
+        -- Player avatar
+        local avatar = Instance.new("ImageLabel")
+        avatar.Size = UDim2.new(0, 32, 0, 32)
+        avatar.Position = UDim2.new(0, 8, 0, 6)
+        avatar.BackgroundTransparency = 1
+        avatar.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. data.player.UserId .. "&width=48&height=48&format=png"
+        avatar.Parent = container
+        
+        local avatarCorner = Instance.new("UICorner")
+        avatarCorner.CornerRadius = UDim.new(0, 16)
+        avatarCorner.Parent = avatar
+        
+        -- Player name (clickable indicator)
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Size = UDim2.new(0.6, -45, 0, 18)
+        nameLabel.Position = UDim2.new(0, 45, 0, 2)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = data.player.Name .. " [CLICK TO TP]"
+        nameLabel.TextColor3 = colors.accent
+        nameLabel.Font = Enum.Font.GothamSemibold
+        nameLabel.TextSize = 10
+        nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+        nameLabel.Parent = container
+        
+        -- Coordinates
+        local coordLabel = Instance.new("TextLabel")
+        coordLabel.Size = UDim2.new(0.6, -45, 0, 14)
+        coordLabel.Position = UDim2.new(0, 45, 0, 20)
+        coordLabel.BackgroundTransparency = 1
+        coordLabel.Text = formatPosition(data.position)
+        coordLabel.TextColor3 = colors.textSub
+        coordLabel.Font = Enum.Font.Gotham
+        coordLabel.TextSize = 8
+        coordLabel.TextXAlignment = Enum.TextXAlignment.Left
+        coordLabel.Parent = container
+        
+        -- Distance - NORMAL DISPLAY
+        local distanceText = data.distance .. "m away"
+        local distColor = colors.success
+        
+        if data.distance > 100 then
+            distColor = colors.warning  
+        end
+        if data.distance > 1000 then
+            distColor = colors.danger
+        end
+        
+        local distLabel = Instance.new("TextLabel")
+        distLabel.Size = UDim2.new(0.6, -45, 0, 12)
+        distLabel.Position = UDim2.new(0, 45, 0, 35)
+        distLabel.BackgroundTransparency = 1
+        distLabel.Text = distanceText
+        distLabel.TextColor3 = distColor
+        distLabel.Font = Enum.Font.Gotham
+        distLabel.TextSize = 9
+        distLabel.TextXAlignment = Enum.TextXAlignment.Left
+        distLabel.Parent = container
+        
+        -- Status dot (selalu hijau karena semua player aktif)
+        local statusDot = Instance.new("Frame")
+        statusDot.Size = UDim2.new(0, 10, 0, 10)
+        statusDot.Position = UDim2.new(0, 32, 0, 2)
+        statusDot.BackgroundColor3 = colors.success
+        statusDot.BorderSizePixel = 0
+        statusDot.Parent = container
+        
+        local dotCorner = Instance.new("UICorner")
+        dotCorner.CornerRadius = UDim.new(0, 5)
+        dotCorner.Parent = statusDot
+        
+        -- Hover effects
+        container.MouseEnter:Connect(function()
+            TweenService:Create(container, TweenInfo.new(0.2), {
+                BackgroundColor3 = colors.hover
+            }):Play()
+        end)
+        
+        container.MouseLeave:Connect(function()
+            TweenService:Create(container, TweenInfo.new(0.2), {
+                BackgroundColor3 = colors.secondary
+            }):Play()
+        end)
+    end
+    
+    -- Update canvas size
+    contentFrame.CanvasSize = UDim2.new(0, 0, 0, #playerList * config.playerEntryHeight + 20)
+    
+    -- Update header count - semua player yang ditampilkan adalah ready
+    if headerFrame and headerFrame:FindFirstChild("CountLabel") then
+        headerFrame.CountLabel.Text = #playerList .. "/" .. #playerList .. " ready"
+    end
+end
+
+-- Toggle minimize (sama)
+local function toggleMinimize()
+    isMinimized = not isMinimized
+    
+    local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    
+    if isMinimized then
+        TweenService:Create(mainFrame, tweenInfo, {Size = config.minSize}):Play()
+        contentFrame.Visible = false
+    else
+        TweenService:Create(mainFrame, tweenInfo, {Size = config.guiSize}):Play()
+        wait(0.3)
+        contentFrame.Visible = true
+        updatePlayerList()
+    end
+    
+    local minBtn = headerFrame:FindFirstChild("MinButton")
+    if minBtn then
+        minBtn.Text = isMinimized and "□" or "−"
+    end
+end
+
+-- Close GUI (sama)
+local function closeGUI()
+    if updateConnection then
+        updateConnection:Disconnect()
+    end
+    
+    if gui then
+        TweenService:Create(gui, TweenInfo.new(0.3), {
+            Enabled = false
+        }):Play()
+        
+        wait(0.3)
+        gui:Destroy()
+    end
+    
+    gui = nil
+    playerDataCache = {}
+    print("Player Detector Closed")
+end
+
+-- Create GUI (sama persis)
+local function createGUI()
+    if gui then gui:Destroy() end
+    
+    gui = Instance.new("ScreenGui")
+    gui.Name = "UltraCompactPlayerDetector"
+    gui.Parent = CoreGui
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    
+    mainFrame = Instance.new("Frame")
+    mainFrame.Size = config.guiSize
+    mainFrame.Position = config.position
+    mainFrame.BackgroundColor3 = colors.primary
+    mainFrame.BackgroundTransparency = 0.05
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.Parent = gui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 15)
+    mainCorner.Parent = mainFrame
+    
+    local shadow = Instance.new("Frame")
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.7
+    shadow.BorderSizePixel = 0
+    shadow.ZIndex = mainFrame.ZIndex - 1
+    shadow.Parent = mainFrame
+    
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 15)
+    shadowCorner.Parent = shadow
+    
+    headerFrame = Instance.new("Frame")
+    headerFrame.Size = UDim2.new(1, 0, 0, 40)
+    headerFrame.Position = UDim2.new(0, 0, 0, 0)
+    headerFrame.BackgroundColor3 = colors.secondary
+    headerFrame.BorderSizePixel = 0
+    headerFrame.Parent = mainFrame
+    
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 15)
+    headerCorner.Parent = headerFrame
+    
+    local headerFix = Instance.new("Frame")
+    headerFix.Size = UDim2.new(1, 0, 0, 15)
+    headerFix.Position = UDim2.new(0, 0, 1, -15)
+    headerFix.BackgroundColor3 = colors.secondary
+    headerFix.BorderSizePixel = 0
+    headerFix.Parent = headerFrame
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(0.4, 0, 1, 0)
+    titleLabel.Position = UDim2.new(0, 15, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "Player Detector"
+    titleLabel.TextColor3 = colors.text
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextSize = 12
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = headerFrame
+    
+    local countLabel = Instance.new("TextLabel")
+    countLabel.Name = "CountLabel"
+    countLabel.Size = UDim2.new(0.25, 0, 1, 0)
+    countLabel.Position = UDim2.new(0.4, 0, 0, 0)
+    countLabel.BackgroundTransparency = 1
+    countLabel.Text = "0/0 ready"
+    countLabel.TextColor3 = colors.success
+    countLabel.Font = Enum.Font.GothamSemibold
+    countLabel.TextSize = 10
+    countLabel.TextXAlignment = Enum.TextXAlignment.Center
+    countLabel.Parent = headerFrame
+    
+    local refreshBtn = createModernButton(
+        headerFrame, UDim2.new(0, 25, 0, 25), UDim2.new(1, -85, 0, 8),
+        "⟲", colors.success, colors.text,
+        function()
+            refreshBtn.Text = "..."
+            spawn(function()
+                updatePlayerList()
+                wait(0.5)
+                refreshBtn.Text = "✓"
+                wait(1)
+                refreshBtn.Text = "⟲"
+            end)
+        end
+    )
+    
+    local minBtn = createModernButton(
+        headerFrame, UDim2.new(0, 25, 0, 25), UDim2.new(1, -55, 0, 8),
+        "−", colors.warning, colors.text, toggleMinimize
+    )
+    minBtn.Name = "MinButton"
+    
+    local closeBtn = createModernButton(
+        headerFrame, UDim2.new(0, 25, 0, 25), UDim2.new(1, -25, 0, 8),
+        "✕", colors.danger, colors.text, closeGUI
+    )
+    
+    contentFrame = Instance.new("ScrollingFrame")
+    contentFrame.Size = UDim2.new(1, 0, 1, -40)
+    contentFrame.Position = UDim2.new(0, 0, 0, 40)
+    contentFrame.BackgroundColor3 = colors.primary
+    contentFrame.BorderSizePixel = 0
+    contentFrame.ScrollBarThickness = 3
+    contentFrame.ScrollBarImageColor3 = colors.accent
+    contentFrame.CanvasSize = UDim2.new(0, 0, 0, 100)
+    contentFrame.Parent = mainFrame
+    
+    print("GUI Created - Click Player Names to Teleport!")
+end
+
+-- Start Function
+local function startDetector()
+    print("Starting Player Detector with Infinite Range...")
+    
+    createGUI()
+    
+    -- Initial update
+    wait(1)
+    updatePlayerList()
+    
+    -- Auto-update loop
+    updateConnection = RunService.Heartbeat:Connect(function()
+        if tick() - lastUpdate >= config.updateRate then
+            if gui and mainFrame and mainFrame.Parent and not isMinimized then
+                updatePlayerList()
+            end
+            lastUpdate = tick()
+        end
+    end)
+    
+    print("Player Detector Started! Infinite range detection active.")
+end
+
+-- Player Events
+Players.PlayerAdded:Connect(function(player)
+    wait(2)
+    if gui and not isMinimized then
+        updatePlayerList()
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    playerDataCache[player.UserId] = nil
+    if gui and not isMinimized then
+        updatePlayerList()
+    end
+end)
+
+-- Global API
+_G.PlayerDetector = {
+    start = startDetector,
+    stop = closeGUI,
+    refresh = updatePlayerList,
+    minimize = toggleMinimize,
+    teleportTo = teleportToPlayer
+}
+
+-- Auto start
+startDetector()
