@@ -1,0 +1,446 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local FakeName = "WarpahVip"
+local activeConnection = nil
+local toggleButtonRainbowConnection = nil
+
+-- Fungsi untuk hapus nama asli dari karakter lokal
+local function removeOriginalNameTags(character)
+	for _, descendant in ipairs(character:GetDescendants()) do
+		if descendant:IsA("BillboardGui") and descendant.Name ~= "FakeNameTag" then
+			descendant:Destroy()
+		end
+	end
+end
+
+-- Fungsi rainbow animate untuk name tag
+local function animateRainbow(textLabel)
+	if activeConnection then
+		activeConnection:Disconnect()
+	end
+	
+	local hue = 0
+	activeConnection = RunService.RenderStepped:Connect(function()
+		if textLabel and textLabel.Parent then
+			hue = (hue + 0.005) % 1
+			local color = Color3.fromHSV(hue, 1, 1)
+			textLabel.TextColor3 = color
+		else
+			activeConnection:Disconnect()
+			activeConnection = nil
+		end
+	end)
+end
+
+-- Fungsi rainbow animate untuk toggle button
+local function animateToggleButtonRainbow(textLabel)
+	if toggleButtonRainbowConnection then
+		toggleButtonRainbowConnection:Disconnect()
+	end
+	
+	local hue = 0
+	toggleButtonRainbowConnection = RunService.RenderStepped:Connect(function()
+		if textLabel and textLabel.Parent then
+			hue = (hue + 0.01) % 1
+			local color = Color3.fromHSV(hue, 0.8, 1)
+			textLabel.TextColor3 = color
+		else
+			toggleButtonRainbowConnection:Disconnect()
+			toggleButtonRainbowConnection = nil
+		end
+	end)
+end
+
+-- Fungsi untuk reset nama (hapus fake name)
+local function resetName()
+	if activeConnection then
+		activeConnection:Disconnect()
+		activeConnection = nil
+	end
+	
+	if LocalPlayer.Character then
+		local head = LocalPlayer.Character:FindFirstChild("Head")
+		if head then
+			local fakeTag = head:FindFirstChild("FakeNameTag")
+			if fakeTag then
+				fakeTag:Destroy()
+			end
+		end
+		
+		local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.Viewer
+			humanoid.NameDisplayDistance = 100
+			humanoid.DisplayName = LocalPlayer.DisplayName
+		end
+	end
+end
+
+-- Fungsi untuk pasang nama palsu
+local function applyFakeName(character, customName)
+	local nameToUse = customName or FakeName
+	local head = character:WaitForChild("Head", 5)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not (head and humanoid) then return end
+
+	-- Sembunyikan nama default
+	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
+	humanoid.NameDisplayDistance = 0
+	humanoid.DisplayName = ""
+
+	-- Tunggu sedikit untuk memastikan semua GUI original sudah ter-load
+	task.wait(0.1)
+	
+	-- Hapus GUI nama asli
+	removeOriginalNameTags(character)
+
+	-- Hapus nama palsu lama jika ada
+	local old = head:FindFirstChild("FakeNameTag")
+	if old then old:Destroy() end
+
+	-- Billboard GUI custom
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "FakeNameTag"
+	billboard.Adornee = head
+	billboard.Size = UDim2.new(0, 80, 0, 16)
+	billboard.StudsOffset = Vector3.new(0, 2.3, 0)
+	billboard.AlwaysOnTop = true
+	billboard.Parent = head
+
+	-- Text Label custom
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.BackgroundTransparency = 1
+	label.Text = nameToUse
+	label.TextColor3 = Color3.new(1, 0, 0)
+	label.TextStrokeColor3 = Color3.new(0, 0, 0)
+	label.TextStrokeTransparency = 0.2
+	label.TextScaled = true
+	label.Font = Enum.Font.SourceSans
+	label.Parent = billboard
+
+	-- Mulai animasi warna pelangi
+	animateRainbow(label)
+end
+
+-- Fungsi untuk membuat GUI draggable
+local function makeDraggable(frame)
+	local dragging = false
+	local dragInput
+	local dragStart
+	local startPos
+	
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+	
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			
+			local connection
+			connection = input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+					connection:Disconnect()
+				end
+			end)
+		end
+	end)
+	
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			update(input)
+		end
+	end)
+end
+
+-- Buat GUI Menu
+local function createMenu()
+	-- Screen GUI
+	local screenGui = Instance.new("ScreenGui")
+	screenGui.Name = "NameChangerGUI"
+	screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+	screenGui.ResetOnSpawn = false
+
+	-- Main Frame
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Size = UDim2.new(0, 280, 0, 180)
+	mainFrame.Position = UDim2.new(0.5, -140, 0.5, -90)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Parent = screenGui
+
+	-- Shadow effect
+	local shadow = Instance.new("ImageLabel")
+	shadow.Name = "Shadow"
+	shadow.Parent = screenGui
+	shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+	shadow.BackgroundTransparency = 1
+	shadow.Position = mainFrame.Position
+	shadow.Size = mainFrame.Size + UDim2.new(0, 40, 0, 40)
+	shadow.Image = "rbxasset://textures/ui/Controls/DropShadow.png"
+	shadow.ImageColor3 = Color3.fromRGB(0, 150, 255)
+	shadow.ImageTransparency = 0.3
+	shadow.ScaleType = Enum.ScaleType.Slice
+	shadow.SliceCenter = Rect.new(12, 12, 276, 276)
+	shadow.ZIndex = mainFrame.ZIndex - 1
+
+	-- Border accent
+	local border = Instance.new("UIStroke")
+	border.Color = Color3.fromRGB(0, 180, 255)
+	border.Thickness = 2
+	border.Transparency = 0
+	border.Parent = mainFrame
+
+	-- Corner radius
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 8)
+	corner.Parent = mainFrame
+
+	-- Gradient
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new{
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 15, 25)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 5, 15))
+	}
+	gradient.Rotation = 90
+	gradient.Parent = mainFrame
+
+	-- Title
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -40, 0, 28)
+	title.Position = UDim2.new(0, 10, 0, 8)
+	title.BackgroundTransparency = 1
+	title.Text = "Name Changer"
+	title.TextColor3 = Color3.fromRGB(0, 200, 255)
+	title.TextSize = 14
+	title.Font = Enum.Font.Gotham
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Parent = mainFrame
+
+	-- Title stroke
+	local titleStroke = Instance.new("UIStroke")
+	titleStroke.Color = Color3.fromRGB(0, 150, 255)
+	titleStroke.Thickness = 1
+	titleStroke.Transparency = 0.5
+	titleStroke.Parent = title
+
+	-- Subtitle
+	local subtitle = Instance.new("TextLabel")
+	subtitle.Size = UDim2.new(1, -40, 0, 15)
+	subtitle.Position = UDim2.new(0, 10, 0, 30)
+	subtitle.BackgroundTransparency = 1
+	subtitle.Text = "Customize your display name"
+	subtitle.TextColor3 = Color3.fromRGB(100, 180, 255)
+	subtitle.TextSize = 10
+	subtitle.Font = Enum.Font.Gotham
+	subtitle.TextXAlignment = Enum.TextXAlignment.Left
+	subtitle.Parent = mainFrame
+
+	-- Input Field
+	local inputFrame = Instance.new("Frame")
+	inputFrame.Size = UDim2.new(0.9, 0, 0, 28)
+	inputFrame.Position = UDim2.new(0.05, 0, 0, 55)
+	inputFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+	inputFrame.BorderSizePixel = 0
+	inputFrame.Parent = mainFrame
+
+	local inputCorner = Instance.new("UICorner")
+	inputCorner.CornerRadius = UDim.new(0, 4)
+	inputCorner.Parent = inputFrame
+
+	local inputStroke = Instance.new("UIStroke")
+	inputStroke.Color = Color3.fromRGB(0, 120, 200)
+	inputStroke.Thickness = 1
+	inputStroke.Parent = inputFrame
+
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(1, -16, 1, 0)
+	textBox.Position = UDim2.new(0, 8, 0, 0)
+	textBox.BackgroundTransparency = 1
+	textBox.PlaceholderText = "Enter custom name..."
+	textBox.Text = ""
+	textBox.TextColor3 = Color3.fromRGB(200, 230, 255)
+	textBox.PlaceholderColor3 = Color3.fromRGB(100, 150, 200)
+	textBox.TextSize = 11
+	textBox.Font = Enum.Font.Gotham
+	textBox.TextXAlignment = Enum.TextXAlignment.Left
+	textBox.Parent = inputFrame
+
+	-- Apply Button
+	local applyBtn = Instance.new("TextButton")
+	applyBtn.Size = UDim2.new(0.42, 0, 0, 28)
+	applyBtn.Position = UDim2.new(0.05, 0, 0, 95)
+	applyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+	applyBtn.BorderSizePixel = 0
+	applyBtn.Text = "Apply"
+	applyBtn.TextColor3 = Color3.new(1, 1, 1)
+	applyBtn.TextSize = 11
+	applyBtn.Font = Enum.Font.GothamMedium
+	applyBtn.Parent = mainFrame
+
+	local applyCorner = Instance.new("UICorner")
+	applyCorner.CornerRadius = UDim.new(0, 4)
+	applyCorner.Parent = applyBtn
+
+	local applyStroke = Instance.new("UIStroke")
+	applyStroke.Color = Color3.fromRGB(0, 150, 255)
+	applyStroke.Thickness = 1
+	applyStroke.Transparency = 0.3
+	applyStroke.Parent = applyBtn
+
+	-- Reset Button
+	local resetBtn = Instance.new("TextButton")
+	resetBtn.Size = UDim2.new(0.42, 0, 0, 28)
+	resetBtn.Position = UDim2.new(0.53, 0, 0, 95)
+	resetBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 120)
+	resetBtn.BorderSizePixel = 0
+	resetBtn.Text = "Reset"
+	resetBtn.TextColor3 = Color3.new(1, 1, 1)
+	resetBtn.TextSize = 11
+	resetBtn.Font = Enum.Font.GothamMedium
+	resetBtn.Parent = mainFrame
+
+	local resetCorner = Instance.new("UICorner")
+	resetCorner.CornerRadius = UDim.new(0, 4)
+	resetCorner.Parent = resetBtn
+
+	local resetStroke = Instance.new("UIStroke")
+	resetStroke.Color = Color3.fromRGB(255, 80, 120)
+	resetStroke.Thickness = 1
+	resetStroke.Transparency = 0.3
+	resetStroke.Parent = resetBtn
+
+	-- Close Button
+	local closeBtn = Instance.new("TextButton")
+	closeBtn.Size = UDim2.new(0, 24, 0, 24)
+	closeBtn.Position = UDim2.new(1, -30, 0, 6)
+	closeBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 80)
+	closeBtn.BorderSizePixel = 0
+	closeBtn.Text = "×"
+	closeBtn.TextColor3 = Color3.new(1, 1, 1)
+	closeBtn.TextSize = 16
+	closeBtn.Font = Enum.Font.GothamBold
+	closeBtn.Parent = mainFrame
+
+	local closeCorner = Instance.new("UICorner")
+	closeCorner.CornerRadius = UDim.new(0, 12)
+	closeCorner.Parent = closeBtn
+
+	local closeStroke = Instance.new("UIStroke")
+	closeStroke.Color = Color3.fromRGB(255, 50, 80)
+	closeStroke.Thickness = 1
+	closeStroke.Transparency = 0.3
+	closeStroke.Parent = closeBtn
+
+	-- Toggle Button
+	local toggleBtn = Instance.new("TextButton")
+	toggleBtn.Size = UDim2.new(0, 120, 0, 30)
+	toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+	toggleBtn.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+	toggleBtn.BorderSizePixel = 0
+	toggleBtn.Text = "Warpah Name RGB"
+	toggleBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+	toggleBtn.TextSize = 9
+	toggleBtn.Font = Enum.Font.GothamMedium
+	toggleBtn.Parent = screenGui
+
+	local toggleCorner = Instance.new("UICorner")
+	toggleCorner.CornerRadius = UDim.new(0, 6)
+	toggleCorner.Parent = toggleBtn
+
+	local toggleStroke = Instance.new("UIStroke")
+	toggleStroke.Color = Color3.fromRGB(0, 180, 255)
+	toggleStroke.Thickness = 1
+	toggleStroke.Transparency = 0.3
+	toggleStroke.Parent = toggleBtn
+
+	-- Make draggable
+	makeDraggable(toggleBtn)
+	makeDraggable(mainFrame)
+
+	-- Start rainbow animation for toggle button
+	animateToggleButtonRainbow(toggleBtn)
+
+	-- Functions
+	local function toggleMenu()
+		mainFrame.Visible = not mainFrame.Visible
+		shadow.Visible = mainFrame.Visible
+	end
+
+	local function applyCustomName()
+		local customName = textBox.Text
+		if customName ~= "" then
+			FakeName = customName
+			if LocalPlayer.Character then
+				applyFakeName(LocalPlayer.Character, customName)
+			end
+		end
+	end
+
+	-- Button Events
+	applyBtn.MouseButton1Click:Connect(applyCustomName)
+	resetBtn.MouseButton1Click:Connect(resetName)
+	closeBtn.MouseButton1Click:Connect(function() 
+		mainFrame.Visible = false
+		shadow.Visible = false
+	end)
+	toggleBtn.MouseButton1Click:Connect(toggleMenu)
+
+	-- Hover effects
+	local function addHover(button, normalColor, hoverColor)
+		button.MouseEnter:Connect(function()
+			TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = hoverColor}):Play()
+		end)
+		button.MouseLeave:Connect(function()
+			TweenService:Create(button, TweenInfo.new(0.15), {BackgroundColor3 = normalColor}):Play()
+		end)
+	end
+
+	addHover(applyBtn, Color3.fromRGB(0, 150, 255), Color3.fromRGB(0, 180, 255))
+	addHover(resetBtn, Color3.fromRGB(255, 80, 120), Color3.fromRGB(255, 100, 140))
+	addHover(closeBtn, Color3.fromRGB(255, 50, 80), Color3.fromRGB(255, 80, 100))
+	addHover(toggleBtn, Color3.fromRGB(15, 15, 25), Color3.fromRGB(25, 25, 35))
+
+	-- Input focus effects
+	textBox.Focused:Connect(function()
+		TweenService:Create(inputStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 200, 255), Thickness = 2}):Play()
+	end)
+
+	textBox.FocusLost:Connect(function()
+		TweenService:Create(inputStroke, TweenInfo.new(0.2), {Color = Color3.fromRGB(0, 120, 200), Thickness = 1}):Play()
+	end)
+
+	-- Initially hide main frame and shadow
+	mainFrame.Visible = false
+	shadow.Visible = false
+end
+
+-- Initialize
+createMenu()
+
+-- Auto apply to character
+LocalPlayer.CharacterAdded:Connect(function(char)
+	task.wait(1)
+	if FakeName ~= "WarpahVip" or LocalPlayer.PlayerGui:FindFirstChild("NameChangerGUI") then
+		applyFakeName(char, FakeName)
+	end
+end)
+
+if LocalPlayer.Character then
+	applyFakeName(LocalPlayer.Character, FakeName)
+end
