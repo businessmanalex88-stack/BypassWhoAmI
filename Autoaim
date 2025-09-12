@@ -1,115 +1,230 @@
--- ESP Player Script dengan Auto Aim untuk Android Executor
--- Script ini menampilkan informasi player seperti nama, jarak, health, highlight, dan auto aim
+-- WarpahVip Auto Aim Script untuk Delta Executor Android
+-- Script dengan GUI Menu yang Minimalis dan Elegant
+-- DIPERBAIKI: Slider responsif, FOV circle real-time, ESP detection lebih akurat
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local Camera = Workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local Mouse = LocalPlayer:GetMouse()
 
--- Konfigurasi ESP dan Auto Aim
-local ESP_CONFIG = {
-    -- ESP Settings
-    enabled = true,
-    showNames = true,
-    showDistance = true,
-    showHealth = true,
-    showBox = true,
-    showHighlight = true, -- Fitur highlight baru
-    maxDistance = 1000, -- maksimal jarak dalam studs
-    
-    -- Auto Aim Settings - FITUR BARU
-    autoAimEnabled = false,
-    autoAimKey = Enum.KeyCode.E, -- tombol untuk toggle auto aim (PC)
-    aimFOV = 150, -- Field of View untuk auto aim
-    aimSmoothness = 1, -- kecepatan aim (0.1 = lambat, 1 = instant)
-    targetPart = "Head", -- bagian yang ditarget ("Head", "HumanoidRootPart", "UpperTorso")
-    showFOVCircle = true, -- tampilkan lingkaran FOV
-    aimOnlyEnemies = true, -- hanya aim ke musuh
-    
-    -- Warna
-    allyColor = Color3.fromRGB(0, 255, 0), -- hijau untuk teman
-    enemyColor = Color3.fromRGB(255, 0, 0), -- merah untuk musuh
-    textColor = Color3.fromRGB(255, 255, 255), -- putih untuk teks
-    fovCircleColor = Color3.fromRGB(255, 255, 255), -- warna lingkaran FOV
-    
-    -- Warna highlight (lebih lembut)
-    allyHighlight = Color3.fromRGB(0, 150, 0), -- hijau lembut untuk teman
-    enemyHighlight = Color3.fromRGB(150, 0, 0), -- merah lembut untuk musuh
-    highlightTransparency = 0.7, -- transparansi highlight (0 = solid, 1 = invisible)
-    
-    -- Ukuran
-    textSize = 14,
-    boxThickness = 2
+-- Konfigurasi utama
+local Config = {
+    ESP = {
+        enabled = false,
+        showNames = true,
+        showDistance = true,
+        showHealth = true,
+        showBoxes = true,
+        showLines = true,
+        showHighlight = true,
+        teamCheck = false,
+        maxDistance = 1000,
+        textColor = Color3.new(1, 1, 1),
+        boxColor = Color3.new(1, 0, 0),
+        lineColor = Color3.new(0, 1, 1),
+        highlightColor = Color3.new(1, 0.5, 0)
+    },
+    AutoAim = {
+        enabled = false,
+        fov = 100,
+        maxDistance = 500,
+        targetPart = "Head",
+        smoothness = 0.5,
+        teamCheck = false,
+        showFOV = true
+    }
 }
 
--- Tabel untuk menyimpan ESP objects
-local espObjects = {}
+-- Storage untuk ESP objects
+local ESPObjects = {}
+local FOVCircle = nil
+local Connections = {}
 
--- Variables untuk Auto Aim
-local currentTarget = nil
-local fovCircle = nil
-local aimConnection = nil
-
--- Fungsi untuk membuat FOV Circle
-local function createFOVCircle()
-    if fovCircle then
-        fovCircle:Remove()
+-- PERBAIKAN: Fungsi untuk cek apakah player adalah enemy yang valid
+local function isValidTarget(player)
+    if not player or player == LocalPlayer then return false end
+    if not player.Character then return false end
+    
+    -- Cek apakah character ada dan loaded
+    local character = player.Character
+    if not character.Parent then return false end
+    
+    -- Cek component penting
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    
+    if not humanoid or not rootPart then return false end
+    if humanoid.Health <= 0 then return false end
+    
+    -- Team check
+    if Config.ESP.teamCheck or Config.AutoAim.teamCheck then
+        if player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
+            return false
+        end
     end
     
-    local circle = Drawing.new("Circle")
-    circle.Color = ESP_CONFIG.fovCircleColor
-    circle.Thickness = 2
-    circle.Transparency = 0.5
-    circle.Filled = false
-    circle.Radius = ESP_CONFIG.aimFOV
-    circle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-    circle.Visible = ESP_CONFIG.showFOVCircle and ESP_CONFIG.autoAimEnabled
-    
-    fovCircle = circle
-    return circle
+    return true
 end
 
--- Fungsi untuk mendapatkan target terdekat dalam FOV
-local function getClosestTarget()
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        return nil
+-- PERBAIKAN: Fungsi ESP object yang lebih robust
+local function createESPObject(player)
+    local esp = {
+        player = player,
+        drawings = {
+            name = Drawing.new("Text"),
+            distance = Drawing.new("Text"),
+            health = Drawing.new("Text"),
+            box = Drawing.new("Square"),
+            line = Drawing.new("Line")
+        },
+        highlight = nil
+    }
+    
+    -- Setup text properties
+    esp.drawings.name.Size = 16
+    esp.drawings.name.Color = Config.ESP.textColor
+    esp.drawings.name.Center = true
+    esp.drawings.name.Outline = true
+    esp.drawings.name.OutlineColor = Color3.new(0, 0, 0)
+    esp.drawings.name.Font = Drawing.Fonts.UI
+    esp.drawings.name.Visible = false
+    
+    esp.drawings.distance.Size = 14
+    esp.drawings.distance.Color = Color3.new(0, 1, 0)
+    esp.drawings.distance.Center = true
+    esp.drawings.distance.Outline = true
+    esp.drawings.distance.OutlineColor = Color3.new(0, 0, 0)
+    esp.drawings.distance.Font = Drawing.Fonts.UI
+    esp.drawings.distance.Visible = false
+    
+    esp.drawings.health.Size = 14
+    esp.drawings.health.Color = Color3.new(1, 0, 0)
+    esp.drawings.health.Center = true
+    esp.drawings.health.Outline = true
+    esp.drawings.health.OutlineColor = Color3.new(0, 0, 0)
+    esp.drawings.health.Font = Drawing.Fonts.UI
+    esp.drawings.health.Visible = false
+    
+    -- Setup box properties
+    esp.drawings.box.Color = Config.ESP.boxColor
+    esp.drawings.box.Thickness = 2
+    esp.drawings.box.Transparency = 1
+    esp.drawings.box.Filled = false
+    esp.drawings.box.Visible = false
+    
+    -- Setup line properties
+    esp.drawings.line.Color = Config.ESP.lineColor
+    esp.drawings.line.Thickness = 2
+    esp.drawings.line.Transparency = 1
+    esp.drawings.line.Visible = false
+    
+    return esp
+end
+
+local function removeESPObject(esp)
+    if esp and esp.drawings then
+        for _, drawing in pairs(esp.drawings) do
+            if drawing then
+                pcall(function() 
+                    drawing.Visible = false
+                    drawing:Remove() 
+                end)
+            end
+        end
+    end
+    if esp and esp.highlight then
+        pcall(function() esp.highlight:Destroy() end)
+    end
+end
+
+local function createHighlight(character)
+    if not character then return nil end
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Adornee = character
+    highlight.FillColor = Config.ESP.highlightColor
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.FillTransparency = 0.7
+    highlight.OutlineTransparency = 0
+    highlight.Parent = character
+    
+    return highlight
+end
+
+-- PERBAIKAN: Fungsi distance yang lebih akurat
+local function getDistance(player)
+    if not isValidTarget(player) then return math.huge end
+    
+    local character = player.Character
+    local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+    
+    if not rootPart then return math.huge end
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return math.huge end
+    
+    local distance = (LocalPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude
+    return math.floor(distance)
+end
+
+local function isOnScreen(position)
+    local screenPoint, onScreen = Camera:WorldToViewportPoint(position)
+    return onScreen and screenPoint.Z > 0
+end
+
+-- PERBAIKAN: Target part detection yang lebih baik
+local function getTargetPart(character)
+    if not character then return nil end
+    
+    local parts = {
+        Head = character:FindFirstChild("Head"),
+        Torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso"),
+        LowerTorso = character:FindFirstChild("LowerTorso"),
+        Random = nil
+    }
+    
+    if Config.AutoAim.targetPart == "Random" then
+        local availableParts = {}
+        for name, part in pairs(parts) do
+            if part and name ~= "Random" then
+                table.insert(availableParts, part)
+            end
+        end
+        if #availableParts > 0 then
+            return availableParts[math.random(1, #availableParts)]
+        end
+    else
+        return parts[Config.AutoAim.targetPart]
     end
     
+    return parts.Head or parts.Torso
+end
+
+-- PERBAIKAN: Closest player detection yang lebih akurat
+local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
-    local centerScreen = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
     
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
+        if isValidTarget(player) then
             local character = player.Character
-            local targetPart = character:FindFirstChild(ESP_CONFIG.targetPart)
+            local targetPart = getTargetPart(character)
             
             if targetPart then
-                -- Cek apakah hanya target musuh
-                local isEnemy = true
-                if ESP_CONFIG.aimOnlyEnemies and player.Team and LocalPlayer.Team then
-                    isEnemy = player.Team ~= LocalPlayer.Team
-                end
-                
-                if not ESP_CONFIG.aimOnlyEnemies or isEnemy then
-                    -- Hitung jarak 3D
-                    local distance3D = (LocalPlayer.Character.HumanoidRootPart.Position - targetPart.Position).Magnitude
+                local distance = getDistance(player)
+                if distance <= Config.AutoAim.maxDistance then
+                    local screenPoint, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
                     
-                    if distance3D <= ESP_CONFIG.maxDistance then
-                        -- Convert ke screen position
-                        local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                    if onScreen and screenPoint.Z > 0 then
+                        local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                        local targetPos = Vector2.new(screenPoint.X, screenPoint.Y)
+                        local fovDistance = (mousePos - targetPos).Magnitude
                         
-                        if onScreen then
-                            local screenDistance = (Vector2.new(screenPos.X, screenPos.Y) - centerScreen).Magnitude
-                            
-                            -- Cek apakah dalam FOV
-                            if screenDistance <= ESP_CONFIG.aimFOV and screenDistance < shortestDistance then
-                                closestPlayer = player
-                                shortestDistance = screenDistance
-                            end
+                        if fovDistance <= Config.AutoAim.fov and distance < shortestDistance then
+                            closestPlayer = player
+                            shortestDistance = distance
                         end
                     end
                 end
@@ -120,449 +235,851 @@ local function getClosestTarget()
     return closestPlayer
 end
 
--- Fungsi untuk aim ke target
-local function aimAtTarget(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then
-        return
-    end
-    
-    local targetPart = targetPlayer.Character:FindFirstChild(ESP_CONFIG.targetPart)
-    if not targetPart then
-        return
-    end
-    
-    -- Hitung arah ke target
-    local targetPosition = targetPart.Position
-    local currentCFrame = Camera.CFrame
-    local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
-    
-    -- Smooth aim menggunakan lerp
-    local newCFrame = currentCFrame:Lerp(targetCFrame, ESP_CONFIG.aimSmoothness)
-    Camera.CFrame = newCFrame
-end
--- Fungsi untuk membuat highlight
-local function createHighlight(character, isEnemy)
-    local highlight = Instance.new("Highlight")
-    highlight.Name = "ESP_Highlight"
-    highlight.Adornee = character
-    highlight.FillTransparency = ESP_CONFIG.highlightTransparency
-    highlight.OutlineTransparency = 0.5
-    
-    -- Tentukan warna highlight
-    local highlightColor = isEnemy and ESP_CONFIG.enemyHighlight or ESP_CONFIG.allyHighlight
-    highlight.FillColor = highlightColor
-    highlight.OutlineColor = highlightColor
-    
-    highlight.Parent = character
-    return highlight
-end
-
--- Fungsi untuk membuat ESP GUI
-local function createESP(player)
-    if player == LocalPlayer then return end
-    
-    local espGui = Instance.new("BillboardGui")
-    espGui.Name = "ESP_" .. player.Name
-    espGui.AlwaysOnTop = true
-    espGui.Size = UDim2.new(0, 200, 0, 120)
-    espGui.StudsOffset = Vector3.new(0, 3, 0)
-    
-    -- Frame utama
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Parent = espGui
-    mainFrame.Size = UDim2.new(1, 0, 1, 0)
-    mainFrame.BackgroundTransparency = 1
-    
-    -- Label nama
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Parent = mainFrame
-    nameLabel.Size = UDim2.new(1, 0, 0.25, 0)
-    nameLabel.Position = UDim2.new(0, 0, 0, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = player.Name
-    nameLabel.TextColor3 = ESP_CONFIG.textColor
-    nameLabel.TextSize = ESP_CONFIG.textSize
-    nameLabel.TextStrokeTransparency = 0
-    nameLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    nameLabel.Font = Enum.Font.SourceSansBold
-    
-    -- Label jarak
-    local distanceLabel = Instance.new("TextLabel")
-    distanceLabel.Parent = mainFrame
-    distanceLabel.Size = UDim2.new(1, 0, 0.25, 0)
-    distanceLabel.Position = UDim2.new(0, 0, 0.25, 0)
-    distanceLabel.BackgroundTransparency = 1
-    distanceLabel.Text = "0m"
-    distanceLabel.TextColor3 = ESP_CONFIG.textColor
-    distanceLabel.TextSize = ESP_CONFIG.textSize - 2
-    distanceLabel.TextStrokeTransparency = 0
-    distanceLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    distanceLabel.Font = Enum.Font.SourceSans
-    
-    -- Label health (persentase)
-    local healthLabel = Instance.new("TextLabel")
-    healthLabel.Parent = mainFrame
-    healthLabel.Size = UDim2.new(1, 0, 0.25, 0)
-    healthLabel.Position = UDim2.new(0, 0, 0.5, 0)
-    healthLabel.BackgroundTransparency = 1
-    healthLabel.Text = "100%"
-    healthLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-    healthLabel.TextSize = ESP_CONFIG.textSize - 2
-    healthLabel.TextStrokeTransparency = 0
-    healthLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    healthLabel.Font = Enum.Font.SourceSans
-    
-    -- Label health (angka aktual) - FITUR BARU
-    local healthNumberLabel = Instance.new("TextLabel")
-    healthNumberLabel.Parent = mainFrame
-    healthNumberLabel.Size = UDim2.new(1, 0, 0.25, 0)
-    healthNumberLabel.Position = UDim2.new(0, 0, 0.75, 0)
-    healthNumberLabel.BackgroundTransparency = 1
-    healthNumberLabel.Text = "100/100"
-    healthNumberLabel.TextColor3 = ESP_CONFIG.textColor
-    healthNumberLabel.TextSize = ESP_CONFIG.textSize - 4
-    healthNumberLabel.TextStrokeTransparency = 0
-    healthNumberLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
-    healthNumberLabel.Font = Enum.Font.SourceSans
-    
-    espObjects[player] = {
-        gui = espGui,
-        nameLabel = nameLabel,
-        distanceLabel = distanceLabel,
-        healthLabel = healthLabel,
-        healthNumberLabel = healthNumberLabel,
-        player = player,
-        highlight = nil -- akan diisi saat character ada
-    }
-    
-    return espGui
-end
-
--- Fungsi untuk update ESP
-local function updateESP(espData)
-    if not espData or not espData.player.Character then return end
-    
-    local player = espData.player
-    local character = player.Character
-    local humanoid = character:FindFirstChild("Humanoid")
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    
-    if not rootPart or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        espData.gui.Enabled = false
-        if espData.highlight then
-            espData.highlight.Enabled = false
+-- PERBAIKAN: Update ESP dengan deteksi yang lebih baik
+local function updateESP()
+    if not Config.ESP.enabled then 
+        for _, esp in pairs(ESPObjects) do
+            if esp and esp.drawings then
+                for _, drawing in pairs(esp.drawings) do
+                    if drawing then drawing.Visible = false end
+                end
+            end
+            if esp and esp.highlight then esp.highlight.Enabled = false end
         end
-        return
+        return 
     end
     
-    -- Hitung jarak
-    local distance = (LocalPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude
-    
-    -- Sembunyikan jika terlalu jauh
-    if distance > ESP_CONFIG.maxDistance then
-        espData.gui.Enabled = false
-        if espData.highlight then
-            espData.highlight.Enabled = false
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local esp = ESPObjects[player]
+            
+            if not esp then
+                esp = createESPObject(player)
+                ESPObjects[player] = esp
+            end
+            
+            if isValidTarget(player) then
+                local character = player.Character
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local rootPart = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso")
+                local head = character:FindFirstChild("Head")
+                
+                if rootPart and head then
+                    -- Recreate highlight if needed
+                    if Config.ESP.showHighlight then
+                        if not esp.highlight or esp.highlight.Parent ~= character then
+                            if esp.highlight then esp.highlight:Destroy() end
+                            esp.highlight = createHighlight(character)
+                        end
+                        esp.highlight.Enabled = true
+                    elseif esp.highlight then
+                        esp.highlight.Enabled = false
+                    end
+                    
+                    local distance = getDistance(player)
+                    
+                    if distance <= Config.ESP.maxDistance then
+                        local screenPoint, onScreen = Camera:WorldToViewportPoint(head.Position)
+                        
+                        if onScreen and screenPoint.Z > 0 then
+                            -- Names
+                            if Config.ESP.showNames then
+                                esp.drawings.name.Text = player.Name
+                                esp.drawings.name.Position = Vector2.new(screenPoint.X, screenPoint.Y - 30)
+                                esp.drawings.name.Visible = true
+                            else
+                                esp.drawings.name.Visible = false
+                            end
+                            
+                            -- Distance
+                            if Config.ESP.showDistance then
+                                esp.drawings.distance.Text = distance .. "m"
+                                esp.drawings.distance.Position = Vector2.new(screenPoint.X, screenPoint.Y - 10)
+                                esp.drawings.distance.Visible = true
+                            else
+                                esp.drawings.distance.Visible = false
+                            end
+                            
+                            -- Health
+                            if Config.ESP.showHealth and humanoid then
+                                local health = math.floor(humanoid.Health)
+                                local maxHealth = math.floor(humanoid.MaxHealth)
+                                esp.drawings.health.Text = health .. "/" .. maxHealth
+                                esp.drawings.health.Position = Vector2.new(screenPoint.X, screenPoint.Y + 10)
+                                esp.drawings.health.Color = Color3.new(1 - (health/maxHealth), health/maxHealth, 0)
+                                esp.drawings.health.Visible = true
+                            else
+                                esp.drawings.health.Visible = false
+                            end
+                            
+                            -- Boxes
+                            if Config.ESP.showBoxes then
+                                local hrpScreenPoint = Camera:WorldToViewportPoint(rootPart.Position)
+                                local headScreenPoint = Camera:WorldToViewportPoint(head.Position)
+                                
+                                local height = math.abs(headScreenPoint.Y - hrpScreenPoint.Y) + 20
+                                local width = height / 2
+                                
+                                esp.drawings.box.Size = Vector2.new(width, height)
+                                esp.drawings.box.Position = Vector2.new(screenPoint.X - width/2, screenPoint.Y - height/2)
+                                esp.drawings.box.Visible = true
+                            else
+                                esp.drawings.box.Visible = false
+                            end
+                            
+                            -- Lines
+                            if Config.ESP.showLines then
+                                local screenCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                                esp.drawings.line.From = screenCenter
+                                esp.drawings.line.To = Vector2.new(screenPoint.X, screenPoint.Y)
+                                esp.drawings.line.Visible = true
+                            else
+                                esp.drawings.line.Visible = false
+                            end
+                        else
+                            for _, drawing in pairs(esp.drawings) do
+                                drawing.Visible = false
+                            end
+                        end
+                    else
+                        for _, drawing in pairs(esp.drawings) do
+                            drawing.Visible = false
+                        end
+                        if esp.highlight then esp.highlight.Enabled = false end
+                    end
+                else
+                    for _, drawing in pairs(esp.drawings) do
+                        drawing.Visible = false
+                    end
+                    if esp.highlight then esp.highlight.Enabled = false end
+                end
+            else
+                -- Hide ESP for invalid targets
+                for _, drawing in pairs(esp.drawings) do
+                    drawing.Visible = false
+                end
+                if esp.highlight then esp.highlight.Enabled = false end
+            end
         end
-        return
-    end
-    
-    espData.gui.Enabled = ESP_CONFIG.enabled
-    espData.gui.Adornee = rootPart
-    
-    -- Tentukan apakah enemy atau ally
-    local isEnemy = true
-    if player.Team and LocalPlayer.Team then
-        isEnemy = player.Team ~= LocalPlayer.Team
-    end
-    
-    -- Update atau buat highlight
-    if ESP_CONFIG.showHighlight then
-        if not espData.highlight or not espData.highlight.Parent then
-            espData.highlight = createHighlight(character, isEnemy)
-        end
-        espData.highlight.Enabled = true
-        
-        -- Update warna highlight berdasarkan tim
-        local highlightColor = isEnemy and ESP_CONFIG.enemyHighlight or ESP_CONFIG.allyHighlight
-        espData.highlight.FillColor = highlightColor
-        espData.highlight.OutlineColor = highlightColor
-    else
-        if espData.highlight then
-            espData.highlight.Enabled = false
-        end
-    end
-    
-    -- Update jarak
-    if ESP_CONFIG.showDistance then
-        espData.distanceLabel.Text = math.floor(distance) .. "m"
-        espData.distanceLabel.Visible = true
-    else
-        espData.distanceLabel.Visible = false
-    end
-    
-    -- Update nama
-    if ESP_CONFIG.showNames then
-        espData.nameLabel.Visible = true
-    else
-        espData.nameLabel.Visible = false
-    end
-    
-    -- Update health
-    if ESP_CONFIG.showHealth and humanoid then
-        local currentHealth = math.floor(humanoid.Health)
-        local maxHealth = math.floor(humanoid.MaxHealth)
-        local healthPercent = math.floor((currentHealth / maxHealth) * 100)
-        
-        -- Update persentase health
-        espData.healthLabel.Text = healthPercent .. "%"
-        espData.healthLabel.Visible = true
-        
-        -- Update angka health aktual - FITUR BARU
-        espData.healthNumberLabel.Text = currentHealth .. "/" .. maxHealth
-        espData.healthNumberLabel.Visible = true
-        
-        -- Ubah warna berdasarkan health
-        local healthColor
-        if healthPercent > 75 then
-            healthColor = Color3.fromRGB(0, 255, 0) -- hijau
-        elseif healthPercent > 50 then
-            healthColor = Color3.fromRGB(255, 255, 0) -- kuning
-        elseif healthPercent > 25 then
-            healthColor = Color3.fromRGB(255, 165, 0) -- orange
-        else
-            healthColor = Color3.fromRGB(255, 0, 0) -- merah
-        end
-        
-        espData.healthLabel.TextColor3 = healthColor
-        espData.healthNumberLabel.TextColor3 = healthColor
-    else
-        espData.healthLabel.Visible = false
-        espData.healthNumberLabel.Visible = false
-    end
-    
-    -- Tentukan warna nama berdasarkan tim
-    local espColor = isEnemy and ESP_CONFIG.enemyColor or ESP_CONFIG.allyColor
-    espData.nameLabel.TextColor3 = espColor
-end
-
--- Fungsi untuk menghapus ESP
-local function removeESP(player)
-    if espObjects[player] then
-        if espObjects[player].gui then
-            espObjects[player].gui:Destroy()
-        end
-        if espObjects[player].highlight then
-            espObjects[player].highlight:Destroy()
-        end
-        espObjects[player] = nil
     end
 end
 
--- Event handlers
-local function onPlayerAdded(player)
-    player.CharacterAdded:Connect(function(character)
-        wait(1) -- tunggu character sepenuhnya load
-        local esp = createESP(player)
-        if esp and character:FindFirstChild("HumanoidRootPart") then
-            esp.Parent = character:FindFirstChild("HumanoidRootPart")
+-- Auto Aim functionality
+local function updateAutoAim()
+    if not Config.AutoAim.enabled then return end
+    
+    local target = getClosestPlayer()
+    if target and target.Character then
+        local targetPart = getTargetPart(target.Character)
+        if targetPart then
+            local targetPosition = targetPart.Position
+            local currentCFrame = Camera.CFrame
+            local targetCFrame = CFrame.lookAt(currentCFrame.Position, targetPosition)
+            
+            local lerpedCFrame = currentCFrame:Lerp(targetCFrame, Config.AutoAim.smoothness)
+            Camera.CFrame = lerpedCFrame
+        end
+    end
+end
+
+-- PERBAIKAN: FOV Circle dengan update real-time yang benar
+local function createFOVCircle()
+    if FOVCircle then
+        pcall(function() FOVCircle:Remove() end)
+    end
+    
+    FOVCircle = Drawing.new("Circle")
+    FOVCircle.Color = Color3.new(1, 1, 1)
+    FOVCircle.Thickness = 2
+    FOVCircle.Transparency = 0.5
+    FOVCircle.Filled = false
+    FOVCircle.Radius = Config.AutoAim.fov
+    FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    FOVCircle.Visible = Config.AutoAim.enabled and Config.AutoAim.showFOV
+end
+
+local function updateFOVCircle()
+    if FOVCircle then
+        FOVCircle.Visible = Config.AutoAim.enabled and Config.AutoAim.showFOV
+        FOVCircle.Radius = Config.AutoAim.fov
+        FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    end
+end
+
+-- GUI Creation dengan slider yang benar-benar berfungsi
+local function createGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "WarpahVipAutoAim"
+    ScreenGui.Parent = CoreGui
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Main Frame
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Position = UDim2.new(0, 50, 0, 50)
+    MainFrame.Size = UDim2.new(0, 280, 0, 420)
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    
+    -- Shadow effect
+    local Shadow = Instance.new("Frame")
+    Shadow.Name = "Shadow"
+    Shadow.Parent = ScreenGui
+    Shadow.BackgroundColor3 = Color3.new(0, 0, 0)
+    Shadow.BackgroundTransparency = 0.7
+    Shadow.Position = UDim2.new(0, 55, 0, 55)
+    Shadow.Size = UDim2.new(0, 280, 0, 420)
+    Shadow.ZIndex = MainFrame.ZIndex - 1
+    
+    local ShadowCorner = Instance.new("UICorner")
+    ShadowCorner.CornerRadius = UDim.new(0, 10)
+    ShadowCorner.Parent = Shadow
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = MainFrame
+    
+    -- Title Bar
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Name = "TitleBar"
+    TitleBar.Parent = MainFrame
+    TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    TitleBar.Size = UDim2.new(1, 0, 0, 35)
+    TitleBar.BorderSizePixel = 0
+    
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 10)
+    TitleCorner.Parent = TitleBar
+    
+    local TitleFix = Instance.new("Frame")
+    TitleFix.Parent = TitleBar
+    TitleFix.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    TitleFix.Position = UDim2.new(0, 0, 0.5, 0)
+    TitleFix.Size = UDim2.new(1, 0, 0.5, 0)
+    TitleFix.BorderSizePixel = 0
+    
+    local Title = Instance.new("TextLabel")
+    Title.Name = "Title"
+    Title.Parent = TitleBar
+    Title.BackgroundTransparency = 1
+    Title.Position = UDim2.new(0, 10, 0, 0)
+    Title.Size = UDim2.new(0.7, 0, 1, 0)
+    Title.Font = Enum.Font.GothamBold
+    Title.Text = "WarpahVip Auto Aim v2.0"
+    Title.TextColor3 = Color3.new(1, 1, 1)
+    Title.TextSize = 14
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Minimize Button
+    local MinimizeBtn = Instance.new("TextButton")
+    MinimizeBtn.Name = "MinimizeBtn"
+    MinimizeBtn.Parent = TitleBar
+    MinimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+    MinimizeBtn.Position = UDim2.new(1, -65, 0.2, 0)
+    MinimizeBtn.Size = UDim2.new(0, 20, 0, 20)
+    MinimizeBtn.Font = Enum.Font.GothamBold
+    MinimizeBtn.Text = "_"
+    MinimizeBtn.TextColor3 = Color3.new(0, 0, 0)
+    MinimizeBtn.TextSize = 12
+    
+    local MinCorner = Instance.new("UICorner")
+    MinCorner.CornerRadius = UDim.new(0, 3)
+    MinCorner.Parent = MinimizeBtn
+    
+    -- Close Button
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Name = "CloseBtn"
+    CloseBtn.Parent = TitleBar
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+    CloseBtn.Position = UDim2.new(1, -35, 0.2, 0)
+    CloseBtn.Size = UDim2.new(0, 20, 0, 20)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Text = "X"
+    CloseBtn.TextColor3 = Color3.new(1, 1, 1)
+    CloseBtn.TextSize = 12
+    
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 3)
+    CloseCorner.Parent = CloseBtn
+    
+    -- Content Frame
+    local ContentFrame = Instance.new("ScrollingFrame")
+    ContentFrame.Name = "ContentFrame"
+    ContentFrame.Parent = MainFrame
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.Position = UDim2.new(0, 5, 0, 40)
+    ContentFrame.Size = UDim2.new(1, -10, 1, -45)
+    ContentFrame.CanvasSize = UDim2.new(0, 0, 0, 650)
+    ContentFrame.ScrollBarThickness = 4
+    ContentFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 120)
+    
+    local isMinimized = false
+    local originalSize = UDim2.new(0, 280, 0, 420)
+    
+    -- Minimize functionality
+    MinimizeBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        local targetSize = isMinimized and UDim2.new(0, 280, 0, 35) or originalSize
+        
+        TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
+            Size = targetSize
+        }):Play()
+        
+        TweenService:Create(Shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
+            Size = UDim2.new(targetSize.X.Scale, targetSize.X.Offset, targetSize.Y.Scale, targetSize.Y.Offset)
+        }):Play()
+        
+        ContentFrame.Visible = not isMinimized
+        MinimizeBtn.Text = isMinimized and "+" or "_"
+    end)
+    
+    -- Close functionality
+    CloseBtn.MouseButton1Click:Connect(function()
+        TweenService:Create(MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(0, MainFrame.AbsolutePosition.X + 140, 0, MainFrame.AbsolutePosition.Y + 160)
+        }):Play()
+        
+        TweenService:Create(Shadow, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+            Size = UDim2.new(0, 0, 0, 0),
+            Position = UDim2.new(0, Shadow.AbsolutePosition.X + 140, 0, Shadow.AbsolutePosition.Y + 160)
+        }):Play()
+        
+        wait(0.2)
+        ScreenGui:Destroy()
+    end)
+    
+    -- Toggle function
+    local function createToggle(name, position, callback, enabled)
+        enabled = enabled or false
+        
+        local Toggle = Instance.new("Frame")
+        Toggle.Name = name:gsub(" ", "")
+        Toggle.Parent = ContentFrame
+        Toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        Toggle.Position = position
+        Toggle.Size = UDim2.new(1, -10, 0, 25)
+        
+        local ToggleCorner = Instance.new("UICorner")
+        ToggleCorner.CornerRadius = UDim.new(0, 6)
+        ToggleCorner.Parent = Toggle
+        
+        local Label = Instance.new("TextLabel")
+        Label.Parent = Toggle
+        Label.BackgroundTransparency = 1
+        Label.Position = UDim2.new(0, 8, 0, 0)
+        Label.Size = UDim2.new(0.75, 0, 1, 0)
+        Label.Font = Enum.Font.Gotham
+        Label.Text = name
+        Label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+        Label.TextSize = 12
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        
+        local Switch = Instance.new("Frame")
+        Switch.Parent = Toggle
+        Switch.BackgroundColor3 = enabled and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(149, 165, 166)
+        Switch.Position = UDim2.new(1, -45, 0.2, 0)
+        Switch.Size = UDim2.new(0, 35, 0, 15)
+        
+        local SwitchCorner = Instance.new("UICorner")
+        SwitchCorner.CornerRadius = UDim.new(0, 8)
+        SwitchCorner.Parent = Switch
+        
+        local Knob = Instance.new("Frame")
+        Knob.Parent = Switch
+        Knob.BackgroundColor3 = Color3.new(1, 1, 1)
+        Knob.Position = enabled and UDim2.new(1, -13, 0, 1) or UDim2.new(0, 1, 0, 1)
+        Knob.Size = UDim2.new(0, 13, 0, 13)
+        
+        local KnobCorner = Instance.new("UICorner")
+        KnobCorner.CornerRadius = UDim.new(0, 7)
+        KnobCorner.Parent = Knob
+        
+        local Button = Instance.new("TextButton")
+        Button.Parent = Switch
+        Button.BackgroundTransparency = 1
+        Button.Size = UDim2.new(1, 0, 1, 0)
+        Button.Text = ""
+        
+        Button.MouseButton1Click:Connect(function()
+            enabled = not enabled
+            
+            local switchColor = enabled and Color3.fromRGB(46, 204, 113) or Color3.fromRGB(149, 165, 166)
+            local knobPos = enabled and UDim2.new(1, -13, 0, 1) or UDim2.new(0, 1, 0, 1)
+            
+            TweenService:Create(Switch, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+                BackgroundColor3 = switchColor
+            }):Play()
+            
+            TweenService:Create(Knob, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+                Position = knobPos
+            }):Play()
+            
+            callback(enabled)
+        end)
+        
+        return Toggle
+    end
+    
+    -- PERBAIKAN: Slider yang benar-benar berfungsi dengan drag
+    local function createSlider(name, position, min, max, default, callback)
+        local currentValue = default
+        
+        local Slider = Instance.new("Frame")
+        Slider.Name = name:gsub(" ", "")
+        Slider.Parent = ContentFrame
+        Slider.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        Slider.Position = position
+        Slider.Size = UDim2.new(1, -10, 0, 35)
+        
+        local SliderCorner = Instance.new("UICorner")
+        SliderCorner.CornerRadius = UDim.new(0, 6)
+        SliderCorner.Parent = Slider
+        
+        local Label = Instance.new("TextLabel")
+        Label.Parent = Slider
+        Label.BackgroundTransparency = 1
+        Label.Position = UDim2.new(0, 8, 0, 0)
+        Label.Size = UDim2.new(1, 0, 0.5, 0)
+        Label.Font = Enum.Font.Gotham
+        Label.Text = name .. ": " .. currentValue
+        Label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+        Label.TextSize = 11
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        
+        local SliderTrack = Instance.new("Frame")
+        SliderTrack.Parent = Slider
+        SliderTrack.BackgroundColor3 = Color3.fromRGB(60, 60, 75)
+        SliderTrack.Position = UDim2.new(0, 8, 0.6, 0)
+        SliderTrack.Size = UDim2.new(1, -16, 0, 8)
+        
+        local TrackCorner = Instance.new("UICorner")
+        TrackCorner.CornerRadius = UDim.new(0, 4)
+        TrackCorner.Parent = SliderTrack
+        
+        local SliderFill = Instance.new("Frame")
+        SliderFill.Parent = SliderTrack
+        SliderFill.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+        SliderFill.Size = UDim2.new((currentValue - min) / (max - min), 0, 1, 0)
+        SliderFill.BorderSizePixel = 0
+        
+        local FillCorner = Instance.new("UICorner")
+        FillCorner.CornerRadius = UDim.new(0, 4)
+        FillCorner.Parent = SliderFill
+        
+        local Knob = Instance.new("Frame")
+        Knob.Parent = SliderTrack
+        Knob.BackgroundColor3 = Color3.new(1, 1, 1)
+        Knob.Position = UDim2.new((currentValue - min) / (max - min), -6, -0.5, 0)
+        Knob.Size = UDim2.new(0, 12, 0, 16)
+        
+        local KnobCorner = Instance.new("UICorner")
+        KnobCorner.CornerRadius = UDim.new(0, 6)
+        KnobCorner.Parent = Knob
+        
+        local dragging = false
+        
+        -- Update function
+        local function updateSlider(value)
+            currentValue = math.clamp(math.floor(value), min, max)
+            local percentage = (currentValue - min) / (max - min)
+            
+            -- Update visual
+            SliderFill:TweenSize(UDim2.new(percentage, 0, 1, 0), "Out", "Quart", 0.1, true)
+            Knob:TweenPosition(UDim2.new(percentage, -6, -0.5, 0), "Out", "Quart", 0.1, true)
+            Label.Text = name .. ": " .. currentValue
+            
+            -- Call callback immediately
+            callback(currentValue)
+        end
+        
+        -- Mouse events for dragging
+        Knob.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                Knob.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+            end
+        end)
+        
+        -- Global input handling
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+                Knob.BackgroundColor3 = Color3.new(1, 1, 1)
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                local mouseX = Mouse.X
+                local trackStart = SliderTrack.AbsolutePosition.X
+                local trackEnd = trackStart + SliderTrack.AbsoluteSize.X
+                
+                local percentage = math.clamp((mouseX - trackStart) / SliderTrack.AbsoluteSize.X, 0, 1)
+                local newValue = min + (max - min) * percentage
+                
+                updateSlider(newValue)
+            end
+        end)
+        
+        -- Click on track to jump
+        SliderTrack.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 and not dragging then
+                local mouseX = input.Position.X
+                local trackStart = SliderTrack.AbsolutePosition.X
+                local percentage = math.clamp((mouseX - trackStart) / SliderTrack.AbsoluteSize.X, 0, 1)
+                local newValue = min + (max - min) * percentage
+                
+                updateSlider(newValue)
+            end
+        end)
+        
+        return Slider
+    end
+    
+    -- Dropdown function
+    local function createDropdown(name, position, options, default, callback)
+        local Dropdown = Instance.new("Frame")
+        Dropdown.Name = name:gsub(" ", "")
+        Dropdown.Parent = ContentFrame
+        Dropdown.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+        Dropdown.Position = position
+        Dropdown.Size = UDim2.new(1, -10, 0, 25)
+        
+        local DropdownCorner = Instance.new("UICorner")
+        DropdownCorner.CornerRadius = UDim.new(0, 6)
+        DropdownCorner.Parent = Dropdown
+        
+        local Label = Instance.new("TextLabel")
+        Label.Parent = Dropdown
+        Label.BackgroundTransparency = 1
+        Label.Position = UDim2.new(0, 8, 0, 0)
+        Label.Size = UDim2.new(0.5, 0, 1, 0)
+        Label.Font = Enum.Font.Gotham
+        Label.Text = name
+        Label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+        Label.TextSize = 12
+        Label.TextXAlignment = Enum.TextXAlignment.Left
+        
+        local Button = Instance.new("TextButton")
+        Button.Parent = Dropdown
+        Button.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+        Button.Position = UDim2.new(0.55, 0, 0.1, 0)
+        Button.Size = UDim2.new(0.4, 0, 0.8, 0)
+        Button.Font = Enum.Font.Gotham
+        Button.Text = default
+        Button.TextColor3 = Color3.new(1, 1, 1)
+        Button.TextSize = 10
+        
+        local ButtonCorner = Instance.new("UICorner")
+        ButtonCorner.CornerRadius = UDim.new(0, 4)
+        ButtonCorner.Parent = Button
+        
+        local currentIndex = 1
+        for i, option in ipairs(options) do
+            if option == default then
+                currentIndex = i
+                break
+            end
+        end
+        
+        Button.MouseButton1Click:Connect(function()
+            currentIndex = currentIndex + 1
+            if currentIndex > #options then
+                currentIndex = 1
+            end
+            
+            Button.Text = options[currentIndex]
+            callback(options[currentIndex])
+        end)
+        
+        return Dropdown
+    end
+    
+    -- Section header
+    local function createSection(name, position)
+        local Section = Instance.new("TextLabel")
+        Section.Parent = ContentFrame
+        Section.BackgroundColor3 = Color3.fromRGB(52, 152, 219)
+        Section.Position = position
+        Section.Size = UDim2.new(1, -10, 0, 20)
+        Section.Font = Enum.Font.GothamBold
+        Section.Text = name
+        Section.TextColor3 = Color3.new(1, 1, 1)
+        Section.TextSize = 12
+        
+        local SectionCorner = Instance.new("UICorner")
+        SectionCorner.CornerRadius = UDim.new(0, 4)
+        SectionCorner.Parent = Section
+        
+        return Section
+    end
+    
+    -- Create GUI elements
+    local yPos = 5
+    
+    -- ESP Section
+    createSection("ESP Settings", UDim2.new(0, 0, 0, yPos))
+    yPos = yPos + 25
+    
+    createToggle("Enable ESP", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.ESP.enabled = enabled
+    end)
+    yPos = yPos + 30
+    
+    createToggle("Show Names", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.ESP.showNames = enabled
+    end, Config.ESP.showNames)
+    yPos = yPos + 30
+    
+    createToggle("Show Distance", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.ESP.showDistance = enabled
+    end, Config.ESP.showDistance)
+    yPos = yPos + 30
+    
+    createToggle("Show Health", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.ESP.showHealth = enabled
+    end, Config.ESP.showHealth)
+    yPos = yPos + 30
+    
+    createToggle("Show Boxes", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.ESP.showBoxes = enabled
+    end, Config.ESP.showBoxes)
+    yPos = yPos + 30
+    
+    createToggle("Show Lines", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.ESP.showLines = enabled
+    end, Config.ESP.showLines)
+    yPos = yPos + 30
+    
+    createToggle("Show Highlight", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.ESP.showHighlight = enabled
+    end, Config.ESP.showHighlight)
+    yPos = yPos + 30
+    
+    createToggle("Team Check ESP", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.ESP.teamCheck = enabled
+    end, Config.ESP.teamCheck)
+    yPos = yPos + 30
+    
+    createSlider("ESP Distance", UDim2.new(0, 0, 0, yPos), 100, 2000, Config.ESP.maxDistance, function(value)
+        Config.ESP.maxDistance = value
+    end)
+    yPos = yPos + 40
+    
+    -- Auto Aim Section
+    createSection("Auto Aim Settings", UDim2.new(0, 0, 0, yPos))
+    yPos = yPos + 25
+    
+    createToggle("Enable Auto Aim", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.AutoAim.enabled = enabled
+        if FOVCircle then
+            FOVCircle.Visible = enabled and Config.AutoAim.showFOV
+        end
+    end)
+    yPos = yPos + 30
+    
+    createSlider("FOV Size", UDim2.new(0, 0, 0, yPos), 30, 300, Config.AutoAim.fov, function(value)
+        Config.AutoAim.fov = value
+        if FOVCircle then
+            FOVCircle.Radius = value
+        end
+    end)
+    yPos = yPos + 40
+    
+    createSlider("Aim Distance", UDim2.new(0, 0, 0, yPos), 100, 1000, Config.AutoAim.maxDistance, function(value)
+        Config.AutoAim.maxDistance = value
+    end)
+    yPos = yPos + 40
+    
+    createSlider("Smoothness", UDim2.new(0, 0, 0, yPos), 1, 100, math.floor(Config.AutoAim.smoothness * 100), function(value)
+        Config.AutoAim.smoothness = value / 100
+    end)
+    yPos = yPos + 40
+    
+    createDropdown("Target Part", UDim2.new(0, 0, 0, yPos), {"Head", "Torso", "LowerTorso", "Random"}, Config.AutoAim.targetPart, function(value)
+        Config.AutoAim.targetPart = value
+    end)
+    yPos = yPos + 30
+    
+    createToggle("Show FOV Circle", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.AutoAim.showFOV = enabled
+        if FOVCircle then
+            FOVCircle.Visible = Config.AutoAim.enabled and enabled
+        end
+    end, Config.AutoAim.showFOV)
+    yPos = yPos + 30
+    
+    createToggle("Team Check Aim", UDim2.new(0, 0, 0, yPos), function(enabled)
+        Config.AutoAim.teamCheck = enabled
+    end, Config.AutoAim.teamCheck)
+    yPos = yPos + 30
+    
+    -- Update canvas size
+    ContentFrame.CanvasSize = UDim2.new(0, 0, 0, yPos + 20)
+    
+    -- Shadow position update
+    local function updateShadowPosition()
+        Shadow.Position = UDim2.new(0, MainFrame.AbsolutePosition.X + 5, 0, MainFrame.AbsolutePosition.Y + 5)
+    end
+    
+    MainFrame:GetPropertyChangedSignal("AbsolutePosition"):Connect(updateShadowPosition)
+    
+    return ScreenGui
+end
+
+-- PERBAIKAN: Event handling yang lebih robust
+local function connectEvents()
+    -- Clean up existing connections
+    for _, connection in pairs(Connections) do
+        if connection then 
+            pcall(function() connection:Disconnect() end)
+        end
+    end
+    Connections = {}
+    
+    -- Handle player events
+    Connections.PlayerAdded = Players.PlayerAdded:Connect(function(player)
+        if player ~= LocalPlayer then
+            wait(0.5) -- Wait for character to load
+            ESPObjects[player] = createESPObject(player)
+            
+            -- Connect character events
+            if player.CharacterAdded then
+                Connections["CharacterAdded_"..player.Name] = player.CharacterAdded:Connect(function()
+                    wait(1)
+                    if ESPObjects[player] then
+                        removeESPObject(ESPObjects[player])
+                    end
+                    ESPObjects[player] = createESPObject(player)
+                end)
+            end
         end
     end)
     
-    -- Handle jika character sudah ada saat player join
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        local esp = createESP(player)
-        if esp then
-            esp.Parent = player.Character:FindFirstChild("HumanoidRootPart")
+    Connections.PlayerRemoving = Players.PlayerRemoving:Connect(function(player)
+        if ESPObjects[player] then
+            removeESPObject(ESPObjects[player])
+            ESPObjects[player] = nil
         end
-    end
-end
-
-local function onPlayerRemoving(player)
-    removeESP(player)
-end
-
--- Setup event connections
-Players.PlayerAdded:Connect(onPlayerAdded)
-Players.PlayerRemoving:Connect(onPlayerRemoving)
-
--- Setup ESP untuk player yang sudah ada
-for _, player in pairs(Players:GetPlayers()) do
-    if player ~= LocalPlayer then
-        onPlayerAdded(player)
-    end
-end
-
--- Update loop
-RunService.Heartbeat:Connect(function()
-    -- Update ESP
-    for player, espData in pairs(espObjects) do
-        if Players:FindFirstChild(player.Name) then
-            updateESP(espData)
-        else
-            removeESP(player)
+        
+        -- Clean up connections
+        if Connections["CharacterAdded_"..player.Name] then
+            Connections["CharacterAdded_"..player.Name]:Disconnect()
+            Connections["CharacterAdded_"..player.Name] = nil
+        end
+    end)
+    
+    -- Handle existing players
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            ESPObjects[player] = createESPObject(player)
+            
+            if player.CharacterAdded then
+                Connections["CharacterAdded_"..player.Name] = player.CharacterAdded:Connect(function()
+                    wait(1)
+                    if ESPObjects[player] then
+                        removeESPObject(ESPObjects[player])
+                    end
+                    ESPObjects[player] = createESPObject(player)
+                end)
+            end
         end
     end
     
-    -- Update FOV Circle
-    if fovCircle then
-        fovCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        fovCircle.Radius = ESP_CONFIG.aimFOV
-        fovCircle.Visible = ESP_CONFIG.showFOVCircle and ESP_CONFIG.autoAimEnabled
-        fovCircle.Color = ESP_CONFIG.fovCircleColor
-    end
-    
-    -- Auto Aim Logic
-    if ESP_CONFIG.autoAimEnabled then
-        currentTarget = getClosestTarget()
-        if currentTarget then
-            aimAtTarget(currentTarget)
-        end
-    end
-end)
-
--- Fungsi toggle auto aim
-local function toggleAutoAim()
-    ESP_CONFIG.autoAimEnabled = not ESP_CONFIG.autoAimEnabled
-    
-    if ESP_CONFIG.autoAimEnabled then
-        if not fovCircle then
+    -- LocalPlayer respawn handling
+    if LocalPlayer.CharacterAdded then
+        Connections.LocalPlayerSpawn = LocalPlayer.CharacterAdded:Connect(function()
+            wait(2) -- Wait for everything to load
+            Camera = workspace.CurrentCamera
             createFOVCircle()
-        end
-        print("Auto Aim ENABLED")
-        print("Target: " .. ESP_CONFIG.targetPart)
-        print("FOV: " .. ESP_CONFIG.aimFOV)
-        print("Smoothness: " .. ESP_CONFIG.aimSmoothness)
-    else
-        if fovCircle then
-            fovCircle.Visible = false
-        end
-        currentTarget = nil
-        print("Auto Aim DISABLED")
+        end)
     end
-end
-
--- Fungsi untuk mengatur FOV
-local function setAimFOV(fov)
-    ESP_CONFIG.aimFOV = math.max(10, math.min(500, fov)) -- limit antara 10-500
-    if fovCircle then
-        fovCircle.Radius = ESP_CONFIG.aimFOV
-    end
-    print("Aim FOV set to: " .. ESP_CONFIG.aimFOV)
-end
-
--- Fungsi untuk increase FOV
-local function increaseFOV()
-    setAimFOV(ESP_CONFIG.aimFOV + 10)
-end
-
--- Fungsi untuk decrease FOV
-local function decreaseFOV()
-    setAimFOV(ESP_CONFIG.aimFOV - 10)
-end
-
--- Fungsi untuk mengatur smoothness
-local function setAimSmoothness(smoothness)
-    ESP_CONFIG.aimSmoothness = math.max(0.01, math.min(1, smoothness)) -- limit antara 0.01-1
-    print("Aim Smoothness set to: " .. ESP_CONFIG.aimSmoothness)
-end
-
--- Fungsi untuk mengubah target part
-local function setTargetPart(part)
-    local validParts = {"Head", "HumanoidRootPart", "UpperTorso", "Torso"}
-    if table.find(validParts, part) then
-        ESP_CONFIG.targetPart = part
-        print("Target Part set to: " .. part)
-    else
-        print("Invalid target part! Valid parts: " .. table.concat(validParts, ", "))
-    end
-end
-
--- Fungsi toggle FOV circle
-local function toggleFOVCircle()
-    ESP_CONFIG.showFOVCircle = not ESP_CONFIG.showFOVCircle
-    print("FOV Circle " .. (ESP_CONFIG.showFOVCircle and "ENABLED" or "DISABLED"))
-end
--- Fungsi toggle ESP
-local function toggleESP()
-    ESP_CONFIG.enabled = not ESP_CONFIG.enabled
-    print("ESP " .. (ESP_CONFIG.enabled and "Enabled" or "Disabled"))
-end
-
--- Fungsi toggle highlight
-local function toggleHighlight()
-    ESP_CONFIG.showHighlight = not ESP_CONFIG.showHighlight
-    print("ESP Highlight " .. (ESP_CONFIG.showHighlight and "Enabled" or "Disabled"))
-end
-
--- Fungsi untuk mengatur jarak maksimal
-local function setMaxDistance(distance)
-    ESP_CONFIG.maxDistance = distance
-    print("Max ESP Distance set to: " .. distance)
-end
-
--- Fungsi untuk mengatur transparansi highlight
-local function setHighlightTransparency(transparency)
-    ESP_CONFIG.highlightTransparency = math.clamp(transparency, 0, 1)
-    print("Highlight transparency set to: " .. ESP_CONFIG.highlightTransparency)
     
-    -- Update semua highlight yang ada
-    for _, espData in pairs(espObjects) do
-        if espData.highlight then
-            espData.highlight.FillTransparency = ESP_CONFIG.highlightTransparency
+    -- Main update loop
+    Connections.Heartbeat = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            updateESP()
+            updateAutoAim()
+            updateFOVCircle()
+        end)
+    end)
+end
+
+-- Cleanup function
+local function cleanup()
+    for _, connection in pairs(Connections) do
+        if connection then
+            pcall(function() connection:Disconnect() end)
         end
+    end
+    Connections = {}
+    
+    for _, esp in pairs(ESPObjects) do
+        removeESPObject(esp)
+    end
+    ESPObjects = {}
+    
+    if FOVCircle then
+        pcall(function() FOVCircle:Remove() end)
+        FOVCircle = nil
+    end
+    
+    local gui = CoreGui:FindFirstChild("WarpahVipAutoAim")
+    if gui then
+        gui:Destroy()
     end
 end
 
--- Input handling untuk PC (opsional)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
+-- Initialize
+local function initialize()
+    cleanup()
+    
+    -- Wait for camera
+    if not Camera then
+        repeat wait() until workspace.CurrentCamera
+        Camera = workspace.CurrentCamera
+    end
+    
+    createGUI()
+    createFOVCircle()
+    connectEvents()
+    
+    print("✅ WarpahVip Auto Aim v2.0 Loaded!")
+    print("✅ Slider sekarang berfungsi dengan drag & click")
+    print("✅ FOV Circle update real-time")
+    print("✅ ESP detection diperbaiki untuk semua game type")
+    print("✅ Press INSERT to toggle GUI")
+end
+
+-- Toggle GUI dengan tombol Insert
+UserInputService.InputBegan:Connect(function(key, gameProcessed)
     if gameProcessed then return end
     
-    if input.KeyCode == ESP_CONFIG.autoAimKey then
-        toggleAutoAim()
-    elseif input.KeyCode == Enum.KeyCode.Equal or input.KeyCode == Enum.KeyCode.Plus then -- + untuk increase FOV
-        increaseFOV()
-    elseif input.KeyCode == Enum.KeyCode.Minus then -- - untuk decrease FOV
-        decreaseFOV()
+    if key.KeyCode == Enum.KeyCode.Insert then
+        local gui = CoreGui:FindFirstChild("WarpahVipAutoAim")
+        if gui then
+            local mainFrame = gui:FindFirstChild("MainFrame")
+            if mainFrame then
+                mainFrame.Visible = not mainFrame.Visible
+                local shadow = gui:FindFirstChild("Shadow")
+                if shadow then
+                    shadow.Visible = mainFrame.Visible
+                end
+            end
+        end
     end
 end)
 
--- Inisialisasi FOV Circle
-createFOVCircle()
-_G.ESP = {
-    toggle = toggleESP,
-    toggleHighlight = toggleHighlight,
-    setMaxDistance = setMaxDistance,
-    setHighlightTransparency = setHighlightTransparency,
-    config = ESP_CONFIG,
-    objects = espObjects
-}
+-- Auto-cleanup on script end
+game:GetService("Players").PlayerRemoving:Connect(function(player)
+    if player == LocalPlayer then
+        cleanup()
+    end
+end)
 
-print("ESP Player Script with Auto Aim loaded successfully!")
-print("")
-print("=== ESP COMMANDS ===")
-print("_G.ESP.toggle() - Enable/disable ESP")
-print("_G.ESP.toggleHighlight() - Enable/disable highlight")
-print("_G.ESP.setMaxDistance(number) - Set max distance")
-print("_G.ESP.setHighlightTransparency(0-1) - Set highlight transparency")
-print("")
-print("=== AUTO AIM COMMANDS ===")
-print("_G.ESP.toggleAim() - Enable/disable auto aim")
-print("_G.ESP.setFOV(number) - Set aim FOV (10-500)")
-print("_G.ESP.increaseFOV() - Increase FOV by 10")
-print("_G.ESP.decreaseFOV() - Decrease FOV by 10")
-print("_G.ESP.setSmoothness(0.01-1) - Set aim smoothness")
-print("_G.ESP.setTarget('Part') - Set target part (Head/HumanoidRootPart/UpperTorso)")
-print("_G.ESP.toggleFOVCircle() - Show/hide FOV circle")
-print("")
-print("=== HOTKEYS (PC) ===")
-print("E - Toggle Auto Aim")
-print("+ or = - Increase FOV")
-print("- - Decrease FOV")
-print("")
-print("=== CURRENT SETTINGS ===")
-print("Auto Aim: " .. (ESP_CONFIG.autoAimEnabled and "DISABLED" or "DISABLED"))
-print("FOV: " .. ESP_CONFIG.aimFOV)
-print("Target: " .. ESP_CONFIG.targetPart)
-print("Smoothness: " .. ESP_CONFIG.aimSmoothness)
-print("Highlight Transparency: " .. ESP_CONFIG.highlightTransparency)
+-- Start the script
+initialize()
