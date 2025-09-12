@@ -1,0 +1,471 @@
+-- Minimalist Speed Boost System
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+
+-- Configuration
+local config = {
+    speed = {
+        multiplier = 1.0,
+        enabled = false,
+        maxMultiplier = 10.0,
+        naturalVariation = true
+    },
+    system = {
+        updateRate = 1/60,
+        connections = {},
+        active = false
+    }
+}
+
+-- State tracking
+local systemState = {
+    normalWalkSpeed = 16,
+    isMinimized = false
+}
+
+-- Store original values
+local originalValues = {
+    walkSpeed = 16
+}
+
+-- Get character components
+local function getCharacterComponents()
+    local character = player.Character
+    if not character then return nil end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    
+    return character, humanoid, rootPart
+end
+
+-- Enhanced Speed System
+local function applyEnhancedSpeed()
+    pcall(function()
+        local character, humanoid, rootPart = getCharacterComponents()
+        if not character or not humanoid or not rootPart then return end
+        
+        if config.speed.enabled and humanoid.MoveDirection.Magnitude > 0 then
+            local moveVector = humanoid.MoveDirection
+            local speedBoost = (config.speed.multiplier - 1) * 0.8
+            
+            if config.speed.naturalVariation then
+                speedBoost = speedBoost * (0.95 + math.random() * 0.1)
+            end
+            
+            local displacement = moveVector * speedBoost
+            rootPart.CFrame = rootPart.CFrame + displacement
+        end
+    end)
+end
+
+-- Create Minimalist GUI
+local function createMinimalistGui()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "SpeedSystem"
+    gui.ResetOnSpawn = false
+    gui.Parent = player.PlayerGui
+    
+    -- Main Frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 240, 0, 80)
+    mainFrame.Position = UDim2.new(0, 20, 0, 20)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(25, 28, 35)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = gui
+    
+    -- Corner rounding
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
+    
+    -- Subtle border
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(70, 130, 255)
+    stroke.Thickness = 1
+    stroke.Transparency = 0.6
+    stroke.Parent = mainFrame
+    
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 24)
+    titleBar.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
+    
+    -- Fix bottom corners of title
+    local titleFix = Instance.new("Frame")
+    titleFix.Size = UDim2.new(1, 0, 0, 8)
+    titleFix.Position = UDim2.new(0, 0, 1, -8)
+    titleFix.BackgroundColor3 = Color3.fromRGB(70, 130, 255)
+    titleFix.BorderSizePixel = 0
+    titleFix.Parent = titleBar
+    
+    -- Title text
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -60, 1, 0)
+    title.Position = UDim2.new(0, 8, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Speed Boost"
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.TextSize = 12
+    title.Font = Enum.Font.GothamBold
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = titleBar
+    
+    -- Minimize Button
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Size = UDim2.new(0, 20, 0, 20)
+    minimizeBtn.Position = UDim2.new(1, -44, 0, 2)
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
+    minimizeBtn.Text = "_"
+    minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+    minimizeBtn.TextSize = 14
+    minimizeBtn.Font = Enum.Font.GothamBold
+    minimizeBtn.BorderSizePixel = 0
+    minimizeBtn.Parent = titleBar
+    
+    local minCorner = Instance.new("UICorner")
+    minCorner.CornerRadius = UDim.new(0, 4)
+    minCorner.Parent = minimizeBtn
+    
+    -- Close Button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 20, 0, 20)
+    closeBtn.Position = UDim2.new(1, -22, 0, 2)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+    closeBtn.Text = "×"
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.TextSize = 14
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Parent = titleBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeBtn
+    
+    -- Content Frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "Content"
+    contentFrame.Size = UDim2.new(1, 0, 1, -24)
+    contentFrame.Position = UDim2.new(0, 0, 0, 24)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = mainFrame
+    
+    return gui, mainFrame, contentFrame, minimizeBtn, closeBtn, titleBar
+end
+
+-- Create modern toggle
+local function createModernToggle(parent, text, position, size, callback)
+    local toggleFrame = Instance.new("Frame")
+    toggleFrame.Size = size
+    toggleFrame.Position = position
+    toggleFrame.BackgroundTransparency = 1
+    toggleFrame.Parent = parent
+    
+    -- Label
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0, 80, 1, 0)
+    label.Position = UDim2.new(0, 8, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+    label.TextSize = 11
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = toggleFrame
+    
+    -- Toggle background
+    local toggleBg = Instance.new("Frame")
+    toggleBg.Size = UDim2.new(0, 40, 0, 20)
+    toggleBg.Position = UDim2.new(0, 90, 0, 2)
+    toggleBg.BackgroundColor3 = Color3.fromRGB(40, 42, 46)
+    toggleBg.BorderSizePixel = 0
+    toggleBg.Parent = toggleFrame
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 10)
+    toggleCorner.Parent = toggleBg
+    
+    -- Toggle circle
+    local toggleCircle = Instance.new("Frame")
+    toggleCircle.Size = UDim2.new(0, 16, 0, 16)
+    toggleCircle.Position = UDim2.new(0, 2, 0, 2)
+    toggleCircle.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
+    toggleCircle.BorderSizePixel = 0
+    toggleCircle.Parent = toggleBg
+    
+    local circleCorner = Instance.new("UICorner")
+    circleCorner.CornerRadius = UDim.new(0, 8)
+    circleCorner.Parent = toggleCircle
+    
+    -- State
+    local isEnabled = false
+    
+    local function updateToggle()
+        local targetPos = isEnabled and UDim2.new(0, 22, 0, 2) or UDim2.new(0, 2, 0, 2)
+        local targetColor = isEnabled and Color3.fromRGB(70, 130, 255) or Color3.fromRGB(120, 120, 120)
+        local bgColor = isEnabled and Color3.fromRGB(20, 40, 80) or Color3.fromRGB(40, 42, 46)
+        
+        TweenService:Create(toggleCircle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), 
+            {Position = targetPos, BackgroundColor3 = targetColor}):Play()
+        TweenService:Create(toggleBg, TweenInfo.new(0.2, Enum.EasingStyle.Quad), 
+            {BackgroundColor3 = bgColor}):Play()
+        
+        config.speed.enabled = isEnabled
+        if callback then callback(isEnabled) end
+    end
+    
+    -- Click handler
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(1, 0, 1, 0)
+    button.BackgroundTransparency = 1
+    button.Text = ""
+    button.Parent = toggleFrame
+    
+    button.MouseButton1Click:Connect(function()
+        isEnabled = not isEnabled
+        updateToggle()
+    end)
+    
+    return toggleFrame, function(enabled) isEnabled = enabled updateToggle() end
+end
+
+-- Create value control
+local function createValueControl(parent, position)
+    local controlFrame = Instance.new("Frame")
+    controlFrame.Size = UDim2.new(0, 100, 0, 24)
+    controlFrame.Position = position
+    controlFrame.BackgroundTransparency = 1
+    controlFrame.Parent = parent
+    
+    -- Decrease button
+    local decBtn = Instance.new("TextButton")
+    decBtn.Size = UDim2.new(0, 24, 1, 0)
+    decBtn.BackgroundColor3 = Color3.fromRGB(255, 80, 80)
+    decBtn.Text = "-"
+    decBtn.TextColor3 = Color3.new(1, 1, 1)
+    decBtn.TextSize = 12
+    decBtn.Font = Enum.Font.GothamBold
+    decBtn.BorderSizePixel = 0
+    decBtn.Parent = controlFrame
+    
+    local decCorner = Instance.new("UICorner")
+    decCorner.CornerRadius = UDim.new(0, 4)
+    decCorner.Parent = decBtn
+    
+    -- Value display
+    local valueDisplay = Instance.new("TextLabel")
+    valueDisplay.Size = UDim2.new(0, 50, 1, 0)
+    valueDisplay.Position = UDim2.new(0, 26, 0, 0)
+    valueDisplay.BackgroundColor3 = Color3.fromRGB(35, 38, 45)
+    valueDisplay.Text = "1.0x"
+    valueDisplay.TextColor3 = Color3.fromRGB(70, 130, 255)
+    valueDisplay.TextSize = 10
+    valueDisplay.Font = Enum.Font.GothamBold
+    valueDisplay.BorderSizePixel = 0
+    valueDisplay.Parent = controlFrame
+    
+    local valueCorner = Instance.new("UICorner")
+    valueCorner.CornerRadius = UDim.new(0, 4)
+    valueCorner.Parent = valueDisplay
+    
+    -- Increase button
+    local incBtn = Instance.new("TextButton")
+    incBtn.Size = UDim2.new(0, 24, 1, 0)
+    incBtn.Position = UDim2.new(0, 76, 0, 0)
+    incBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
+    incBtn.Text = "+"
+    incBtn.TextColor3 = Color3.new(1, 1, 1)
+    incBtn.TextSize = 12
+    incBtn.Font = Enum.Font.GothamBold
+    incBtn.BorderSizePixel = 0
+    incBtn.Parent = controlFrame
+    
+    local incCorner = Instance.new("UICorner")
+    incCorner.CornerRadius = UDim.new(0, 4)
+    incCorner.Parent = incBtn
+    
+    -- Update function
+    local function updateValue()
+        valueDisplay.Text = string.format("%.1fx", config.speed.multiplier)
+    end
+    
+    -- Button connections (Fixed order)
+    decBtn.MouseButton1Click:Connect(function()
+        config.speed.multiplier = math.max(config.speed.multiplier - 0.5, 1.0)
+        updateValue()
+    end)
+    
+    incBtn.MouseButton1Click:Connect(function()
+        config.speed.multiplier = math.min(config.speed.multiplier + 0.5, config.speed.maxMultiplier)
+        updateValue()
+    end)
+    
+    updateValue()
+    return controlFrame, updateValue
+end
+
+-- Create GUI and components
+local screenGui, mainFrame, contentFrame, minimizeBtn, closeBtn, titleBar = createMinimalistGui()
+
+-- Speed toggle
+local speedToggle, setSpeedEnabled = createModernToggle(
+    contentFrame, 
+    "Enable:", 
+    UDim2.new(0, 0, 0, 8), 
+    UDim2.new(1, 0, 0, 24)
+)
+
+-- Speed control
+local speedControl, updateSpeedValue = createValueControl(
+    contentFrame, 
+    UDim2.new(1, -108, 0, 32)
+)
+
+-- Speed label
+local speedLabel = Instance.new("TextLabel")
+speedLabel.Size = UDim2.new(0, 60, 0, 24)
+speedLabel.Position = UDim2.new(0, 8, 0, 32)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Speed:"
+speedLabel.TextColor3 = Color3.new(0.9, 0.9, 0.9)
+speedLabel.TextSize = 11
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+speedLabel.Parent = contentFrame
+
+-- Make GUI draggable
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+    end
+end)
+
+titleBar.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+titleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+-- Minimize functionality
+minimizeBtn.MouseButton1Click:Connect(function()
+    systemState.isMinimized = not systemState.isMinimized
+    
+    local targetSize = systemState.isMinimized and UDim2.new(0, 240, 0, 24) or UDim2.new(0, 240, 0, 80)
+    local targetText = systemState.isMinimized and "+" or "_"
+    
+    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = targetSize}):Play()
+    minimizeBtn.Text = targetText
+    contentFrame.Visible = not systemState.isMinimized
+end)
+
+-- Close functionality
+closeBtn.MouseButton1Click:Connect(function()
+    -- Cleanup
+    for _, connection in pairs(config.system.connections) do
+        if connection and connection.Connected then 
+            connection:Disconnect() 
+        end
+    end
+    config.system.connections = {}
+    config.system.active = false
+    
+    screenGui:Destroy()
+end)
+
+-- Main system loop
+local function startMainSystem()
+    if config.system.active then return end
+    config.system.active = true
+    
+    local mainLoop = RunService.Heartbeat:Connect(function()
+        applyEnhancedSpeed()
+    end)
+    
+    table.insert(config.system.connections, mainLoop)
+end
+
+-- Character spawn handler
+local function onCharacterSpawn(character)
+    -- Cleanup old connections
+    for _, connection in pairs(config.system.connections) do
+        if connection and connection.Connected then 
+            connection:Disconnect() 
+        end
+    end
+    config.system.connections = {}
+    
+    spawn(function()
+        wait(2)
+        
+        local humanoid = character:WaitForChild("Humanoid", 10)
+        if not humanoid then return end
+        
+        -- Store original values
+        originalValues.walkSpeed = math.max(humanoid.WalkSpeed, 16)
+        systemState.normalWalkSpeed = originalValues.walkSpeed
+        
+        startMainSystem()
+    end)
+end
+
+-- Event connections
+if player.CharacterAdded then
+    player.CharacterAdded:Connect(onCharacterSpawn)
+end
+
+if player.Character then
+    onCharacterSpawn(player.Character)
+end
+
+-- Keyboard shortcuts
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    
+    -- Toggle GUI: Ctrl+H
+    if input.KeyCode == Enum.KeyCode.H and 
+       UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        mainFrame.Visible = not mainFrame.Visible
+    end
+    
+    -- Toggle Speed: Ctrl+S
+    if input.KeyCode == Enum.KeyCode.S and 
+       UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+        setSpeedEnabled(not config.speed.enabled)
+    end
+end)
+
+print("=== MINIMALIST SPEED SYSTEM LOADED ===")
+print("CONTROLS:")
+print("- Ctrl+H: Toggle GUI visibility")
+print("- Ctrl+S: Toggle speed boost")
+print("- GUI: Draggable, minimizable, closable")
+print("=======================================")
