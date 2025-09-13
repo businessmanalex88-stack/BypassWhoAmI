@@ -12,41 +12,6 @@ local Services = {
     ReplicatedStorage = game:GetService("ReplicatedStorage"),
     SoundService = game:GetService("SoundService")
 }
--- 🔧 Helper HTTP Functions
-local function postJson(url, tbl)
-    local ok, res = pcall(function()
-        local body = Services.HttpService:JSONEncode(tbl)
-        return game:HttpPost(url, body, Enum.HttpContentType.ApplicationJson, false)
-    end)
-    if not ok or not res then return nil end
-    local success, parsed = pcall(function() return Services.HttpService:JSONDecode(res) end)
-    if not success then return nil end
-    return parsed
-end
-
-local function getJson(url)
-    local ok, res = pcall(function()
-        return game:HttpGet(url)
-    end)
-    if not ok or not res then return nil end
-    local success, parsed = pcall(function() return Services.HttpService:JSONDecode(res) end)
-    if not success then return nil end
-    return parsed
-end
-
-local function sendLog(key, action)
-    pcall(function()
-        local payload = {
-            key = key,
-            action = action or "validate",
-            userId = player.UserId,
-            userName = player.Name,
-            placeId = game.PlaceId,
-            timestamp = os.time()
-        }
-        postJson(Config.API_BASE .. "/log", payload)
-    end)
-end
 
 -- Configuration
 local Config = {
@@ -439,12 +404,12 @@ local function createMainFrame()
     return mainFrame, keyInput, statusText, submitButton, discordButton, keyButton
 end
 
--- 🔑 Key Validation
+-- Key validation function with improved API handling
 local function validateKey(inputKey, statusText, callback)
     statusText.Text = "🔄 Validating access key..."
     statusText.TextColor3 = Color3.fromRGB(255, 255, 100)
-
-    -- Fallback admin keys
+    
+    -- First check fallback keys
     if Config.FALLBACK_KEYS[inputKey] then
         statusText.Text = "✅ Access granted! (Admin Key)"
         statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
@@ -452,41 +417,11 @@ local function validateKey(inputKey, statusText, callback)
         callback(true, inputKey)
         return
     end
-
-    -- API validate (POST)
-    local resp = postJson(Config.API_BASE .. "/validate", { key = inputKey, userId = player.UserId })
-    if resp and resp.ok then
-        if resp.valid or resp.msg == "Key activated" or resp.msg == "Key valid" then
-            sendLog(inputKey, resp.msg or "validate")
-            statusText.Text = "✅ Access granted! Loading system..."
-            statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-            task.wait(1)
-            callback(true, inputKey)
-            return
-        else
-            statusText.Text = "❌ " .. (resp.msg or "Invalid key")
-            statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-            callback(false, inputKey)
-            return
-        end
-    end
-
-    -- Fallback GET
-    local resp2 = getJson(Config.API_BASE .. "/validate?key=" .. inputKey)
-    if resp2 and resp2.ok and resp2.valid then
-        sendLog(inputKey, "validate")
-        statusText.Text = "✅ Access granted! Loading system..."
-        statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-        task.wait(1)
-        callback(true, inputKey)
-        return
-    end
-
-    -- Invalid
-    statusText.Text = "❌ Invalid access key!"
-    statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-    callback(false, inputKey)
-end
+    
+    -- Check API keys
+    local success, response = pcall(function()
+        return game:HttpGet(Config.API_BASE .. "/admin?password=" .. Config.ADMIN_PASSWORD)
+    end)
     
     if success then
         local parseSuccess, data = pcall(function()
