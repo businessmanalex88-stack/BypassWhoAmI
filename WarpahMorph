@@ -1,0 +1,759 @@
+-- SMOOTH Avatar Morpher - Versi yang Dioptimalkan
+-- Fokus pada stabilitas tanpa lag
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+local originalUserId = LocalPlayer.UserId
+
+-- Variabel global
+local currentTarget = nil
+local monitorConnection = nil
+local isMonitoring = false
+
+-- Enhanced notification
+local function Notify(text, color, icon)
+    local gui = Instance.new("ScreenGui")
+    gui.Parent = LocalPlayer.PlayerGui
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 50)
+    frame.Position = UDim2.new(1, -320, 0, 20)
+    frame.BackgroundColor3 = color or Color3.fromRGB(30, 30, 35)
+    frame.BorderSizePixel = 0
+    frame.Parent = gui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 10)
+    corner.Parent = frame
+    
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Size = UDim2.new(0, 40, 1, 0)
+    iconLabel.Position = UDim2.new(0, 5, 0, 0)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = icon or "🎭"
+    iconLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    iconLabel.TextScaled = true
+    iconLabel.Parent = frame
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -50, 1, 0)
+    label.Position = UDim2.new(0, 45, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.Gotham
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+    
+    frame:TweenPosition(UDim2.new(1, -320, 0, 20), "Out", "Back", 0.3)
+    
+    spawn(function()
+        wait(2.5)
+        frame:TweenPosition(UDim2.new(1, 20, 0, 20), "In", "Back", 0.3, true, function()
+            gui:Destroy()
+        end)
+    end)
+end
+
+-- Simple Animation Copy - Tanpa lag
+local function SimpleAnimationCopy(targetPlayer, character)
+    if not targetPlayer or not character then return false end
+    
+    local targetCharacter = targetPlayer.Character
+    if not targetCharacter then return false end
+    
+    local targetHumanoid = targetCharacter:FindFirstChildOfClass("Humanoid")
+    local targetAnimate = targetCharacter:FindFirstChild("Animate")
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local animate = character:FindFirstChild("Animate")
+    
+    if not targetHumanoid or not targetAnimate or not humanoid or not animate then
+        return false
+    end
+    
+    spawn(function()
+        wait(0.2)
+        
+        -- Copy basic properties
+        humanoid.WalkSpeed = targetHumanoid.WalkSpeed
+        humanoid.JumpPower = targetHumanoid.JumpPower
+        humanoid.JumpHeight = targetHumanoid.JumpHeight
+        humanoid.HipHeight = targetHumanoid.HipHeight
+        
+        -- Simple animate script replacement
+        local newAnimate = targetAnimate:Clone()
+        animate:Destroy()
+        newAnimate.Parent = character
+        newAnimate.Name = "Animate"
+        
+        wait(0.3)
+        
+        -- Single restart untuk avoid lag
+        newAnimate.Disabled = true
+        wait(0.1)
+        newAnimate.Disabled = false
+        
+        -- Ensure proper state
+        humanoid.PlatformStand = false
+        humanoid.Sit = false
+        humanoid:ChangeState(Enum.HumanoidStateType.Running)
+        
+        -- Store target for light monitoring
+        currentTarget = targetPlayer
+        
+        Notify("Animation system copied smoothly!", Color3.fromRGB(100, 255, 100), "✨")
+    end)
+    
+    return true
+end
+
+-- Light monitoring - Hanya 1x per 5 detik untuk avoid lag
+local function StartLightMonitoring()
+    -- Stop existing monitoring
+    if monitorConnection then
+        monitorConnection:Disconnect()
+        monitorConnection = nil
+    end
+    
+    if isMonitoring then return end
+    isMonitoring = true
+    
+    spawn(function()
+        while currentTarget and isMonitoring do
+            wait(5) -- Hanya setiap 5 detik
+            
+            local character = LocalPlayer.Character
+            if character and currentTarget and currentTarget.Character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local animate = character:FindFirstChild("Animate")
+                
+                if humanoid and animate then
+                    -- Light fixes only
+                    if humanoid.PlatformStand then
+                        humanoid.PlatformStand = false
+                    end
+                    
+                    if humanoid.Sit then
+                        humanoid.Sit = false
+                    end
+                    
+                    if animate.Disabled then
+                        animate.Disabled = false
+                    end
+                end
+            end
+        end
+        isMonitoring = false
+    end)
+end
+
+-- Smooth Morph Function
+local function SmoothMorph(targetPlayer)
+    if not targetPlayer or targetPlayer == LocalPlayer then
+        Notify("Invalid target", Color3.fromRGB(255, 150, 0), "⚠️")
+        return false
+    end
+    
+    local character = LocalPlayer.Character
+    if not character then
+        Notify("Character not loaded", Color3.fromRGB(255, 100, 100), "❌")
+        return false
+    end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not rootPart then
+        Notify("Character incomplete", Color3.fromRGB(255, 100, 100), "❌")
+        return false
+    end
+    
+    if not targetPlayer.Character then
+        Notify("Target has no character", Color3.fromRGB(255, 150, 0), "⚠️")
+        return false
+    end
+    
+    local savedPosition = rootPart.CFrame
+    
+    spawn(function()
+        pcall(function()
+            Notify("Morphing smoothly...", Color3.fromRGB(255, 200, 0), "🔄")
+            
+            local success = false
+            
+            -- METHOD 1: Create new character
+            local newCharacter = Players:CreateHumanoidModelFromUserId(targetPlayer.UserId)
+            
+            if newCharacter then
+                wait(0.4)
+                
+                if newCharacter:FindFirstChild("HumanoidRootPart") then
+                    newCharacter:SetPrimaryPartCFrame(savedPosition)
+                end
+                
+                local newHumanoid = newCharacter:FindFirstChildOfClass("Humanoid")
+                if newHumanoid then
+                    newHumanoid.MaxHealth = 100
+                    newHumanoid.Health = 100
+                    newHumanoid.PlatformStand = false
+                    newHumanoid.Sit = false
+                    
+                    newCharacter.Name = LocalPlayer.Name
+                    newCharacter.Parent = workspace
+                    
+                    wait(0.3)
+                    
+                    -- Simple animation copy
+                    SimpleAnimationCopy(targetPlayer, newCharacter)
+                    
+                    wait(0.4)
+                    
+                    -- Replace character
+                    local oldCharacter = LocalPlayer.Character
+                    LocalPlayer.Character = newCharacter
+                    
+                    if oldCharacter then
+                        oldCharacter:Destroy()
+                    end
+                    
+                    wait(0.2)
+                    
+                    -- Start light monitoring
+                    StartLightMonitoring()
+                    
+                    -- Camera setup
+                    local camera = workspace.CurrentCamera
+                    if camera then
+                        camera.CameraSubject = newHumanoid
+                        camera.CameraType = Enum.CameraType.Custom
+                    end
+                    
+                    local newRootPart = newCharacter:FindFirstChild("HumanoidRootPart")
+                    if newRootPart then
+                        newRootPart.Anchored = false
+                        newRootPart.CanCollide = true
+                    end
+                    
+                    success = true
+                end
+            end
+            
+            -- METHOD 2: Fallback
+            if not success then
+                Notify("Using fallback method...", Color3.fromRGB(255, 200, 0), "🔄")
+                
+                local description = Players:GetHumanoidDescriptionFromUserId(targetPlayer.UserId)
+                if description then
+                    humanoid:ApplyDescription(description)
+                    
+                    wait(0.4)
+                    
+                    SimpleAnimationCopy(targetPlayer, character)
+                    
+                    wait(0.3)
+                    
+                    StartLightMonitoring()
+                    
+                    success = true
+                end
+            end
+            
+            if success then
+                Notify("Smooth morph complete!", Color3.fromRGB(100, 255, 100), "✅")
+            else
+                Notify("Morph failed", Color3.fromRGB(255, 100, 100), "❌")
+            end
+        end)
+    end)
+    
+    return true
+end
+
+-- Simple Reset
+local function SimpleReset()
+    local character = LocalPlayer.Character
+    if not character then return false end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return false end
+    
+    spawn(function()
+        pcall(function()
+            Notify("Resetting...", Color3.fromRGB(255, 200, 0), "🔄")
+            
+            -- Stop monitoring
+            currentTarget = nil
+            isMonitoring = false
+            if monitorConnection then
+                monitorConnection:Disconnect()
+                monitorConnection = nil
+            end
+            
+            local originalDescription = Players:GetHumanoidDescriptionFromUserId(originalUserId)
+            if originalDescription then
+                humanoid:ApplyDescription(originalDescription)
+                
+                wait(0.4)
+                
+                -- Reset properties
+                humanoid.PlatformStand = false
+                humanoid.Sit = false
+                humanoid.WalkSpeed = 16
+                humanoid.JumpPower = 50
+                humanoid.JumpHeight = 7.2
+                humanoid.HipHeight = 0
+                
+                -- Simple animation restart
+                local animate = character:FindFirstChild("Animate")
+                if animate then
+                    animate.Disabled = true
+                    wait(0.1)
+                    animate.Disabled = false
+                    wait(0.1)
+                    humanoid:ChangeState(Enum.HumanoidStateType.Running)
+                end
+                
+                local camera = workspace.CurrentCamera
+                if camera then
+                    camera.CameraSubject = humanoid
+                    camera.CameraType = Enum.CameraType.Custom
+                end
+                
+                Notify("Reset complete!", Color3.fromRGB(100, 255, 100), "✅")
+            end
+        end)
+    end)
+    
+    return true
+end
+
+-- Professional GUI Design
+local function CreateSimpleGUI()
+    local existingGui = LocalPlayer.PlayerGui:FindFirstChild("WarpahMorph")
+    if existingGui then existingGui:Destroy() end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "WarpahMorph"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = LocalPlayer.PlayerGui
+    
+    -- Main frame - Smaller and cleaner
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 240, 0, 320)
+    mainFrame.Position = UDim2.new(0, 20, 0.5, -160)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+    mainFrame.Parent = screenGui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 8)
+    mainCorner.Parent = mainFrame
+    
+    -- Subtle shadow effect
+    local shadow = Instance.new("Frame")
+    shadow.Size = UDim2.new(1, 4, 1, 4)
+    shadow.Position = UDim2.new(0, -2, 0, -2)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.8
+    shadow.BorderSizePixel = 0
+    shadow.ZIndex = mainFrame.ZIndex - 1
+    shadow.Parent = mainFrame
+    
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 10)
+    shadowCorner.Parent = shadow
+    
+    -- Title bar - More professional
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 32)
+    titleBar.BackgroundColor3 = Color3.fromRGB(42, 42, 48)
+    titleBar.BorderSizePixel = 0
+    titleBar.Parent = mainFrame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
+    
+    local titleFix = Instance.new("Frame")
+    titleFix.Size = UDim2.new(1, 0, 0, 8)
+    titleFix.Position = UDim2.new(0, 0, 1, -8)
+    titleFix.BackgroundColor3 = Color3.fromRGB(42, 42, 48)
+    titleFix.BorderSizePixel = 0
+    titleFix.Parent = titleBar
+    
+    -- Professional title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -70, 1, 0)
+    title.Position = UDim2.new(0, 12, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "WarpahMorph"
+    title.TextColor3 = Color3.fromRGB(220, 220, 225)
+    title.TextSize = 14
+    title.Font = Enum.Font.SourceSans
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = titleBar
+    
+    -- Minimize button
+    local minimizeBtn = Instance.new("TextButton")
+    minimizeBtn.Size = UDim2.new(0, 24, 0, 24)
+    minimizeBtn.Position = UDim2.new(1, -56, 0, 4)
+    minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    minimizeBtn.BorderSizePixel = 0
+    minimizeBtn.Text = "—"
+    minimizeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    minimizeBtn.TextSize = 12
+    minimizeBtn.Font = Enum.Font.SourceSans
+    minimizeBtn.Parent = titleBar
+    
+    local minimizeCorner = Instance.new("UICorner")
+    minimizeCorner.CornerRadius = UDim.new(0, 4)
+    minimizeCorner.Parent = minimizeBtn
+    
+    -- Close button
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 24, 0, 24)
+    closeBtn.Position = UDim2.new(1, -28, 0, 4)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(196, 43, 28)
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Text = "×"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 14
+    closeBtn.Font = Enum.Font.SourceSans
+    closeBtn.Parent = titleBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeBtn
+    
+    -- Button hover effects
+    minimizeBtn.MouseEnter:Connect(function()
+        minimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 85)
+    end)
+    minimizeBtn.MouseLeave:Connect(function()
+        minimizeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    end)
+    
+    closeBtn.MouseEnter:Connect(function()
+        closeBtn.BackgroundColor3 = Color3.fromRGB(220, 53, 35)
+    end)
+    closeBtn.MouseLeave:Connect(function()
+        closeBtn.BackgroundColor3 = Color3.fromRGB(196, 43, 28)
+    end)
+    
+    local isMinimized = false
+    
+    minimizeBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            mainFrame:TweenSize(UDim2.new(0, 240, 0, 32), "Out", "Quad", 0.3, true)
+            minimizeBtn.Text = "+"
+        else
+            mainFrame:TweenSize(UDim2.new(0, 240, 0, 320), "Out", "Quad", 0.3, true)
+            minimizeBtn.Text = "—"
+        end
+    end)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        mainFrame.Visible = false
+    end)
+    
+    -- Status indicator
+    local statusFrame = Instance.new("Frame")
+    statusFrame.Size = UDim2.new(1, -12, 0, 20)
+    statusFrame.Position = UDim2.new(0, 6, 0, 38)
+    statusFrame.BackgroundTransparency = 1
+    statusFrame.Parent = mainFrame
+    
+    local statusDot = Instance.new("Frame")
+    statusDot.Size = UDim2.new(0, 6, 0, 6)
+    statusDot.Position = UDim2.new(0, 0, 0.5, -3)
+    statusDot.BackgroundColor3 = Color3.fromRGB(40, 200, 64)
+    statusDot.BorderSizePixel = 0
+    statusDot.Parent = statusFrame
+    
+    local statusDotCorner = Instance.new("UICorner")
+    statusDotCorner.CornerRadius = UDim.new(1, 0)
+    statusDotCorner.Parent = statusDot
+    
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(1, -10, 1, 0)
+    statusLabel.Position = UDim2.new(0, 10, 0, 0)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "Ready"
+    statusLabel.TextColor3 = Color3.fromRGB(160, 160, 165)
+    statusLabel.TextSize = 11
+    statusLabel.Font = Enum.Font.SourceSans
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Parent = statusFrame
+    
+    -- Player list - Cleaner design
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, -12, 0, 220)
+    scrollFrame.Position = UDim2.new(0, 6, 0, 64)
+    scrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 4
+    scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 105)
+    scrollFrame.Parent = mainFrame
+    
+    local scrollCorner = Instance.new("UICorner")
+    scrollCorner.CornerRadius = UDim.new(0, 6)
+    scrollCorner.Parent = scrollFrame
+    
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.SortOrder = Enum.SortOrder.Name
+    listLayout.Padding = UDim.new(0, 2)
+    listLayout.Parent = scrollFrame
+    
+    local listPadding = Instance.new("UIPadding")
+    listPadding.PaddingTop = UDim.new(0, 4)
+    listPadding.PaddingLeft = UDim.new(0, 4)
+    listPadding.PaddingRight = UDim.new(0, 4)
+    listPadding.PaddingBottom = UDim.new(0, 4)
+    listPadding.Parent = scrollFrame
+    
+    -- Update player list with professional design
+    local function UpdatePlayerList()
+        for _, child in ipairs(scrollFrame:GetChildren()) do
+            if child:IsA("Frame") then child:Destroy() end
+        end
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            local playerCard = Instance.new("Frame")
+            playerCard.Size = UDim2.new(1, -8, 0, 36)
+            playerCard.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
+            playerCard.BorderSizePixel = 0
+            playerCard.Parent = scrollFrame
+            
+            local cardCorner = Instance.new("UICorner")
+            cardCorner.CornerRadius = UDim.new(0, 4)
+            cardCorner.Parent = playerCard
+            
+            -- Professional avatar
+            local avatar = Instance.new("Frame")
+            avatar.Size = UDim2.new(0, 28, 0, 28)
+            avatar.Position = UDim2.new(0, 6, 0, 4)
+            avatar.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+            avatar.BorderSizePixel = 0
+            avatar.Parent = playerCard
+            
+            local avatarCorner = Instance.new("UICorner")
+            avatarCorner.CornerRadius = UDim.new(0, 14)
+            avatarCorner.Parent = avatar
+            
+            local avatarText = Instance.new("TextLabel")
+            avatarText.Size = UDim2.new(1, 0, 1, 0)
+            avatarText.BackgroundTransparency = 1
+            avatarText.Text = string.sub(player.Name, 1, 2):upper()
+            avatarText.TextColor3 = Color3.fromRGB(255, 255, 255)
+            avatarText.TextSize = 11
+            avatarText.Font = Enum.Font.SourceSansSemibold
+            avatarText.Parent = avatar
+            
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(0, 100, 0, 14)
+            nameLabel.Position = UDim2.new(0, 40, 0, 4)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Text = #player.Name > 12 and (string.sub(player.Name, 1, 10) .. "..") or player.Name
+            nameLabel.TextColor3 = Color3.fromRGB(220, 220, 225)
+            nameLabel.TextSize = 12
+            nameLabel.Font = Enum.Font.SourceSans
+            nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+            nameLabel.Parent = playerCard
+            
+            local statusText = Instance.new("TextLabel")
+            statusText.Size = UDim2.new(0, 100, 0, 12)
+            statusText.Position = UDim2.new(0, 40, 0, 20)
+            statusText.BackgroundTransparency = 1
+            statusText.Text = player == LocalPlayer and "You" or "Available"
+            statusText.TextColor3 = player == LocalPlayer and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(140, 140, 145)
+            statusText.TextSize = 10
+            statusText.Font = Enum.Font.SourceSans
+            statusText.TextXAlignment = Enum.TextXAlignment.Left
+            statusText.Parent = playerCard
+            
+            -- Professional button
+            local morphBtn = Instance.new("TextButton")
+            morphBtn.Size = UDim2.new(0, 60, 0, 24)
+            morphBtn.Position = UDim2.new(1, -66, 0, 6)
+            morphBtn.BackgroundColor3 = player == LocalPlayer and Color3.fromRGB(70, 70, 75) or Color3.fromRGB(88, 101, 242)
+            morphBtn.BorderSizePixel = 0
+            morphBtn.Text = player == LocalPlayer and "YOU" or "Copy"
+            morphBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            morphBtn.TextSize = 11
+            morphBtn.Font = Enum.Font.SourceSans
+            morphBtn.Active = player ~= LocalPlayer
+            morphBtn.Parent = playerCard
+            
+            local morphCorner = Instance.new("UICorner")
+            morphCorner.CornerRadius = UDim.new(0, 4)
+            morphCorner.Parent = morphBtn
+            
+            if player ~= LocalPlayer then
+                morphBtn.MouseEnter:Connect(function()
+                    morphBtn.BackgroundColor3 = Color3.fromRGB(104, 117, 245)
+                end)
+                morphBtn.MouseLeave:Connect(function()
+                    morphBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+                end)
+                
+                morphBtn.MouseButton1Click:Connect(function()
+                    spawn(function()
+                        morphBtn.Text = "..."
+                        morphBtn.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+                        
+                        local success = SmoothMorph(player)
+                        
+                        morphBtn.Text = success and "✓" or "✗"
+                        morphBtn.BackgroundColor3 = success and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(220, 53, 69)
+                        
+                        wait(2)
+                        morphBtn.Text = "Copy"
+                        morphBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+                    end)
+                end)
+            end
+        end
+        
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#Players:GetPlayers() * 38) + 8)
+    end
+    
+    -- Control buttons - Professional design
+    local controlFrame = Instance.new("Frame")
+    controlFrame.Size = UDim2.new(1, -12, 0, 28)
+    controlFrame.Position = UDim2.new(0, 6, 1, -34)
+    controlFrame.BackgroundTransparency = 1
+    controlFrame.Parent = mainFrame
+    
+    local resetBtn = Instance.new("TextButton")
+    resetBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    resetBtn.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+    resetBtn.BorderSizePixel = 0
+    resetBtn.Text = "Reset"
+    resetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    resetBtn.TextSize = 12
+    resetBtn.Font = Enum.Font.SourceSans
+    resetBtn.Parent = controlFrame
+    
+    local resetCorner = Instance.new("UICorner")
+    resetCorner.CornerRadius = UDim.new(0, 4)
+    resetCorner.Parent = resetBtn
+    
+    local refreshBtn = Instance.new("TextButton")
+    refreshBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    refreshBtn.Position = UDim2.new(0.52, 0, 0, 0)
+    refreshBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    refreshBtn.BorderSizePixel = 0
+    refreshBtn.Text = "Refresh"
+    refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    refreshBtn.TextSize = 12
+    refreshBtn.Font = Enum.Font.SourceSans
+    refreshBtn.Parent = controlFrame
+    
+    local refreshCorner = Instance.new("UICorner")
+    refreshCorner.CornerRadius = UDim.new(0, 4)
+    refreshCorner.Parent = refreshBtn
+    
+    -- Button hover effects
+    resetBtn.MouseEnter:Connect(function()
+        resetBtn.BackgroundColor3 = Color3.fromRGB(230, 63, 79)
+    end)
+    resetBtn.MouseLeave:Connect(function()
+        resetBtn.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+    end)
+    
+    refreshBtn.MouseEnter:Connect(function()
+        refreshBtn.BackgroundColor3 = Color3.fromRGB(50, 177, 79)
+    end)
+    refreshBtn.MouseLeave:Connect(function()
+        refreshBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    end)
+    
+    resetBtn.MouseButton1Click:Connect(function()
+        spawn(function()
+            resetBtn.Text = "..."
+            resetBtn.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+            local success = SimpleReset()
+            resetBtn.Text = success and "✓" or "✗"
+            resetBtn.BackgroundColor3 = success and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(220, 53, 69)
+            wait(1.5)
+            resetBtn.Text = "Reset"
+            resetBtn.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+        end)
+    end)
+    
+    refreshBtn.MouseButton1Click:Connect(function()
+        UpdatePlayerList()
+        refreshBtn.Text = "✓"
+        refreshBtn.BackgroundColor3 = Color3.fromRGB(40, 200, 64)
+        wait(0.8)
+        refreshBtn.Text = "Refresh"
+        refreshBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    end)
+    
+    UpdatePlayerList()
+    Players.PlayerAdded:Connect(UpdatePlayerList)
+    Players.PlayerRemoving:Connect(UpdatePlayerList)
+end
+
+-- Initialize
+local function Initialize()
+    Notify("WarpahMorph ready", Color3.fromRGB(40, 200, 64), "◉")
+    
+    wait(0.5)
+    CreateSimpleGUI()
+    
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == Enum.KeyCode.F1 then
+            local gui = LocalPlayer.PlayerGui:FindFirstChild("WarpahMorph")
+            if gui and gui:FindFirstChild("Frame") then
+                gui.Frame.Visible = not gui.Frame.Visible
+            end
+        elseif input.KeyCode == Enum.KeyCode.F2 then
+            SimpleReset()
+        end
+    end)
+end
+
+-- Cleanup
+local function Cleanup()
+    local gui = LocalPlayer.PlayerGui:FindFirstChild("WarpahMorph")
+    if gui then gui:Destroy() end
+    
+    currentTarget = nil
+    isMonitoring = false
+    
+    if monitorConnection then
+        monitorConnection:Disconnect()
+        monitorConnection = nil
+    end
+    
+    SimpleReset()
+end
+
+Initialize()
+
+print("=====================================")
+print("🚀 WarpahMorph v4.0")
+print("=====================================")
+print("✅ Optimized performance")
+print("🎭 Smooth animation system")
+print("🔧 Light monitoring")
+print("📱 Professional interface")
+print("⌨️  F1: Toggle | F2: Reset")
+print("=====================================")
+print("🌟 Professional Design!")
+print("⚡ Minimalist & Elegant!")
+print("=====================================")
+
+return Cleanup
