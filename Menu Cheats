@@ -316,19 +316,6 @@ contentPadding.PaddingLeft = UDim.new(0, 10)
 contentPadding.PaddingRight = UDim.new(0, 10)
 contentPadding.Parent = content
 
--- Teleport coordinates - Updated with new mountains
-local teleportPoints = {
-    ["gn.sumbing"] = CFrame.new(-223, 441, 2114),
-    ["gn.krakatau"] = CFrame.new(829, 307, 414),
-    ["gn.ckptw"] = CFrame.new(1500, 500, 1000),
-    ["gn.sibuatan"] = CFrame.new(-1000, 350, 2500),
-    ["gn.lawak"] = CFrame.new(2000, 600, 1500),
-    ["gn.yahaha"] = CFrame.new(-500, 400, 3000),
-    ["gn.duntul"] = CFrame.new(3000, 700, 500),
-    ["gn.atin"] = CFrame.new(-2000, 450, 1800),
-    ["gn.sumala"] = CFrame.new(1200, 550, 2800)
-}
-
 -- Safe GUI clearing function
 local function clearContent()
     for _, child in pairs(content:GetChildren()) do
@@ -362,50 +349,61 @@ local function createButton(text, callback, color)
     return btn
 end
 
--- Safe teleport function with better error handling
-local function safeTeleport(targetCFrame, locationName)
+-- Server Hop function with enhanced error handling
+local function serverHop()
     pcall(function()
-        if player and player.Character then
-            local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
-            if humanoidRootPart and targetCFrame then
-                humanoidRootPart.CFrame = targetCFrame
-                print("✅ Teleport berhasil ke " .. locationName)
-                return true
-            end
+        print("🔄 Starting server hop...")
+        local TeleportService = game:GetService("TeleportService")
+        local HttpService = game:GetService("HttpService")
+        local placeId = game.PlaceId
+        
+        -- Notify user
+        local notification = Instance.new("Frame")
+        notification.Size = UDim2.new(0, 300, 0, 80)
+        notification.Position = UDim2.new(0.5, -150, 0, 50)
+        notification.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+        notification.Parent = gui
+        
+        local notifCorner = Instance.new("UICorner")
+        notifCorner.CornerRadius = UDim.new(0, 8)
+        notifCorner.Parent = notification
+        
+        local notifText = Instance.new("TextLabel")
+        notifText.Size = UDim2.new(1, 0, 1, 0)
+        notifText.BackgroundTransparency = 1
+        notifText.Text = "🔄 Finding new server...\nPlease wait..."
+        notifText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notifText.Font = Enum.Font.GothamBold
+        notifText.TextSize = 14
+        notifText.Parent = notification
+        
+        -- Try to get server list and teleport
+        local success, errorMessage = pcall(function()
+            -- Simple server hop - teleport to same place which should find different server
+            wait(2) -- Give user time to see notification
+            TeleportService:Teleport(placeId, player)
+        end)
+        
+        if not success then
+            -- Fallback: Simple rejoin
+            print("⚠️ Server hop failed, using rejoin instead")
+            notifText.Text = "⚠️ Server hop failed\nRejoining current server..."
+            wait(2)
+            TeleportService:Teleport(placeId, player)
         end
-        warn("❌ Gagal teleport: Character atau HumanoidRootPart tidak ditemukan")
-        return false
     end)
 end
 
--- Auto peak menu - Updated with new mountains
+-- Auto peak menu - FIXED: Now directly loads the script instead of submenu
 local function showAutoPuncak()
     clearContent()
-    currentMenu = "autopuncak"
+    currentMenu = "main" -- Stay in main menu
     
-    local gunungList = {
-        { name = "gn.sumbing", display = "🏔️ Gunung Sumbing", emoji = "🏔️" },
-        { name = "gn.krakatau", display = "🌋 Gunung Krakatau", emoji = "🌋" },
-        { name = "gn.ckptw", display = "⛰️ Gunung CKPTW", emoji = "⛰️" },
-        { name = "gn.sibuatan", display = "🗻 Gunung Sibuatan", emoji = "🗻" },
-        { name = "gn.lawak", display = "🏕️ Gunung Lawak", emoji = "🏕️" },
-        { name = "gn.yahaha", display = "🎯 Gunung Yahaha", emoji = "🎯" },
-        { name = "gn.duntul", display = "🔥 Gunung Duntul", emoji = "🔥" },
-        { name = "gn.atin", display = "💎 Gunung Atin", emoji = "💎" },
-        { name = "gn.sumala", display = "✨ Gunung Sumala", emoji = "✨" },
-    }
-
-    for _, g in ipairs(gunungList) do
-        createButton(g.display, function()
-            local targetCFrame = teleportPoints[g.name]
-            if targetCFrame then
-                safeTeleport(targetCFrame, g.display)
-            else
-                warn("❌ Koordinat tidak ditemukan untuk " .. g.display)
-            end
-        end, Color3.fromRGB(30, 60, 30))
-    end
-    backBtn.Visible = true
+    -- Directly load the AutoSummit script
+    print("🏔️ Loading Auto Summit...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/AutoSummit"))()
+    
+    backBtn.Visible = false
 end
 
 -- Fly mode menu (Fixed with loadstring)
@@ -436,7 +434,63 @@ local function showFlyMenu()
     backBtn.Visible = true
 end
 
--- Device menu function (Enhanced with Dex Explorer)
+-- Speed Run menu with submenu (NEW)
+local function showSpeedMenu()
+    clearContent()
+    currentMenu = "speed"
+    
+    local speedItems = {
+        { 
+            label = "⚡ Speed Hack V1", 
+            callback = function()
+                print("⚡ Loading Speed Hack V1...")
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Speedrun"))()
+            end 
+        },
+        { 
+            label = "⚡ Speed Hack V2", 
+            callback = function() 
+                print("⚡ Loading Speed Hack V2...")
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/SpeedRunCframe"))()
+            end 
+        },
+    }
+
+    for _, item in ipairs(speedItems) do
+        createButton(item.label, item.callback, Color3.fromRGB(120, 80, 20))
+    end
+    backBtn.Visible = true
+end
+
+-- Fling Player menu - FIXED: Now has two submenus
+local function showFlingMenu()
+    clearContent()
+    currentMenu = "fling"
+    
+    local flingItems = {
+        { 
+            label = "💥 Fling All Player", 
+            callback = function()
+                print("💥 Loading Fling All Player...")
+                loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Multi-fling-47147"))()
+            end 
+        },
+        { 
+            label = "🚶 Walkfling", 
+            callback = function() 
+                print("🚶 Loading Walkfling...")
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Walkfling"))()
+            end 
+        },
+    }
+
+    for _, item in ipairs(flingItems) do
+        createButton(item.label, item.callback, Color3.fromRGB(120, 40, 40))
+    end
+    backBtn.Visible = true
+end
+
+-- Device menu function (Enhanced with Server Hop)
 local function showDeviceMenu()
     clearContent()
     currentMenu = "device"
@@ -444,8 +498,9 @@ local function showDeviceMenu()
     local deviceItems = {
         { 
             label = "🔧 Device Spoof", 
-            callback = function() 
-                print("🚧 Device Spoof - Coming Soon!")
+            callback = function()
+                print("🔧 Loading Device Spoof...")
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/DeviceSpoof"))()
             end 
         },
         { 
@@ -458,9 +513,16 @@ local function showDeviceMenu()
             end 
         },
         { 
+            label = "🌐 Server Hop", 
+            callback = function()
+                serverHop()
+            end 
+        },
+        { 
             label = "👮 Detect Admin", 
             callback = function()
-                print("🚧 Admin Detector - Coming Soon!")
+                print("👮 Loading Detect Admin...")
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/DetectAdmin"))()
             end 
         },
         { 
@@ -478,62 +540,28 @@ local function showDeviceMenu()
     backBtn.Visible = true
 end
 
--- Hide Name Visual menu
+-- Hide Name Visual menu - FIXED: Now directly loads script
 local function showHideNameMenu()
     clearContent()
-    currentMenu = "hidename"
+    currentMenu = "main" -- Stay in main menu
     
-    -- Create text input
-    local nameInput = Instance.new("TextBox")
-    nameInput.Size = UDim2.new(1, -20, 0, 35)
-    nameInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    nameInput.Text = "Enter new name..."
-    nameInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameInput.TextSize = 13
-    nameInput.Font = Enum.Font.Gotham
-    nameInput.PlaceholderText = "Type your desired name here"
-    nameInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-    nameInput.Parent = content
+    -- Directly load the HideNameVisual script
+    print("🎭 Loading Hide Name Visual...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/HideNameVisual"))()
     
-    local inputCorner = Instance.new("UICorner")
-    inputCorner.CornerRadius = UDim.new(0, 6)
-    inputCorner.Parent = nameInput
-    
-    local inputStroke = Instance.new("UIStroke")
-    inputStroke.Color = Color3.fromRGB(0, 200, 100)
-    inputStroke.Thickness = 1
-    inputStroke.Parent = nameInput
-    
-    -- Generate button
-    createButton("🎭 Generate Name", function()
-        local newName = nameInput.Text
-        if newName and newName ~= "" and newName ~= "Enter new name..." then
-            print("🎭 Name changed to: " .. newName)
-            print("🚧 Hide Name Visual - Coming Soon!")
-        else
-            warn("⚠️ Please enter a valid name!")
-        end
-    end, Color3.fromRGB(0, 120, 60))
-    
-    -- Reset button
-    createButton("🔄 Reset to Original", function()
-        print("🔄 Name reset to original")
-        print("🚧 Reset Name - Coming Soon!")
-    end, Color3.fromRGB(80, 80, 80))
-    
-    backBtn.Visible = true
+    backBtn.Visible = false
 end
 
--- Aimbot menu
+-- Aimbot menu - FIXED: Now directly loads script
 local function showAimbotMenu()
     clearContent()
-    currentMenu = "aimbot"
+    currentMenu = "main" -- Stay in main menu
     
-    createButton("🎯 Auto Aim", function()
-        print("🚧 Auto Aim - Coming Soon!")
-    end, Color3.fromRGB(120, 40, 40))
+    -- Directly load the Autoaim script
+    print("🎯 Loading Auto Aim...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Autoaim"))()
     
-    backBtn.Visible = true
+    backBtn.Visible = false
 end
 
 local function showCheats()
@@ -542,24 +570,19 @@ local function showCheats()
     
     local items = {
         { label = "🏔️ Auto Puncak", callback = showAutoPuncak },
-        { label = "⚡ Auto Teleport", callback = function() 
-            print("🚧 Auto Teleport - Coming Soon!") 
-        end },
         { label = "✈️ Fly Mode", callback = showFlyMenu },
-        { label = "🏃 Speed Run", callback = function()
-            print("🚧 Speed Run - Coming Soon!")
-        end },
+        { label = "🏃 Speed Run", callback = showSpeedMenu }, -- Now opens submenu
         { label = "✨ Radiant Body", callback = function()
-            print("🚧 Radiant Body - Coming Soon!")
+            print("✨ Loading Radiant Body...")
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Radiant%20body"))()
         end },
-        { label = "🎯 Fling Player", callback = function() 
-            print("🚧 Fling Player - Coming Soon!") 
-        end },
+        { label = "🎯 Fling Player", callback = showFlingMenu },
         { label = "👤 TP to Player", callback = function() 
-            print("🚧 TP to Player - Coming Soon!") 
+            print("👤 Loading TP to Player...")
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/TptoPlayer"))()
         end },
-        { label = "🎭 Hide Name Visual", callback = showHideNameMenu },
-        { label = "🎯 Aimbot", callback = showAimbotMenu },
+        { label = "🎭 Hide Name Visual", callback = showHideNameMenu }, -- Now directly loads script
+        { label = "🎯 Aimbot", callback = showAimbotMenu }, -- Now directly loads script
     }
 
     for _, item in ipairs(items) do
@@ -667,7 +690,7 @@ safeConnect(deviceBtn.MouseButton1Click, function()
 end)
 
 safeConnect(backBtn.MouseButton1Click, function()
-    if currentMenu == "fly" or currentMenu == "hidename" or currentMenu == "aimbot" or currentMenu == "autopuncak" or currentMenu == "device" then
+    if currentMenu == "fly" or currentMenu == "hidename" or currentMenu == "aimbot" or currentMenu == "fling" or currentMenu == "device" or currentMenu == "speed" then
         showCheats()
     else
         showCheats()
@@ -801,9 +824,17 @@ game:GetService("RunService").Heartbeat:Connect(function()
 end)
 
 print("✅ WarpahVip GUI v0.3.3.2 Enhanced loaded successfully!")
-print("✨ New Features:")
+print("✨ Updated Features:")
+print("  - 🏔️ Auto Puncak now directly loads AutoSummit script")
+print("  - 💥 Fling Player menu with Fling All Player & Walkfling")
 print("  - 🔍 Dex Explorer added to Device menu")
-print("  - ✈️ Fly No Clip & Fly Safe now functional with loadstring")
-print("  - 🏔️ All mountain teleports working")
+print("  - ✈️ Fly No Clip & Fly Safe functional with loadstring")
+print("  - 🌐 Server Hop feature added to Device menu")
+print("  - 🔧 Device Spoof now loads DeviceSpoof script")
+print("  - 👮 Detect Admin now loads DetectAdmin script")
+print("  - 👤 TP to Player now loads TptoPlayer script")
+print("  - 🎭 Hide Name Visual now directly loads HideNameVisual script")
+print("  - 🎯 Aimbot now directly loads Autoaim script")
+print("  - 🏃 Speed Run now has submenu with Speed Hack V1 & V2")
 print("  - 🛡️ Enhanced error handling and memory management")
 print("🚀 Ready to use!")
