@@ -21,7 +21,6 @@ local Config = {
         ["Adminganteng"] = true,
         ["Whoamidev"] = true,
         ["WhoAmIAdmin2025"] = true
-        ["sjdjajjajs"] = true
     },
     MAIN_SCRIPT_URL = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats",
     DISCORD_LINK = "https://discord.gg/e77s79ZJ",
