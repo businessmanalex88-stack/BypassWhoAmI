@@ -1,75 +1,186 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local player = Players.LocalPlayer
 
 local speedBoost, normalSpeed = 100, 16
 local jumpBoost, normalJump = 180, 50
 local isSpeedOn, isJumpOn = false, false
+local isMinimized = false
 
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "SpeedJumpGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
-local function createStyledButton(name, anchorPos, color, text)
+-- Main Frame Container (Made Smaller)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 200, 0, 100)
+mainFrame.Position = UDim2.new(0, 20, 1, -120)
+mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner", mainFrame)
+mainCorner.CornerRadius = UDim.new(0, 8)
+
+local mainStroke = Instance.new("UIStroke", mainFrame)
+mainStroke.Thickness = 2
+mainStroke.Color = Color3.fromRGB(0, 255, 0)
+mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Size = UDim2.new(1, 0, 0, 22)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+titleBar.Parent = mainFrame
+
+local titleCorner = Instance.new("UICorner", titleBar)
+titleCorner.CornerRadius = UDim.new(0, 8)
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(1, -55, 1, 0)
+titleLabel.Position = UDim2.new(0, 5, 0, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.TextColor3 = Color3.new(1, 1, 1)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.TextScaled = true
+titleLabel.Text = "Speed P & Jump P"
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+titleLabel.Parent = titleBar
+
+-- Content Frame
+local contentFrame = Instance.new("Frame")
+contentFrame.Name = "ContentFrame"
+contentFrame.Size = UDim2.new(1, 0, 1, -22)
+contentFrame.Position = UDim2.new(0, 0, 0, 22)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = mainFrame
+
+local function createStyledButton(name, position, color, text)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(0, 90, 0, 35)
-	button.Position = anchorPos
-	button.AnchorPoint = Vector2.new(0, 1)
+	button.Size = UDim2.new(0, 65, 0, 25)
+	button.Position = position
 	button.BackgroundColor3 = color
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.Font = Enum.Font.Gotham
 	button.TextScaled = true
 	button.Text = text
 	button.AutoButtonColor = false
-	button.Parent = screenGui
+	button.Parent = contentFrame
 
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 5)
 	local stroke = Instance.new("UIStroke", button)
 	stroke.Thickness = 1.5
-	stroke.Color = Color3.fromRGB(255, 0, 0)
+	stroke.Color = Color3.fromRGB(0, 255, 0)
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	return button
 end
 
-local function createMiniButton(name, anchorPos, text)
+local function createMiniButton(name, position, text)
 	local button = Instance.new("TextButton")
 	button.Name = name
-	button.Size = UDim2.new(0, 30, 0, 30)
-	button.Position = anchorPos
-	button.AnchorPoint = Vector2.new(0, 1)
-	button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	button.Size = UDim2.new(0, 22, 0, 22)
+	button.Position = position
+	button.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.Font = Enum.Font.Gotham
 	button.TextScaled = true
 	button.Text = text
 	button.AutoButtonColor = false
-	button.Parent = screenGui
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 6)
+	button.Parent = contentFrame
+	
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 4)
+	local stroke = Instance.new("UIStroke", button)
+	stroke.Thickness = 1
+	stroke.Color = Color3.fromRGB(0, 255, 0)
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	return button
 end
 
-local function createLabel(name, anchorPos, text)
+local function createLabel(name, position, text)
 	local label = Instance.new("TextLabel")
 	label.Name = name
-	label.Size = UDim2.new(0, 45, 0, 35)
-	label.Position = anchorPos
-	label.AnchorPoint = Vector2.new(0, 1)
+	label.Size = UDim2.new(0, 30, 0, 25)
+	label.Position = position
 	label.BackgroundTransparency = 1
 	label.TextColor3 = Color3.new(1, 1, 1)
 	label.Font = Enum.Font.Gotham
 	label.TextScaled = true
 	label.Text = text
-	label.Parent = screenGui
+	label.Parent = contentFrame
 	return label
 end
 
+-- Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Size = UDim2.new(0, 22, 0, 18)
+closeButton.Position = UDim2.new(1, -24, 0, 2)
+closeButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+closeButton.TextColor3 = Color3.new(1, 1, 1)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.TextScaled = true
+closeButton.Text = "×"
+closeButton.AutoButtonColor = false
+closeButton.Parent = titleBar
+
+Instance.new("UICorner", closeButton).CornerRadius = UDim.new(0, 4)
+
+-- Minimize Button
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Size = UDim2.new(0, 22, 0, 18)
+minimizeButton.Position = UDim2.new(1, -48, 0, 2)
+minimizeButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+minimizeButton.TextColor3 = Color3.new(1, 1, 1)
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.TextScaled = true
+minimizeButton.Text = "−"
+minimizeButton.AutoButtonColor = false
+minimizeButton.Parent = titleBar
+
+Instance.new("UICorner", minimizeButton).CornerRadius = UDim.new(0, 4)
+
+-- Draggable Variables
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+-- Make GUI Draggable
+titleBar.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainFrame.Position
+		screenGui.DisplayOrder = 10
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+		screenGui.DisplayOrder = 0
+	end
+end)
+
 local function animateButton(button)
 	local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	local scaleUp = TweenService:Create(button, tweenInfo, { Size = button.Size + UDim2.new(0, 5, 0, 5) })
-	local scaleDown = TweenService:Create(button, tweenInfo, { Size = button.Size })
+	local originalSize = button.Size
+	local scaleUp = TweenService:Create(button, tweenInfo, { Size = originalSize + UDim2.new(0, 3, 0, 3) })
+	local scaleDown = TweenService:Create(button, tweenInfo, { Size = originalSize })
 	scaleUp:Play()
 	scaleUp.Completed:Wait()
 	scaleDown:Play()
@@ -93,10 +204,10 @@ local function updateJump()
 end
 
 -- SPEED UI
-local speedButton = createStyledButton("SpeedButton", UDim2.new(0, 20, 1, -20), Color3.fromRGB(170, 0, 0), "Speed OFF")
-local speedLabel = createLabel("SpeedLabel", UDim2.new(0, 115, 1, -20), tostring(speedBoost))
-local speedPlus = createMiniButton("SpeedPlus", UDim2.new(0, 165, 1, -20), "+")
-local speedMinus = createMiniButton("SpeedMinus", UDim2.new(0, 200, 1, -20), "-")
+local speedButton = createStyledButton("SpeedButton", UDim2.new(0, 5, 0, 8), Color3.fromRGB(170, 0, 0), "Speed OFF")
+local speedLabel = createLabel("SpeedLabel", UDim2.new(0, 75, 0, 8), tostring(speedBoost))
+local speedPlus = createMiniButton("SpeedPlus", UDim2.new(0, 110, 0, 9.5), "+")
+local speedMinus = createMiniButton("SpeedMinus", UDim2.new(0, 137, 0, 9.5), "-")
 
 local function updateSpeedButton()
 	speedButton.BackgroundColor3 = isSpeedOn and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
@@ -115,19 +226,21 @@ speedPlus.MouseButton1Click:Connect(function()
 	speedBoost = math.min(speedBoost + 5, 300)
 	if isSpeedOn then updateSpeed() end
 	updateSpeedButton()
+	animateButton(speedPlus)
 end)
 
 speedMinus.MouseButton1Click:Connect(function()
 	speedBoost = math.max(speedBoost - 5, 16)
 	if isSpeedOn then updateSpeed() end
 	updateSpeedButton()
+	animateButton(speedMinus)
 end)
 
 -- JUMP UI
-local jumpButton = createStyledButton("JumpButton", UDim2.new(0, 20, 1, -65), Color3.fromRGB(170, 0, 0), "Jump OFF")
-local jumpLabel = createLabel("JumpLabel", UDim2.new(0, 115, 1, -65), tostring(jumpBoost))
-local jumpPlus = createMiniButton("JumpPlus", UDim2.new(0, 165, 1, -65), "+")
-local jumpMinus = createMiniButton("JumpMinus", UDim2.new(0, 200, 1, -65), "-")
+local jumpButton = createStyledButton("JumpButton", UDim2.new(0, 5, 0, 42), Color3.fromRGB(170, 0, 0), "Jump OFF")
+local jumpLabel = createLabel("JumpLabel", UDim2.new(0, 75, 0, 42), tostring(jumpBoost))
+local jumpPlus = createMiniButton("JumpPlus", UDim2.new(0, 110, 0, 43.5), "+")
+local jumpMinus = createMiniButton("JumpMinus", UDim2.new(0, 137, 0, 43.5), "-")
 
 local function updateJumpButton()
 	jumpButton.BackgroundColor3 = isJumpOn and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
@@ -146,12 +259,47 @@ jumpPlus.MouseButton1Click:Connect(function()
 	jumpBoost = math.min(jumpBoost + 10, 500)
 	if isJumpOn then updateJump() end
 	updateJumpButton()
+	animateButton(jumpPlus)
 end)
 
 jumpMinus.MouseButton1Click:Connect(function()
 	jumpBoost = math.max(jumpBoost - 10, 50)
 	if isJumpOn then updateJump() end
 	updateJumpButton()
+	animateButton(jumpMinus)
+end)
+
+-- Close Button Function
+closeButton.MouseButton1Click:Connect(function()
+	animateButton(closeButton)
+	task.wait(0.1)
+	screenGui:Destroy()
+end)
+
+-- Minimize/Maximize Function
+minimizeButton.MouseButton1Click:Connect(function()
+	animateButton(minimizeButton)
+	isMinimized = not isMinimized
+	
+	local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	
+	if isMinimized then
+		-- Minimize
+		local minimizeTween = TweenService:Create(mainFrame, tweenInfo, {
+			Size = UDim2.new(0, 200, 0, 22)
+		})
+		minimizeTween:Play()
+		minimizeButton.Text = "+"
+		contentFrame.Visible = false
+	else
+		-- Maximize
+		local maximizeTween = TweenService:Create(mainFrame, tweenInfo, {
+			Size = UDim2.new(0, 200, 0, 100)
+		})
+		maximizeTween:Play()
+		minimizeButton.Text = "−"
+		contentFrame.Visible = true
+	end
 end)
 
 -- Anti Fall Damage
