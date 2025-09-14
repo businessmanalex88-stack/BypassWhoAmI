@@ -552,6 +552,18 @@ local function showHideNameMenu()
     backBtn.Visible = false
 end
 
+-- NEW: Spectate Player menu - FIXED: Now directly loads script
+local function showSpectatePlayerMenu()
+    clearContent()
+    currentMenu = "main" -- Stay in main menu
+    
+    -- Directly load the SpectateWarpah script
+    print("👁️ Loading Spectate Player...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/SpectateWarpah"))()
+    
+    backBtn.Visible = false
+end
+
 -- REMOVED: Aimbot menu function completely removed
 
 local function showCheats()
@@ -572,6 +584,7 @@ local function showCheats()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/TptoPlayer"))()
         end },
         { label = "🎭 Hide Name Visual", callback = showHideNameMenu }, -- Now directly loads script
+        { label = "👁️ Spectate Player", callback = showSpectatePlayerMenu }, -- NEW: Added Spectate Player
         -- REMOVED: Aimbot entry completely removed from the menu
     }
 
@@ -824,6 +837,7 @@ print("  - 🔧 Device Spoof now loads DeviceSpoof script")
 print("  - 👮 Detect Admin now loads DetectAdmin script")
 print("  - 👤 TP to Player now loads TptoPlayer script")
 print("  - 🎭 Hide Name Visual now directly loads HideNameVisual script")
+print("  - 👁️ Spectate Player now directly loads SpectateWarpah script") -- NEW FEATURE
 print("  - 🏃 Speed Run now has submenu with Speed Hack V1 & V2")
 print("  - ❌ Aimbot menu removed completely")
 print("  - 🛡️ Enhanced error handling and memory management")
