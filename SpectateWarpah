@@ -1,0 +1,568 @@
+-- WarpahSpectate Pro v5.0
+-- Compact Professional Design
+-- Mobile & Desktop Compatible
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- Configuration
+local Config = {
+    Enabled = false,
+    CurrentTarget = nil,
+    TargetIndex = 1,
+    ZoomLevel = 1,
+    CameraOffset = Vector3.new(0, 3, 8),
+    AutoRotate = false,
+    RotationSpeed = 0.3,
+    MinZoom = 0.5,
+    MaxZoom = 5,
+    UI = {},
+    IsMinimized = false,
+    Connections = {},
+    
+    -- Touch controls
+    TouchStartPos = nil,
+    InitialZoom = nil,
+    IsPinching = false
+}
+
+-- Create Compact GUI
+local function createGUI()
+    local existing = LocalPlayer.PlayerGui:FindFirstChild("WarpahSpectate")
+    if existing then existing:Destroy() end
+    
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "WarpahSpectate"
+    ScreenGui.Parent = LocalPlayer.PlayerGui
+    ScreenGui.ResetOnSpawn = false
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Main Frame (Compact Size)
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.new(0, 180, 0, 220)
+    MainFrame.Position = UDim2.new(0, 10, 0, 10)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Parent = ScreenGui
+    
+    local MainCorner = Instance.new("UICorner")
+    MainCorner.CornerRadius = UDim.new(0, 8)
+    MainCorner.Parent = MainFrame
+    
+    -- Simple Border
+    local Border = Instance.new("UIStroke")
+    Border.Color = Color3.fromRGB(60, 60, 70)
+    Border.Thickness = 1
+    Border.Parent = MainFrame
+    
+    -- Title Bar (Compact)
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Size = UDim2.new(1, 0, 0, 24)
+    TitleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Parent = MainFrame
+    
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 8)
+    TitleCorner.Parent = TitleBar
+    
+    local TitleFix = Instance.new("Frame")
+    TitleFix.Size = UDim2.new(1, 0, 0, 12)
+    TitleFix.Position = UDim2.new(0, 0, 1, -12)
+    TitleFix.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    TitleFix.BorderSizePixel = 0
+    TitleFix.Parent = TitleBar
+    
+    -- Title Text
+    local TitleText = Instance.new("TextLabel")
+    TitleText.Size = UDim2.new(1, -60, 1, 0)
+    TitleText.Position = UDim2.new(0, 6, 0, 0)
+    TitleText.BackgroundTransparency = 1
+    TitleText.Text = "Warpah Spectate"
+    TitleText.TextColor3 = Color3.fromRGB(220, 220, 220)
+    TitleText.TextSize = 10
+    TitleText.Font = Enum.Font.Gotham
+    TitleText.TextXAlignment = Enum.TextXAlignment.Left
+    TitleText.Parent = TitleBar
+    
+    -- Minimize Button
+    local MinimizeBtn = Instance.new("TextButton")
+    MinimizeBtn.Size = UDim2.new(0, 16, 0, 16)
+    MinimizeBtn.Position = UDim2.new(1, -38, 0, 4)
+    MinimizeBtn.BackgroundColor3 = Color3.fromRGB(200, 160, 50)
+    MinimizeBtn.Text = "–"
+    MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MinimizeBtn.TextSize = 12
+    MinimizeBtn.Font = Enum.Font.GothamBold
+    MinimizeBtn.Parent = TitleBar
+    
+    local MinimizeCorner = Instance.new("UICorner")
+    MinimizeCorner.CornerRadius = UDim.new(0, 3)
+    MinimizeCorner.Parent = MinimizeBtn
+    
+    -- Close Button
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 16, 0, 16)
+    CloseBtn.Position = UDim2.new(1, -20, 0, 4)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    CloseBtn.Text = "×"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.TextSize = 12
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Parent = TitleBar
+    
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 3)
+    CloseCorner.Parent = CloseBtn
+    
+    -- Content Frame
+    local ContentFrame = Instance.new("Frame")
+    ContentFrame.Size = UDim2.new(1, 0, 1, -24)
+    ContentFrame.Position = UDim2.new(0, 0, 0, 24)
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.Parent = MainFrame
+    
+    -- Toggle Button
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Size = UDim2.new(1, -12, 0, 22)
+    ToggleBtn.Position = UDim2.new(0, 6, 0, 6)
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 200)
+    ToggleBtn.Text = "Enable"
+    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleBtn.TextSize = 10
+    ToggleBtn.Font = Enum.Font.Gotham
+    ToggleBtn.Parent = ContentFrame
+    
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 4)
+    ToggleCorner.Parent = ToggleBtn
+    
+    -- Player List (Compact)
+    local PlayerListFrame = Instance.new("ScrollingFrame")
+    PlayerListFrame.Size = UDim2.new(1, -12, 0, 90)
+    PlayerListFrame.Position = UDim2.new(0, 6, 0, 34)
+    PlayerListFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    PlayerListFrame.BorderSizePixel = 0
+    PlayerListFrame.ScrollBarThickness = 2
+    PlayerListFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 100)
+    PlayerListFrame.Parent = ContentFrame
+    
+    local ListCorner = Instance.new("UICorner")
+    ListCorner.CornerRadius = UDim.new(0, 4)
+    ListCorner.Parent = PlayerListFrame
+    
+    local ListLayout = Instance.new("UIListLayout")
+    ListLayout.SortOrder = Enum.SortOrder.Name
+    ListLayout.Padding = UDim.new(0, 1)
+    ListLayout.Parent = PlayerListFrame
+    
+    -- Controls (Compact)
+    local ControlsFrame = Instance.new("Frame")
+    ControlsFrame.Size = UDim2.new(1, -12, 0, 60)
+    ControlsFrame.Position = UDim2.new(0, 6, 0, 130)
+    ControlsFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    ControlsFrame.BorderSizePixel = 0
+    ControlsFrame.Parent = ContentFrame
+    
+    local ControlsCorner = Instance.new("UICorner")
+    ControlsCorner.CornerRadius = UDim.new(0, 4)
+    ControlsCorner.Parent = ControlsFrame
+    
+    -- Navigation Buttons (Smaller)
+    local PrevBtn = Instance.new("TextButton")
+    PrevBtn.Size = UDim2.new(0.32, -1, 0, 16)
+    PrevBtn.Position = UDim2.new(0, 3, 0, 3)
+    PrevBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 90)
+    PrevBtn.Text = "◀"
+    PrevBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    PrevBtn.TextSize = 10
+    PrevBtn.Font = Enum.Font.Gotham
+    PrevBtn.Parent = ControlsFrame
+    
+    local NextBtn = Instance.new("TextButton")
+    NextBtn.Size = UDim2.new(0.32, -1, 0, 16)
+    NextBtn.Position = UDim2.new(0.34, 0, 0, 3)
+    NextBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 90)
+    NextBtn.Text = "▶"
+    NextBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NextBtn.TextSize = 10
+    NextBtn.Font = Enum.Font.Gotham
+    NextBtn.Parent = ControlsFrame
+    
+    local TeleportBtn = Instance.new("TextButton")
+    TeleportBtn.Size = UDim2.new(0.34, -2, 0, 16)
+    TeleportBtn.Position = UDim2.new(0.66, 2, 0, 3)
+    TeleportBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 50)
+    TeleportBtn.Text = "TP"
+    TeleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TeleportBtn.TextSize = 10
+    TeleportBtn.Font = Enum.Font.Gotham
+    TeleportBtn.Parent = ControlsFrame
+    
+    -- Auto Rotate
+    local AutoBtn = Instance.new("TextButton")
+    AutoBtn.Size = UDim2.new(1, -6, 0, 16)
+    AutoBtn.Position = UDim2.new(0, 3, 0, 22)
+    AutoBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 110)
+    AutoBtn.Text = "Auto: OFF"
+    AutoBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AutoBtn.TextSize = 9
+    AutoBtn.Font = Enum.Font.Gotham
+    AutoBtn.Parent = ControlsFrame
+    
+    -- Info Text (Compact)
+    local InfoLabel = Instance.new("TextLabel")
+    InfoLabel.Size = UDim2.new(1, -6, 0, 16)
+    InfoLabel.Position = UDim2.new(0, 3, 0, 41)
+    InfoLabel.BackgroundTransparency = 1
+    InfoLabel.Text = "F: Toggle | N/P: Switch | Pinch: Zoom"
+    InfoLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
+    InfoLabel.TextSize = 7
+    InfoLabel.Font = Enum.Font.Gotham
+    InfoLabel.Parent = ControlsFrame
+    
+    -- Round all buttons
+    for _, btn in pairs({PrevBtn, NextBtn, TeleportBtn, AutoBtn}) do
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 3)
+        corner.Parent = btn
+    end
+    
+    Config.UI = {
+        ScreenGui = ScreenGui,
+        MainFrame = MainFrame,
+        TitleBar = TitleBar,
+        MinimizeBtn = MinimizeBtn,
+        CloseBtn = CloseBtn,
+        ContentFrame = ContentFrame,
+        ToggleBtn = ToggleBtn,
+        PlayerListFrame = PlayerListFrame,
+        ControlsFrame = ControlsFrame,
+        PrevBtn = PrevBtn,
+        NextBtn = NextBtn,
+        TeleportBtn = TeleportBtn,
+        AutoBtn = AutoBtn
+    }
+    
+    return Config.UI
+end
+
+-- Enhanced Dragging
+local function makeDraggable(frame, handle)
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    
+    -- Mouse dragging
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            -- Visual feedback
+            local tween = TweenService:Create(frame, TweenInfo.new(0.1), {
+                Size = frame.Size + UDim2.new(0, 2, 0, 2)
+            })
+            tween:Play()
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging then
+                dragging = false
+                -- Reset visual feedback
+                local tween = TweenService:Create(frame, TweenInfo.new(0.1), {
+                    Size = UDim2.new(0, 180, 0, 220)
+                })
+                tween:Play()
+            end
+        end
+    end)
+end
+
+-- Touch Zoom Implementation
+local function handleTouchZoom()
+    local touches = {}
+    
+    UserInputService.TouchStarted:Connect(function(touch, processed)
+        if not Config.Enabled then return end
+        touches[touch] = {Position = touch.Position, Time = tick()}
+    end)
+    
+    UserInputService.TouchMoved:Connect(function(touch, processed)
+        if not Config.Enabled or processed then return end
+        
+        local touchCount = 0
+        local touchPositions = {}
+        
+        for t, data in pairs(touches) do
+            if t.UserInputState == Enum.UserInputState.Change then
+                touchCount = touchCount + 1
+                table.insert(touchPositions, t.Position)
+            end
+        end
+        
+        -- Pinch to zoom with 2+ touches
+        if touchCount >= 2 then
+            local distance = (touchPositions[1] - touchPositions[2]).Magnitude
+            
+            if not Config.IsPinching then
+                Config.IsPinching = true
+                Config.InitialZoom = Config.ZoomLevel
+                Config.TouchStartPos = distance
+            else
+                local scale = Config.TouchStartPos / distance
+                Config.ZoomLevel = math.clamp(Config.InitialZoom * scale, Config.MinZoom, Config.MaxZoom)
+            end
+        end
+    end)
+    
+    UserInputService.TouchEnded:Connect(function(touch, processed)
+        touches[touch] = nil
+        
+        -- Reset pinch state when no touches
+        local hasActiveTouches = false
+        for t, data in pairs(touches) do
+            if t.UserInputState ~= Enum.UserInputState.End then
+                hasActiveTouches = true
+                break
+            end
+        end
+        
+        if not hasActiveTouches then
+            Config.IsPinching = false
+            Config.TouchStartPos = nil
+            Config.InitialZoom = nil
+        end
+    end)
+end
+
+-- Get valid players
+local function getValidPlayers()
+    local validPlayers = {}
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(validPlayers, player)
+        end
+    end
+    return validPlayers
+end
+
+-- Update player list
+local function updatePlayerList()
+    local playerList = Config.UI.PlayerListFrame
+    
+    for _, child in pairs(playerList:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    
+    local validPlayers = getValidPlayers()
+    
+    for i, player in pairs(validPlayers) do
+        local playerBtn = Instance.new("TextButton")
+        playerBtn.Size = UDim2.new(1, -4, 0, 18)
+        playerBtn.BackgroundColor3 = (Config.CurrentTarget == player) and Color3.fromRGB(50, 120, 200) or Color3.fromRGB(40, 40, 45)
+        playerBtn.Text = player.DisplayName
+        playerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        playerBtn.TextSize = 9
+        playerBtn.Font = Enum.Font.Gotham
+        playerBtn.Parent = playerList
+        
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 3)
+        btnCorner.Parent = playerBtn
+        
+        playerBtn.MouseButton1Click:Connect(function()
+            Config.CurrentTarget = player
+            Config.TargetIndex = i
+            updatePlayerList()
+        end)
+    end
+    
+    playerList.CanvasSize = UDim2.new(0, 0, 0, #validPlayers * 19)
+end
+
+-- Smooth camera update
+local function updateCamera()
+    if not Config.Enabled or not Config.CurrentTarget then return end
+    
+    local target = Config.CurrentTarget
+    if not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local targetPosition = target.Character.HumanoidRootPart.Position
+    local distance = 8 * Config.ZoomLevel
+    
+    local cameraOffset
+    if Config.AutoRotate then
+        local angle = tick() * Config.RotationSpeed
+        cameraOffset = Vector3.new(
+            math.cos(angle) * distance,
+            3,
+            math.sin(angle) * distance
+        )
+    else
+        cameraOffset = Vector3.new(0, 3, distance)
+    end
+    
+    local cameraPosition = targetPosition + cameraOffset
+    local targetCFrame = CFrame.lookAt(cameraPosition, targetPosition)
+    
+    -- Smooth transition
+    local currentCFrame = Camera.CFrame
+    Camera.CFrame = currentCFrame:Lerp(targetCFrame, 0.15)
+end
+
+-- Switch player
+local function switchPlayer(direction)
+    local validPlayers = getValidPlayers()
+    if #validPlayers == 0 then return end
+    
+    Config.TargetIndex = Config.TargetIndex + direction
+    if Config.TargetIndex > #validPlayers then Config.TargetIndex = 1
+    elseif Config.TargetIndex < 1 then Config.TargetIndex = #validPlayers end
+    
+    Config.CurrentTarget = validPlayers[Config.TargetIndex]
+    updatePlayerList()
+end
+
+-- Teleport function
+local function teleportToPlayer()
+    if not Config.CurrentTarget or not Config.CurrentTarget.Character then return end
+    
+    local targetPos = Config.CurrentTarget.Character:FindFirstChild("HumanoidRootPart")
+    local localChar = LocalPlayer.Character
+    local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
+    
+    if targetPos and localHRP then
+        localHRP.CFrame = targetPos.CFrame + Vector3.new(0, 0, -3)
+    end
+end
+
+-- Toggle spectate
+local function toggleSpectate()
+    Config.Enabled = not Config.Enabled
+    
+    if Config.Enabled then
+        Config.UI.ToggleBtn.Text = "Disable"
+        Config.UI.ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 80, 80)
+        
+        local validPlayers = getValidPlayers()
+        if #validPlayers > 0 and not Config.CurrentTarget then
+            Config.CurrentTarget = validPlayers[1]
+            Config.TargetIndex = 1
+        end
+        
+        Camera.CameraType = Enum.CameraType.Scriptable
+    else
+        Config.UI.ToggleBtn.Text = "Enable"
+        Config.UI.ToggleBtn.BackgroundColor3 = Color3.fromRGB(50, 120, 200)
+        
+        Camera.CameraType = Enum.CameraType.Custom
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            Camera.CameraSubject = LocalPlayer.Character.Humanoid
+        end
+    end
+    
+    updatePlayerList()
+end
+
+-- Toggle auto rotate
+local function toggleAutoRotate()
+    Config.AutoRotate = not Config.AutoRotate
+    Config.UI.AutoBtn.BackgroundColor3 = Config.AutoRotate and Color3.fromRGB(50, 150, 80) or Color3.fromRGB(100, 100, 110)
+    Config.UI.AutoBtn.Text = Config.AutoRotate and "Auto: ON" or "Auto: OFF"
+end
+
+-- Toggle minimize
+local function toggleMinimize()
+    Config.IsMinimized = not Config.IsMinimized
+    
+    local targetSize = Config.IsMinimized and UDim2.new(0, 180, 0, 24) or UDim2.new(0, 180, 0, 220)
+    local tween = TweenService:Create(Config.UI.MainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = targetSize})
+    tween:Play()
+    
+    Config.UI.MinimizeBtn.Text = Config.IsMinimized and "+" or "–"
+    Config.UI.ContentFrame.Visible = not Config.IsMinimized
+end
+
+-- Close GUI
+local function closeGUI()
+    if Config.Enabled then toggleSpectate() end
+    
+    for _, connection in pairs(Config.Connections) do
+        if connection then connection:Disconnect() end
+    end
+    
+    if Config.UI.ScreenGui then Config.UI.ScreenGui:Destroy() end
+end
+
+-- Initialize
+local function initialize()
+    local ui = createGUI()
+    
+    makeDraggable(ui.MainFrame, ui.TitleBar)
+    handleTouchZoom()
+    
+    -- Connect events
+    ui.MinimizeBtn.MouseButton1Click:Connect(toggleMinimize)
+    ui.CloseBtn.MouseButton1Click:Connect(closeGUI)
+    ui.ToggleBtn.MouseButton1Click:Connect(toggleSpectate)
+    ui.PrevBtn.MouseButton1Click:Connect(function() switchPlayer(-1) end)
+    ui.NextBtn.MouseButton1Click:Connect(function() switchPlayer(1) end)
+    ui.TeleportBtn.MouseButton1Click:Connect(teleportToPlayer)
+    ui.AutoBtn.MouseButton1Click:Connect(toggleAutoRotate)
+    
+    Config.Connections[#Config.Connections + 1] = RunService.Heartbeat:Connect(updateCamera)
+    
+    -- Update player list periodically
+    spawn(function()
+        while Config.UI.ScreenGui and Config.UI.ScreenGui.Parent do
+            wait(1.5)
+            updatePlayerList()
+        end
+    end)
+    
+    updatePlayerList()
+    print("Warpah Spectate Pro loaded successfully!")
+end
+
+-- Keyboard shortcuts
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    
+    if input.KeyCode == Enum.KeyCode.F then
+        toggleSpectate()
+    elseif input.KeyCode == Enum.KeyCode.N and Config.Enabled then
+        switchPlayer(1)
+    elseif input.KeyCode == Enum.KeyCode.P and Config.Enabled then
+        switchPlayer(-1)
+    elseif input.KeyCode == Enum.KeyCode.R and Config.Enabled then
+        toggleAutoRotate()
+    elseif input.KeyCode == Enum.KeyCode.T and Config.Enabled then
+        teleportToPlayer()
+    end
+end)
+
+-- Start script
+initialize()
