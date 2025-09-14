@@ -1,4 +1,4 @@
---[[ LUA UI SCRIPT: WarpahVip GUI Cheat Menu - Enhanced Fixed Version (Aimbot Removed) ]]
+--[[ LUA UI SCRIPT: WarpahVip GUI Cheat Menu - Enhanced Fixed Version (with WarpahMorph) ]]
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local player = game.Players.LocalPlayer
@@ -181,7 +181,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -80, 0, 40)
 title.Position = UDim2.new(0, 40, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "WarpahVip | v.0.3.3.3"
+title.Text = "WarpahVip | v.0.3.3.4"
 title.TextColor3 = Color3.fromRGB(0, 255, 0)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -564,7 +564,17 @@ local function showSpectatePlayerMenu()
     backBtn.Visible = false
 end
 
--- REMOVED: Aimbot menu function completely removed
+-- NEW: WarpahMorph menu - FIXED: Now directly loads script
+local function showWarpahMorphMenu()
+    clearContent()
+    currentMenu = "main" -- Stay in main menu
+    
+    -- Directly load the WarpahMorph script
+    print("🦋 Loading WarpahMorph...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/WarpahMorph"))()
+    
+    backBtn.Visible = false
+end
 
 local function showCheats()
     clearContent()
@@ -573,7 +583,7 @@ local function showCheats()
     local items = {
         { label = "🏔️ Auto Puncak", callback = showAutoPuncak },
         { label = "✈️ Fly Mode", callback = showFlyMenu },
-        { label = "🏃 Speed Run", callback = showSpeedMenu }, -- Now opens submenu
+        { label = "🏃 Speed Run", callback = showSpeedMenu },
         { label = "✨ Radiant Body", callback = function()
             print("✨ Loading Radiant Body...")
             loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Radiant%20body"))()
@@ -583,9 +593,9 @@ local function showCheats()
             print("👤 Loading TP to Player...")
             loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/TptoPlayer"))()
         end },
-        { label = "🎭 Hide Name Visual", callback = showHideNameMenu }, -- Now directly loads script
-        { label = "👁️ Spectate Player", callback = showSpectatePlayerMenu }, -- NEW: Added Spectate Player
-        -- REMOVED: Aimbot entry completely removed from the menu
+        { label = "🎭 Hide Name Visual", callback = showHideNameMenu },
+        { label = "👁️ Spectate Player", callback = showSpectatePlayerMenu },
+        { label = "🦋 WarpahMorph", callback = showWarpahMorphMenu }, -- NEW: Added WarpahMorph
     }
 
     for _, item in ipairs(items) do
@@ -826,7 +836,7 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
-print("✅ WarpahVip GUI v0.3.3.3 Enhanced loaded successfully!")
+print("✅ WarpahVip GUI v0.3.3.4 Enhanced loaded successfully!")
 print("✨ Updated Features:")
 print("  - 🏔️ Auto Puncak now directly loads AutoSummit script")
 print("  - 💥 Fling Player menu with Fling All Player & Walkfling")
@@ -837,7 +847,8 @@ print("  - 🔧 Device Spoof now loads DeviceSpoof script")
 print("  - 👮 Detect Admin now loads DetectAdmin script")
 print("  - 👤 TP to Player now loads TptoPlayer script")
 print("  - 🎭 Hide Name Visual now directly loads HideNameVisual script")
-print("  - 👁️ Spectate Player now directly loads SpectateWarpah script") -- NEW FEATURE
+print("  - 👁️ Spectate Player now directly loads SpectateWarpah script")
+print("  - 🦋 WarpahMorph now directly loads WarpahMorph script") -- NEW FEATURE
 print("  - 🏃 Speed Run now has submenu with Speed Hack V1 & V2")
 print("  - ❌ Aimbot menu removed completely")
 print("  - 🛡️ Enhanced error handling and memory management")
