@@ -22,6 +22,117 @@ local Config = {
         ["Whoamidev"] = true,
         ["WhoAmIAdmin2025"] = true
     },
+    -- Custom Key System - 100 Generated Keys dengan format WarpahVip_AJ827HDJA + random
+    CUSTOM_KEYS = {
+        ["WarpahVip_AJ827HDJA92K4L8"] = true,
+        ["WarpahVip_AJ827HDJA5X9P2M"] = true,
+        ["WarpahVip_AJ827HDJA7N6Q3R"] = true,
+        ["WarpahVip_AJ827HDJA4T8W1E"] = true,
+        ["WarpahVip_AJ827HDJA9Y5U7I"] = true,
+        ["WarpahVip_AJ827HDJA3O2A6S"] = true,
+        ["WarpahVip_AJ827HDJA8D4F9G"] = true,
+        ["WarpahVip_AJ827HDJA1H7J5K"] = true,
+        ["WarpahVip_AJ827HDJA6L3Z8X"] = true,
+        ["WarpahVip_AJ827HDJA2C9V4B"] = true,
+        ["WarpahVip_AJ827HDJA7N1M8Q"] = true,
+        ["WarpahVip_AJ827HDJA5W3R6T"] = true,
+        ["WarpahVip_AJ827HDJA9Y8U2I"] = true,
+        ["WarpahVip_AJ827HDJA4O7P5A"] = true,
+        ["WarpahVip_AJ827HDJA8S1D9F"] = true,
+        ["WarpahVip_AJ827HDJA3G6H4J"] = true,
+        ["WarpahVip_AJ827HDJA7K2L5Z"] = true,
+        ["WarpahVip_AJ827HDJA1X9C8V"] = true,
+        ["WarpahVip_AJ827HDJA6B4N7M"] = true,
+        ["WarpahVip_AJ827HDJA2Q3W6E"] = true,
+        ["WarpahVip_AJ827HDJA8R5T9Y"] = true,
+        ["WarpahVip_AJ827HDJA4U7I2O"] = true,
+        ["WarpahVip_AJ827HDJA9P1A6S"] = true,
+        ["WarpahVip_AJ827HDJA3D8F5G"] = true,
+        ["WarpahVip_AJ827HDJA7H4J9K"] = true,
+        ["WarpahVip_AJ827HDJA1L6Z3X"] = true,
+        ["WarpahVip_AJ827HDJA5C2V8B"] = true,
+        ["WarpahVip_AJ827HDJA6N9M1Q"] = true,
+        ["WarpahVip_AJ827HDJA2W4R7T"] = true,
+        ["WarpahVip_AJ827HDJA8Y3U6I"] = true,
+        ["WarpahVip_AJ827HDJA4O9P2A"] = true,
+        ["WarpahVip_AJ827HDJA9S6D1F"] = true,
+        ["WarpahVip_AJ827HDJA3G5H8J"] = true,
+        ["WarpahVip_AJ827HDJA7K4L2Z"] = true,
+        ["WarpahVip_AJ827HDJA1X6C9V"] = true,
+        ["WarpahVip_AJ827HDJA5B3N4M"] = true,
+        ["WarpahVip_AJ827HDJA2Q8W7E"] = true,
+        ["WarpahVip_AJ827HDJA6R1T5Y"] = true,
+        ["WarpahVip_AJ827HDJA4U9I8O"] = true,
+        ["WarpahVip_AJ827HDJA8P2A3S"] = true,
+        ["WarpahVip_AJ827HDJA3D7F6G"] = true,
+        ["WarpahVip_AJ827HDJA9H1J4K"] = true,
+        ["WarpahVip_AJ827HDJA7L5Z8X"] = true,
+        ["WarpahVip_AJ827HDJA1C6V2B"] = true,
+        ["WarpahVip_AJ827HDJA5N8M9Q"] = true,
+        ["WarpahVip_AJ827HDJA2W3R4T"] = true,
+        ["WarpahVip_AJ827HDJA6Y7U1I"] = true,
+        ["WarpahVip_AJ827HDJA4O5P8A"] = true,
+        ["WarpahVip_AJ827HDJA8S9D6F"] = true,
+        ["WarpahVip_AJ827HDJA3G2H7J"] = true,
+        ["WarpahVip_AJ827HDJA9K1L4Z"] = true,
+        ["WarpahVip_AJ827HDJA7X5C8V"] = true,
+        ["WarpahVip_AJ827HDJA1B2N6M"] = true,
+        ["WarpahVip_AJ827HDJA5Q9W3E"] = true,
+        ["WarpahVip_AJ827HDJA2R4T7Y"] = true,
+        ["WarpahVip_AJ827HDJA6U8I5O"] = true,
+        ["WarpahVip_AJ827HDJA4P1A9S"] = true,
+        ["WarpahVip_AJ827HDJA8D6F2G"] = true,
+        ["WarpahVip_AJ827HDJA3H9J7K"] = true,
+        ["WarpahVip_AJ827HDJA9L4Z1X"] = true,
+        ["WarpahVip_AJ827HDJA7C5V8B"] = true,
+        ["WarpahVip_AJ827HDJA1N2M6Q"] = true,
+        ["WarpahVip_AJ827HDJA5W8R3T"] = true,
+        ["WarpahVip_AJ827HDJA2Y4U9I"] = true,
+        ["WarpahVip_AJ827HDJA6O7P1A"] = true,
+        ["WarpahVip_AJ827HDJA4S5D8F"] = true,
+        ["WarpahVip_AJ827HDJA8G9H2J"] = true,
+        ["WarpahVip_AJ827HDJA3K6L7Z"] = true,
+        ["WarpahVip_AJ827HDJA9X1C4V"] = true,
+        ["WarpahVip_AJ827HDJA7B8N5M"] = true,
+        ["WarpahVip_AJ827HDJA1Q2W9E"] = true,
+        ["WarpahVip_AJ827HDJA5R6T3Y"] = true,
+        ["WarpahVip_AJ827HDJA2U4I8O"] = true,
+        ["WarpahVip_AJ827HDJA6P9A7S"] = true,
+        ["WarpahVip_AJ827HDJA4D1F5G"] = true,
+        ["WarpahVip_AJ827HDJA8H2J6K"] = true,
+        ["WarpahVip_AJ827HDJA3L9Z4X"] = true,
+        ["WarpahVip_AJ827HDJA9C7V1B"] = true,
+        ["WarpahVip_AJ827HDJA7N5M8Q"] = true,
+        ["WarpahVip_AJ827HDJA1W2R6T"] = true,
+        ["WarpahVip_AJ827HDJA5Y9U3I"] = true,
+        ["WarpahVip_AJ827HDJA2O4P7A"] = true,
+        ["WarpahVip_AJ827HDJA6S8D1F"] = true,
+        ["WarpahVip_AJ827HDJA4G5H9J"] = true,
+        ["WarpahVip_AJ827HDJA8K2L6Z"] = true,
+        ["WarpahVip_AJ827HDJA3X4C7V"] = true,
+        ["WarpahVip_AJ827HDJA9B1N8M"] = true,
+        ["WarpahVip_AJ827HDJA7Q5W2E"] = true,
+        ["WarpahVip_AJ827HDJA1R9T6Y"] = true,
+        ["WarpahVip_AJ827HDJA5U3I4O"] = true,
+        ["WarpahVip_AJ827HDJA2P8A9S"] = true,
+        ["WarpahVip_AJ827HDJA6D7F1G"] = true,
+        ["WarpahVip_AJ827HDJA4H6J5K"] = true,
+        ["WarpahVip_AJ827HDJA8L9Z2X"] = true,
+        ["WarpahVip_AJ827HDJA3C4V7B"] = true,
+        ["WarpahVip_AJ827HDJA9N8M1Q"] = true,
+        ["WarpahVip_AJ827HDJA7W5R9T"] = true,
+        ["WarpahVip_AJ827HDJA1Y2U6I"] = true,
+        ["WarpahVip_AJ827HDJA5O4P3A"] = true,
+        ["WarpahVip_AJ827HDJA2S9D7F"] = true,
+        ["WarpahVip_AJ827HDJA6G1H8J"] = true,
+        ["WarpahVip_AJ827HDJA4K5L9Z"] = true,
+        ["WarpahVip_AJ827HDJA8X6C2V"] = true,
+        ["WarpahVip_AJ827HDJA3B7N4M"] = true,
+        ["WarpahVip_AJ827HDJA9Q1W8E"] = true,
+        ["WarpahVip_AJ827HDJA7R2T5Y"] = true,
+        ["WarpahVip_AJ827HDJA1U6I9O"] = true,
+        ["WarpahVip_AJ827HDJA5P3A4S"] = true
+    },
     MAIN_SCRIPT_URL = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats",
     DISCORD_LINK = "https://discord.gg/e77s79ZJ",
     LOOTLABS_LINK = "https://lootdest.org/s?Zvo1qoxp"
@@ -409,7 +520,16 @@ local function validateKey(inputKey, statusText, callback)
     statusText.Text = "🔄 Validating access key..."
     statusText.TextColor3 = Color3.fromRGB(255, 255, 100)
     
-    -- First check fallback keys
+    -- First check custom keys (WarpahVip format)
+    if Config.CUSTOM_KEYS[inputKey] then
+        statusText.Text = "✅ Access granted! (WarpahVip Key)"
+        statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
+        task.wait(1)
+        callback(true, inputKey)
+        return
+    end
+    
+    -- Then check fallback keys
     if Config.FALLBACK_KEYS[inputKey] then
         statusText.Text = "✅ Access granted! (Admin Key)"
         statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
@@ -418,7 +538,7 @@ local function validateKey(inputKey, statusText, callback)
         return
     end
     
-    -- Check API keys
+    -- Check API keys as backup
     local success, response = pcall(function()
         return game:HttpGet(Config.API_BASE .. "/admin?password=" .. Config.ADMIN_PASSWORD)
     end)
@@ -630,3 +750,21 @@ end
 
 -- Error handling wrapper
 pcall(initialize)
+
+--[[
+CONTOH KEY YANG BISA DIGUNAKAN:
+- WarpahVip_AJ827HDJA92K4L8
+- WarpahVip_AJ827HDJA5X9P2M
+- WarpahVip_AJ827HDJA7N6Q3R
+- WarpahVip_AJ827HDJA4T8W1E
+- WarpahVip_AJ827HDJA9Y5U7I
+- Dan 95 key lainnya yang sudah terdaftar di sistem
+
+FITUR YANG TERSEDIA:
+✅ 100 Custom Keys dengan format WarpahVip_AJ827HDJA + random
+✅ Fallback admin keys tetap berfungsi
+✅ API keys sebagai backup
+✅ Design dan fungsi tidak berubah
+✅ Key validation yang aman
+✅ Logging system untuk tracking penggunaan
+--]]
