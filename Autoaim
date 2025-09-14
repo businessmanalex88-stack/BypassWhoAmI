@@ -30,8 +30,8 @@ local Config = {
     },
     AutoAim = {
         enabled = false,
-        fov = 100,
-        maxDistance = 500,
+        fov = 150,
+        maxDistance = 1000,
         targetPart = "Head",
         smoothness = 0.5,
         teamCheck = false,
