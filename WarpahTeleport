@@ -1,0 +1,624 @@
+-- Warpah Teleport - Compact Professional GUI for Delta Executor Android
+-- Ultra-compact design with full functionality
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Saved teleports storage
+local savedTeleports = {}
+
+-- Create main GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "WarpahTeleportGUI"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Main Frame - Ultra compact
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 280, 0, 320)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -160)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+-- Elegant shadow
+local shadow = Instance.new("Frame")
+shadow.Name = "Shadow"
+shadow.Size = UDim2.new(1, 8, 1, 8)
+shadow.Position = UDim2.new(0, -4, 0, 4)
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.8
+shadow.BorderSizePixel = 0
+shadow.ZIndex = -1
+shadow.Parent = mainFrame
+
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 16)
+shadowCorner.Parent = shadow
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = mainFrame
+
+-- Premium header with advanced gradient
+local header = Instance.new("Frame")
+header.Name = "Header"
+header.Size = UDim2.new(1, 0, 0, 32)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+header.BorderSizePixel = 0
+header.Parent = mainFrame
+
+local headerGradient = Instance.new("UIGradient")
+headerGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(88, 166, 255)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(157, 78, 221)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 94, 154))
+}
+headerGradient.Rotation = 135
+headerGradient.Parent = header
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 14)
+headerCorner.Parent = header
+
+local headerFix = Instance.new("Frame")
+headerFix.Size = UDim2.new(1, 0, 0, 14)
+headerFix.Position = UDim2.new(0, 0, 1, -14)
+headerFix.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+headerFix.BorderSizePixel = 0
+headerFix.Parent = header
+
+local headerFixGradient = Instance.new("UIGradient")
+headerFixGradient.Color = headerGradient.Color
+headerFixGradient.Rotation = 135
+headerFixGradient.Parent = headerFix
+
+-- Compact title
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -50, 1, 0)
+title.Position = UDim2.new(0, 10, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "⚡ Warpah Teleport"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.TextSize = 13
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+-- Ultra compact controls
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 18, 0, 18)
+minimizeBtn.Position = UDim2.new(1, -40, 0, 7)
+minimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+minimizeBtn.BorderSizePixel = 0
+minimizeBtn.Text = "─"
+minimizeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+minimizeBtn.TextSize = 10
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.Parent = header
+
+local minimizeCorner = Instance.new("UICorner")
+minimizeCorner.CornerRadius = UDim.new(0, 3)
+minimizeCorner.Parent = minimizeBtn
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 18, 0, 18)
+closeBtn.Position = UDim2.new(1, -18, 0, 7)
+closeBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 58)
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "✕"
+closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeBtn.TextSize = 9
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = header
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 3)
+closeCorner.Parent = closeBtn
+
+-- Main content container
+local content = Instance.new("Frame")
+content.Name = "Content"
+content.Size = UDim2.new(1, -12, 1, -38)
+content.Position = UDim2.new(0, 6, 0, 34)
+content.BackgroundTransparency = 1
+content.Parent = mainFrame
+
+-- Current position - super compact
+local posFrame = Instance.new("Frame")
+posFrame.Size = UDim2.new(1, 0, 0, 22)
+posFrame.Position = UDim2.new(0, 0, 0, 0)
+posFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+posFrame.BorderSizePixel = 0
+posFrame.Parent = content
+
+local posCorner = Instance.new("UICorner")
+posCorner.CornerRadius = UDim.new(0, 6)
+posCorner.Parent = posFrame
+
+local posLabel = Instance.new("TextLabel")
+posLabel.Size = UDim2.new(1, -8, 1, 0)
+posLabel.Position = UDim2.new(0, 4, 0, 0)
+posLabel.BackgroundTransparency = 1
+posLabel.Text = "📍 X: 0 Y: 0 Z: 0"
+posLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
+posLabel.TextSize = 10
+posLabel.Font = Enum.Font.Gotham
+posLabel.TextXAlignment = Enum.TextXAlignment.Left
+posLabel.Parent = posFrame
+
+-- Ultra compact coordinate inputs
+local coordFrame = Instance.new("Frame")
+coordFrame.Size = UDim2.new(1, 0, 0, 24)
+coordFrame.Position = UDim2.new(0, 0, 0, 26)
+coordFrame.BackgroundTransparency = 1
+coordFrame.Parent = content
+
+local xInput = Instance.new("TextBox")
+xInput.Size = UDim2.new(0.32, -2, 1, 0)
+xInput.Position = UDim2.new(0, 0, 0, 0)
+xInput.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+xInput.BorderSizePixel = 0
+xInput.Text = "0"
+xInput.PlaceholderText = "X"
+xInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+xInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+xInput.TextSize = 10
+xInput.Font = Enum.Font.Gotham
+xInput.Parent = coordFrame
+
+local xCorner = Instance.new("UICorner")
+xCorner.CornerRadius = UDim.new(0, 4)
+xCorner.Parent = xInput
+
+local yInput = Instance.new("TextBox")
+yInput.Size = UDim2.new(0.32, -2, 1, 0)
+yInput.Position = UDim2.new(0.34, 0, 0, 0)
+yInput.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+yInput.BorderSizePixel = 0
+yInput.Text = "0"
+yInput.PlaceholderText = "Y"
+yInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+yInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+yInput.TextSize = 10
+yInput.Font = Enum.Font.Gotham
+yInput.Parent = coordFrame
+
+local yCorner = Instance.new("UICorner")
+yCorner.CornerRadius = UDim.new(0, 4)
+yCorner.Parent = yInput
+
+local zInput = Instance.new("TextBox")
+zInput.Size = UDim2.new(0.32, -2, 1, 0)
+zInput.Position = UDim2.new(0.68, 0, 0, 0)
+zInput.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+zInput.BorderSizePixel = 0
+zInput.Text = "0"
+zInput.PlaceholderText = "Z"
+zInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+zInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+zInput.TextSize = 10
+zInput.Font = Enum.Font.Gotham
+zInput.Parent = coordFrame
+
+local zCorner = Instance.new("UICorner")
+zCorner.CornerRadius = UDim.new(0, 4)
+zCorner.Parent = zInput
+
+-- Action buttons - compact row
+local actionFrame = Instance.new("Frame")
+actionFrame.Size = UDim2.new(1, 0, 0, 22)
+actionFrame.Position = UDim2.new(0, 0, 0, 54)
+actionFrame.BackgroundTransparency = 1
+actionFrame.Parent = content
+
+local teleportBtn = Instance.new("TextButton")
+teleportBtn.Size = UDim2.new(0.48, -1, 1, 0)
+teleportBtn.Position = UDim2.new(0, 0, 0, 0)
+teleportBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+teleportBtn.BorderSizePixel = 0
+teleportBtn.Text = "🚀 Go"
+teleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+teleportBtn.TextSize = 10
+teleportBtn.Font = Enum.Font.GothamBold
+teleportBtn.Parent = actionFrame
+
+local teleportCorner = Instance.new("UICorner")
+teleportCorner.CornerRadius = UDim.new(0, 5)
+teleportCorner.Parent = teleportBtn
+
+local getCurrentBtn = Instance.new("TextButton")
+getCurrentBtn.Size = UDim2.new(0.48, -1, 1, 0)
+getCurrentBtn.Position = UDim2.new(0.52, 0, 0, 0)
+getCurrentBtn.BackgroundColor3 = Color3.fromRGB(23, 162, 184)
+getCurrentBtn.BorderSizePixel = 0
+getCurrentBtn.Text = "📍 Get"
+getCurrentBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+getCurrentBtn.TextSize = 10
+getCurrentBtn.Font = Enum.Font.GothamBold
+getCurrentBtn.Parent = actionFrame
+
+local getCurrentCorner = Instance.new("UICorner")
+getCurrentCorner.CornerRadius = UDim.new(0, 5)
+getCurrentCorner.Parent = getCurrentBtn
+
+-- Save system - ultra compact
+local saveFrame = Instance.new("Frame")
+saveFrame.Size = UDim2.new(1, 0, 0, 46)
+saveFrame.Position = UDim2.new(0, 0, 0, 80)
+saveFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+saveFrame.BorderSizePixel = 0
+saveFrame.Parent = content
+
+local saveFrameCorner = Instance.new("UICorner")
+saveFrameCorner.CornerRadius = UDim.new(0, 8)
+saveFrameCorner.Parent = saveFrame
+
+local saveTitle = Instance.new("TextLabel")
+saveTitle.Size = UDim2.new(1, -8, 0, 18)
+saveTitle.Position = UDim2.new(0, 4, 0, 2)
+saveTitle.BackgroundTransparency = 1
+saveTitle.Text = "💾 Save Position"
+saveTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+saveTitle.TextSize = 10
+saveTitle.Font = Enum.Font.GothamBold
+saveTitle.TextXAlignment = Enum.TextXAlignment.Left
+saveTitle.Parent = saveFrame
+
+local saveInputFrame = Instance.new("Frame")
+saveInputFrame.Size = UDim2.new(1, -8, 0, 22)
+saveInputFrame.Position = UDim2.new(0, 4, 0, 20)
+saveInputFrame.BackgroundTransparency = 1
+saveInputFrame.Parent = saveFrame
+
+local saveNameInput = Instance.new("TextBox")
+saveNameInput.Size = UDim2.new(0.65, -2, 1, 0)
+saveNameInput.Position = UDim2.new(0, 0, 0, 0)
+saveNameInput.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+saveNameInput.BorderSizePixel = 0
+saveNameInput.Text = ""
+saveNameInput.PlaceholderText = "Name..."
+saveNameInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+saveNameInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+saveNameInput.TextSize = 10
+saveNameInput.Font = Enum.Font.Gotham
+saveNameInput.Parent = saveInputFrame
+
+local saveNameCorner = Instance.new("UICorner")
+saveNameCorner.CornerRadius = UDim.new(0, 4)
+saveNameCorner.Parent = saveNameInput
+
+local saveBtn = Instance.new("TextButton")
+saveBtn.Size = UDim2.new(0.33, -2, 1, 0)
+saveBtn.Position = UDim2.new(0.67, 0, 0, 0)
+saveBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+saveBtn.BorderSizePixel = 0
+saveBtn.Text = "Save"
+saveBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+saveBtn.TextSize = 10
+saveBtn.Font = Enum.Font.GothamBold
+saveBtn.Parent = saveInputFrame
+
+local saveBtnCorner = Instance.new("UICorner")
+saveBtnCorner.CornerRadius = UDim.new(0, 5)
+saveBtnCorner.Parent = saveBtn
+
+-- Saved teleports - compact list
+local savedFrame = Instance.new("Frame")
+savedFrame.Size = UDim2.new(1, 0, 0, 150)
+savedFrame.Position = UDim2.new(0, 0, 0, 130)
+savedFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
+savedFrame.BorderSizePixel = 0
+savedFrame.Parent = content
+
+local savedFrameCorner = Instance.new("UICorner")
+savedFrameCorner.CornerRadius = UDim.new(0, 8)
+savedFrameCorner.Parent = savedFrame
+
+local savedTitle = Instance.new("TextLabel")
+savedTitle.Size = UDim2.new(1, -8, 0, 18)
+savedTitle.Position = UDim2.new(0, 4, 0, 2)
+savedTitle.BackgroundTransparency = 1
+savedTitle.Text = "⭐ Saved Warps"
+savedTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+savedTitle.TextSize = 10
+savedTitle.Font = Enum.Font.GothamBold
+savedTitle.TextXAlignment = Enum.TextXAlignment.Left
+savedTitle.Parent = savedFrame
+
+local savedScroll = Instance.new("ScrollingFrame")
+savedScroll.Size = UDim2.new(1, -8, 1, -22)
+savedScroll.Position = UDim2.new(0, 4, 0, 20)
+savedScroll.BackgroundTransparency = 1
+savedScroll.ScrollBarThickness = 2
+savedScroll.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
+savedScroll.BorderSizePixel = 0
+savedScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+savedScroll.Parent = savedFrame
+
+local savedLayout = Instance.new("UIListLayout")
+savedLayout.SortOrder = Enum.SortOrder.LayoutOrder
+savedLayout.Padding = UDim.new(0, 2)
+savedLayout.Parent = savedScroll
+
+-- Variables
+local isMinimized = false
+local originalSize = mainFrame.Size
+local minimizedSize = UDim2.new(0, 280, 0, 32)
+
+-- Functions
+local function updatePosition()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local pos = player.Character.HumanoidRootPart.Position
+        posLabel.Text = string.format("📍 X: %.0f Y: %.0f Z: %.0f", pos.X, pos.Y, pos.Z)
+    else
+        posLabel.Text = "📍 Position not found"
+    end
+end
+
+local function teleportPlayer()
+    local x = tonumber(xInput.Text)
+    local y = tonumber(yInput.Text)
+    local z = tonumber(zInput.Text)
+    
+    if not x or not y or not z then
+        teleportBtn.Text = "❌ Error"
+        teleportBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 58)
+        wait(1)
+        teleportBtn.Text = "🚀 Go"
+        teleportBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+        return
+    end
+    
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        teleportBtn.Text = "✈️"
+        teleportBtn.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+        
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(x, y, z)
+        
+        wait(0.3)
+        teleportBtn.Text = "✅"
+        wait(0.7)
+        teleportBtn.Text = "🚀 Go"
+        teleportBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    end
+end
+
+local function getCurrentPosition()
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local pos = player.Character.HumanoidRootPart.Position
+        xInput.Text = tostring(math.floor(pos.X))
+        yInput.Text = tostring(math.floor(pos.Y))
+        zInput.Text = tostring(math.floor(pos.Z))
+        
+        getCurrentBtn.Text = "✅"
+        wait(1)
+        getCurrentBtn.Text = "📍 Get"
+    end
+end
+
+local function createSavedItem(name, x, y, z)
+    local item = Instance.new("Frame")
+    item.Size = UDim2.new(1, -4, 0, 26)
+    item.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+    item.BorderSizePixel = 0
+    item.Parent = savedScroll
+    
+    local itemCorner = Instance.new("UICorner")
+    itemCorner.CornerRadius = UDim.new(0, 4)
+    itemCorner.Parent = item
+    
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(0.5, -4, 1, 0)
+    nameLabel.Position = UDim2.new(0, 4, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = 9
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = item
+    
+    local coordLabel = Instance.new("TextLabel")
+    coordLabel.Size = UDim2.new(0.3, -4, 1, 0)
+    coordLabel.Position = UDim2.new(0.5, 0, 0, 0)
+    coordLabel.BackgroundTransparency = 1
+    coordLabel.Text = string.format("%.0f,%.0f,%.0f", x, y, z)
+    coordLabel.TextColor3 = Color3.fromRGB(150, 150, 170)
+    coordLabel.TextSize = 8
+    coordLabel.Font = Enum.Font.Gotham
+    coordLabel.TextXAlignment = Enum.TextXAlignment.Left
+    coordLabel.Parent = item
+    
+    local goBtn = Instance.new("TextButton")
+    goBtn.Size = UDim2.new(0, 28, 0, 18)
+    goBtn.Position = UDim2.new(1, -48, 0, 4)
+    goBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    goBtn.BorderSizePixel = 0
+    goBtn.Text = "Go"
+    goBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    goBtn.TextSize = 8
+    goBtn.Font = Enum.Font.GothamBold
+    goBtn.Parent = item
+    
+    local goBtnCorner = Instance.new("UICorner")
+    goBtnCorner.CornerRadius = UDim.new(0, 3)
+    goBtnCorner.Parent = goBtn
+    
+    local delBtn = Instance.new("TextButton")
+    delBtn.Size = UDim2.new(0, 18, 0, 18)
+    delBtn.Position = UDim2.new(1, -18, 0, 4)
+    delBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 58)
+    delBtn.BorderSizePixel = 0
+    delBtn.Text = "✕"
+    delBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    delBtn.TextSize = 7
+    delBtn.Font = Enum.Font.GothamBold
+    delBtn.Parent = item
+    
+    local delBtnCorner = Instance.new("UICorner")
+    delBtnCorner.CornerRadius = UDim.new(0, 3)
+    delBtnCorner.Parent = delBtn
+    
+    -- Events
+    goBtn.MouseButton1Click:Connect(function()
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            player.Character.HumanoidRootPart.CFrame = CFrame.new(x, y, z)
+            goBtn.Text = "✓"
+            wait(1)
+            goBtn.Text = "Go"
+        end
+    end)
+    
+    delBtn.MouseButton1Click:Connect(function()
+        for i, saved in ipairs(savedTeleports) do
+            if saved.name == name then
+                table.remove(savedTeleports, i)
+                break
+            end
+        end
+        item:Destroy()
+        updateScrollSize()
+    end)
+    
+    -- Hover effect
+    item.MouseEnter:Connect(function()
+        item.BackgroundColor3 = Color3.fromRGB(45, 45, 65)
+    end)
+    
+    item.MouseLeave:Connect(function()
+        item.BackgroundColor3 = Color3.fromRGB(35, 35, 55)
+    end)
+end
+
+local function updateScrollSize()
+    local contentSize = #savedTeleports * 28
+    savedScroll.CanvasSize = UDim2.new(0, 0, 0, contentSize)
+end
+
+local function savePosition()
+    local name = saveNameInput.Text
+    if name == "" then
+        saveBtn.Text = "Name!"
+        saveBtn.BackgroundColor3 = Color3.fromRGB(255, 69, 58)
+        wait(1)
+        saveBtn.Text = "Save"
+        saveBtn.BackgroundColor3 = Color3.fromRGB(138, 43, 226)
+        return
+    end
+    
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local pos = player.Character.HumanoidRootPart.Position
+        local saveData = {name = name, x = pos.X, y = pos.Y, z = pos.Z}
+        
+        table.insert(savedTeleports, saveData)
+        createSavedItem(name, pos.X, pos.Y, pos.Z)
+        updateScrollSize()
+        
+        saveNameInput.Text = ""
+        saveBtn.Text = "✅"
+        wait(1)
+        saveBtn.Text = "Save"
+    end
+end
+
+local function toggleMinimize()
+    isMinimized = not isMinimized
+    local targetSize = isMinimized and minimizedSize or originalSize
+    local tween = TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = targetSize})
+    content.Visible = not isMinimized
+    tween:Play()
+end
+
+-- Events
+teleportBtn.MouseButton1Click:Connect(teleportPlayer)
+getCurrentBtn.MouseButton1Click:Connect(getCurrentPosition)
+saveBtn.MouseButton1Click:Connect(savePosition)
+minimizeBtn.MouseButton1Click:Connect(toggleMinimize)
+
+closeBtn.MouseButton1Click:Connect(function()
+    local tween = TweenService:Create(mainFrame, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0)
+    })
+    tween:Play()
+    tween.Completed:Connect(function()
+        screenGui:Destroy()
+    end)
+end)
+
+-- Hover effects
+local function hover(btn, hoverColor, normalColor)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = hoverColor}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.15), {BackgroundColor3 = normalColor}):Play()
+    end)
+end
+
+hover(teleportBtn, Color3.fromRGB(34, 139, 58), Color3.fromRGB(40, 167, 69))
+hover(getCurrentBtn, Color3.fromRGB(19, 132, 150), Color3.fromRGB(23, 162, 184))
+hover(saveBtn, Color3.fromRGB(110, 35, 180), Color3.fromRGB(138, 43, 226))
+
+-- Focus effects for inputs
+local function focusEffect(input)
+    input.Focused:Connect(function()
+        TweenService:Create(input, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(55, 55, 75),
+            BorderSizePixel = 1,
+            BorderColor3 = Color3.fromRGB(157, 78, 221)
+        }):Play()
+    end)
+    input.FocusLost:Connect(function()
+        TweenService:Create(input, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(35, 35, 55),
+            BorderSizePixel = 0
+        }):Play()
+    end)
+end
+
+focusEffect(xInput)
+focusEffect(yInput)
+focusEffect(zInput)
+focusEffect(saveNameInput)
+
+-- Loading animation
+mainFrame.Size = UDim2.new(0, 0, 0, 0)
+mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+local loadTween = TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Size = originalSize,
+    Position = UDim2.new(0.5, -140, 0.5, -160)
+})
+loadTween:Play()
+
+-- Position update loop
+RunService.Heartbeat:Connect(updatePosition)
+
+-- Quick teleport with Enter
+for _, input in pairs({xInput, yInput, zInput}) do
+    input.FocusLost:Connect(function(enterPressed)
+        if enterPressed then teleportPlayer() end
+    end)
+end
+
+saveNameInput.FocusLost:Connect(function(enterPressed)
+    if enterPressed and saveNameInput.Text ~= "" then savePosition() end
+end)
+
+-- Console
+print("✅ Warpah Teleport v2.5 loaded!")
+print("🎯 Ultra-compact design with full functionality")
+print("⚡ Perfect for Delta Executor Android")
+
+updatePosition()
