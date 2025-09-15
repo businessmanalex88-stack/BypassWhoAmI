@@ -1,13 +1,14 @@
--- Roblox Simple Infinite Jump - No GUI Version
--- Auto-active, no buttons needed
+-- Roblox Professional Infinite Jump Script with Elegant GUI
 -- Compatible with Delta Executor Android
 
-print("🚀 Simple Infinite Jump Loading...")
+print("🚀 Professional Infinite Jump Loading...")
 
 -- Services
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
 
 -- Variables
 local LocalPlayer = Players.LocalPlayer
@@ -15,30 +16,404 @@ local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
--- Jump Configuration
-local JumpHeight = 50 -- Tinggi jump (default 16, kita set 50)
-local InfiniteJumpEnabled = true -- Langsung aktif
-local CanJump = true
+-- Configuration
+local Config = {
+    JumpHeight = 50,
+    InfiniteJumpEnabled = true,
+    AirSpeedMultiplier = 2.5,
+    NormalWalkSpeed = 16,
+    SpeedBoostEnabled = true,
+    CanJump = true,
+    GuiVisible = true
+}
 
--- Speed Configuration
-local AirSpeedMultiplier = 2.5 -- Multiplier kecepatan saat di udara
-local NormalWalkSpeed = 16 -- Default walkspeed
-local AirSpeed = NormalWalkSpeed * AirSpeedMultiplier -- Speed saat di udara
-local SpeedBoostEnabled = true
-
--- Function untuk boost speed saat di udara
-local function airSpeedBoost()
-    if not SpeedBoostEnabled or not Character or not Humanoid then return end
+-- GUI Creation
+local function createGui()
+    -- Main ScreenGui
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "InfiniteJumpGUI"
+    ScreenGui.Parent = CoreGui
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
-    -- Cek apakah player di udara (tidak menyentuh ground)
+    -- Main Frame
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Position = UDim2.new(0, 50, 0, 50)
+    MainFrame.Size = UDim2.new(0, 320, 0, 200)
+    MainFrame.ClipsDescendants = true
+    
+    -- Corner Radius
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 12)
+    Corner.Parent = MainFrame
+    
+    -- Gradient Background
+    local Gradient = Instance.new("UIGradient")
+    Gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 30)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 20))
+    }
+    Gradient.Rotation = 45
+    Gradient.Parent = MainFrame
+    
+    -- Drop Shadow Effect
+    local Shadow = Instance.new("Frame")
+    Shadow.Name = "Shadow"
+    Shadow.Parent = ScreenGui
+    Shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Shadow.BackgroundTransparency = 0.7
+    Shadow.BorderSizePixel = 0
+    Shadow.Position = UDim2.new(0, 55, 0, 55)
+    Shadow.Size = UDim2.new(0, 320, 0, 200)
+    Shadow.ZIndex = MainFrame.ZIndex - 1
+    
+    local ShadowCorner = Instance.new("UICorner")
+    ShadowCorner.CornerRadius = UDim.new(0, 12)
+    ShadowCorner.Parent = Shadow
+    
+    -- Title Bar
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Name = "TitleBar"
+    TitleBar.Parent = MainFrame
+    TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Position = UDim2.new(0, 0, 0, 0)
+    TitleBar.Size = UDim2.new(1, 0, 0, 40)
+    
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 12)
+    TitleCorner.Parent = TitleBar
+    
+    -- Title Gradient
+    local TitleGradient = Instance.new("UIGradient")
+    TitleGradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(40, 40, 50)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 35))
+    }
+    TitleGradient.Parent = TitleBar
+    
+    -- Title Text
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Name = "TitleLabel"
+    TitleLabel.Parent = TitleBar
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Position = UDim2.new(0, 15, 0, 0)
+    TitleLabel.Size = UDim2.new(1, -80, 1, 0)
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Text = "🚀 Infinite Jump Pro"
+    TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleLabel.TextSize = 14
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Minimize Button
+    local MinimizeBtn = Instance.new("TextButton")
+    MinimizeBtn.Name = "MinimizeBtn"
+    MinimizeBtn.Parent = TitleBar
+    MinimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+    MinimizeBtn.BorderSizePixel = 0
+    MinimizeBtn.Position = UDim2.new(1, -65, 0.5, -8)
+    MinimizeBtn.Size = UDim2.new(0, 16, 0, 16)
+    MinimizeBtn.Font = Enum.Font.GothamBold
+    MinimizeBtn.Text = "−"
+    MinimizeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+    MinimizeBtn.TextSize = 12
+    
+    local MinimizeCorner = Instance.new("UICorner")
+    MinimizeCorner.CornerRadius = UDim.new(0, 8)
+    MinimizeCorner.Parent = MinimizeBtn
+    
+    -- Close Button
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Name = "CloseBtn"
+    CloseBtn.Parent = TitleBar
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+    CloseBtn.BorderSizePixel = 0
+    CloseBtn.Position = UDim2.new(1, -40, 0.5, -8)
+    CloseBtn.Size = UDim2.new(0, 16, 0, 16)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.Text = "×"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.TextSize = 12
+    
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 8)
+    CloseCorner.Parent = CloseBtn
+    
+    -- Content Frame
+    local ContentFrame = Instance.new("Frame")
+    ContentFrame.Name = "ContentFrame"
+    ContentFrame.Parent = MainFrame
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.Position = UDim2.new(0, 20, 0, 50)
+    ContentFrame.Size = UDim2.new(1, -40, 1, -60)
+    
+    -- Status Label
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.Name = "StatusLabel"
+    StatusLabel.Parent = ContentFrame
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Position = UDim2.new(0, 0, 0, 0)
+    StatusLabel.Size = UDim2.new(1, 0, 0, 20)
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.Text = "Status: Active ✅"
+    StatusLabel.TextColor3 = Color3.fromRGB(40, 167, 69)
+    StatusLabel.TextSize = 12
+    StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Toggle Button
+    local ToggleBtn = Instance.new("TextButton")
+    ToggleBtn.Name = "ToggleBtn"
+    ToggleBtn.Parent = ContentFrame
+    ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    ToggleBtn.BorderSizePixel = 0
+    ToggleBtn.Position = UDim2.new(0, 0, 0, 30)
+    ToggleBtn.Size = UDim2.new(0.48, 0, 0, 32)
+    ToggleBtn.Font = Enum.Font.GothamBold
+    ToggleBtn.Text = "ON"
+    ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleBtn.TextSize = 12
+    
+    local ToggleCorner = Instance.new("UICorner")
+    ToggleCorner.CornerRadius = UDim.new(0, 6)
+    ToggleCorner.Parent = ToggleBtn
+    
+    -- Air Speed Toggle
+    local AirSpeedBtn = Instance.new("TextButton")
+    AirSpeedBtn.Name = "AirSpeedBtn"
+    AirSpeedBtn.Parent = ContentFrame
+    AirSpeedBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    AirSpeedBtn.BorderSizePixel = 0
+    AirSpeedBtn.Position = UDim2.new(0.52, 0, 0, 30)
+    AirSpeedBtn.Size = UDim2.new(0.48, 0, 0, 32)
+    AirSpeedBtn.Font = Enum.Font.GothamBold
+    AirSpeedBtn.Text = "AIR SPEED ON"
+    AirSpeedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AirSpeedBtn.TextSize = 10
+    
+    local AirSpeedCorner = Instance.new("UICorner")
+    AirSpeedCorner.CornerRadius = UDim.new(0, 6)
+    AirSpeedCorner.Parent = AirSpeedBtn
+    
+    -- Jump Height Label
+    local HeightLabel = Instance.new("TextLabel")
+    HeightLabel.Name = "HeightLabel"
+    HeightLabel.Parent = ContentFrame
+    HeightLabel.BackgroundTransparency = 1
+    HeightLabel.Position = UDim2.new(0, 0, 0, 75)
+    HeightLabel.Size = UDim2.new(1, 0, 0, 20)
+    HeightLabel.Font = Enum.Font.Gotham
+    HeightLabel.Text = "Jump Height: " .. Config.JumpHeight
+    HeightLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    HeightLabel.TextSize = 12
+    HeightLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Slider Frame
+    local SliderFrame = Instance.new("Frame")
+    SliderFrame.Name = "SliderFrame"
+    SliderFrame.Parent = ContentFrame
+    SliderFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    SliderFrame.BorderSizePixel = 0
+    SliderFrame.Position = UDim2.new(0, 0, 0, 100)
+    SliderFrame.Size = UDim2.new(1, 0, 0, 6)
+    
+    local SliderCorner = Instance.new("UICorner")
+    SliderCorner.CornerRadius = UDim.new(0, 3)
+    SliderCorner.Parent = SliderFrame
+    
+    -- Slider Fill
+    local SliderFill = Instance.new("Frame")
+    SliderFill.Name = "SliderFill"
+    SliderFill.Parent = SliderFrame
+    SliderFill.BackgroundColor3 = Color3.fromRGB(0, 123, 255)
+    SliderFill.BorderSizePixel = 0
+    SliderFill.Size = UDim2.new((Config.JumpHeight - 16) / (100 - 16), 0, 1, 0)
+    
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(0, 3)
+    FillCorner.Parent = SliderFill
+    
+    -- Slider Button
+    local SliderBtn = Instance.new("TextButton")
+    SliderBtn.Name = "SliderBtn"
+    SliderBtn.Parent = SliderFrame
+    SliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    SliderBtn.BorderSizePixel = 0
+    SliderBtn.Position = UDim2.new((Config.JumpHeight - 16) / (100 - 16), -8, 0.5, -8)
+    SliderBtn.Size = UDim2.new(0, 16, 0, 16)
+    SliderBtn.Text = ""
+    
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 8)
+    BtnCorner.Parent = SliderBtn
+    
+    -- Make GUI draggable
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+    
+    TitleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            Shadow.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X + 5, startPos.Y.Scale, startPos.Y.Offset + delta.Y + 5)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+    
+    return {
+        ScreenGui = ScreenGui,
+        MainFrame = MainFrame,
+        Shadow = Shadow,
+        StatusLabel = StatusLabel,
+        ToggleBtn = ToggleBtn,
+        AirSpeedBtn = AirSpeedBtn,
+        HeightLabel = HeightLabel,
+        SliderFrame = SliderFrame,
+        SliderFill = SliderFill,
+        SliderBtn = SliderBtn,
+        MinimizeBtn = MinimizeBtn,
+        CloseBtn = CloseBtn,
+        ContentFrame = ContentFrame
+    }
+end
+
+-- Create GUI
+local GUI = createGui()
+
+-- Slider Functionality
+local sliderDragging = false
+
+GUI.SliderBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        sliderDragging = true
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if sliderDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local sliderFrame = GUI.SliderFrame
+        local mousePos = UserInputService:GetMouseLocation()
+        local relativePos = mousePos.X - sliderFrame.AbsolutePosition.X
+        local percentage = math.clamp(relativePos / sliderFrame.AbsoluteSize.X, 0, 1)
+        
+        Config.JumpHeight = math.floor(16 + (100 - 16) * percentage)
+        
+        -- Update slider visual
+        GUI.SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
+        GUI.SliderBtn.Position = UDim2.new(percentage, -8, 0.5, -8)
+        GUI.HeightLabel.Text = "Jump Height: " .. Config.JumpHeight
+        
+        -- Update humanoid jump power
+        if Character and Humanoid then
+            Humanoid.JumpPower = Config.JumpHeight
+            Humanoid.JumpHeight = Config.JumpHeight
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        sliderDragging = false
+    end
+end)
+
+-- Button Functions
+GUI.ToggleBtn.MouseButton1Click:Connect(function()
+    Config.InfiniteJumpEnabled = not Config.InfiniteJumpEnabled
+    
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    if Config.InfiniteJumpEnabled then
+        GUI.ToggleBtn.Text = "ON"
+        GUI.StatusLabel.Text = "Status: Active ✅"
+        GUI.StatusLabel.TextColor3 = Color3.fromRGB(40, 167, 69)
+        TweenService:Create(GUI.ToggleBtn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(40, 167, 69)}):Play()
+    else
+        GUI.ToggleBtn.Text = "OFF"
+        GUI.StatusLabel.Text = "Status: Disabled ❌"
+        GUI.StatusLabel.TextColor3 = Color3.fromRGB(220, 53, 69)
+        TweenService:Create(GUI.ToggleBtn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(108, 117, 125)}):Play()
+    end
+end)
+
+GUI.AirSpeedBtn.MouseButton1Click:Connect(function()
+    Config.SpeedBoostEnabled = not Config.SpeedBoostEnabled
+    
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    if Config.SpeedBoostEnabled then
+        GUI.AirSpeedBtn.Text = "AIR SPEED ON"
+        TweenService:Create(GUI.AirSpeedBtn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(40, 167, 69)}):Play()
+    else
+        GUI.AirSpeedBtn.Text = "AIR SPEED OFF"
+        TweenService:Create(GUI.AirSpeedBtn, tweenInfo, {BackgroundColor3 = Color3.fromRGB(108, 117, 125)}):Play()
+    end
+end)
+
+GUI.MinimizeBtn.MouseButton1Click:Connect(function()
+    local tweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    
+    if GUI.ContentFrame.Visible then
+        -- Minimize
+        GUI.ContentFrame.Visible = false
+        TweenService:Create(GUI.MainFrame, tweenInfo, {Size = UDim2.new(0, 320, 0, 40)}):Play()
+        TweenService:Create(GUI.Shadow, tweenInfo, {Size = UDim2.new(0, 320, 0, 40)}):Play()
+        GUI.MinimizeBtn.Text = "□"
+    else
+        -- Restore
+        GUI.ContentFrame.Visible = true
+        TweenService:Create(GUI.MainFrame, tweenInfo, {Size = UDim2.new(0, 320, 0, 200)}):Play()
+        TweenService:Create(GUI.Shadow, tweenInfo, {Size = UDim2.new(0, 320, 0, 200)}):Play()
+        GUI.MinimizeBtn.Text = "−"
+    end
+end)
+
+GUI.CloseBtn.MouseButton1Click:Connect(function()
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+    
+    TweenService:Create(GUI.MainFrame, tweenInfo, {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0, GUI.MainFrame.AbsolutePosition.X + 160, 0, GUI.MainFrame.AbsolutePosition.Y + 100)
+    }):Play()
+    
+    TweenService:Create(GUI.Shadow, tweenInfo, {
+        Size = UDim2.new(0, 0, 0, 0),
+        Transparency = 1
+    }):Play()
+    
+    wait(0.3)
+    GUI.ScreenGui:Destroy()
+    Config.GuiVisible = false
+end)
+
+-- Original Jump Functions
+local AirSpeed = Config.NormalWalkSpeed * Config.AirSpeedMultiplier
+
+local function airSpeedBoost()
+    if not Config.SpeedBoostEnabled or not Character or not Humanoid then return end
+    
     local raycast = workspace:Raycast(RootPart.Position, Vector3.new(0, -5, 0))
     local isInAir = not raycast
     
     if isInAir then
-        -- Boost speed saat di udara
         Humanoid.WalkSpeed = AirSpeed
         
-        -- Tambahan boost horizontal movement
         local moveVector = Humanoid.MoveDirection
         if moveVector.Magnitude > 0 then
             local BodyVelocity = RootPart:FindFirstChild("AirSpeedBoost")
@@ -49,15 +424,12 @@ local function airSpeedBoost()
                 BodyVelocity.Parent = RootPart
             end
             
-            -- Set velocity untuk movement yang lebih cepat
             local horizontalVelocity = moveVector * AirSpeed
             BodyVelocity.Velocity = Vector3.new(horizontalVelocity.X, RootPart.Velocity.Y, horizontalVelocity.Z)
         end
     else
-        -- Kembalikan speed normal saat di ground
-        Humanoid.WalkSpeed = NormalWalkSpeed
+        Humanoid.WalkSpeed = Config.NormalWalkSpeed
         
-        -- Hapus air speed boost
         local BodyVelocity = RootPart:FindFirstChild("AirSpeedBoost")
         if BodyVelocity then
             BodyVelocity:Destroy()
@@ -65,21 +437,17 @@ local function airSpeedBoost()
     end
 end
 
--- Function untuk infinite jump (Enhanced)
 local function performJump()
-    if not InfiniteJumpEnabled or not Character or not RootPart then return end
+    if not Config.InfiniteJumpEnabled or not Character or not RootPart then return end
     
-    -- Buat BodyVelocity untuk jump tinggi
     local BodyVelocity = Instance.new("BodyVelocity")
     BodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
-    BodyVelocity.Velocity = Vector3.new(0, JumpHeight, 0)
+    BodyVelocity.Velocity = Vector3.new(0, Config.JumpHeight, 0)
     BodyVelocity.Parent = RootPart
     
-    -- Preserve horizontal movement saat jump
     local currentVelocity = RootPart.Velocity
-    BodyVelocity.Velocity = Vector3.new(currentVelocity.X, JumpHeight, currentVelocity.Z)
+    BodyVelocity.Velocity = Vector3.new(currentVelocity.X, Config.JumpHeight, currentVelocity.Z)
     
-    -- Hapus setelah 0.3 detik
     spawn(function()
         wait(0.3)
         if BodyVelocity then
@@ -88,56 +456,45 @@ local function performJump()
     end)
 end
 
--- Detect jump input (Space key untuk PC)
 local function onKeyDown(key)
-    if key.KeyCode == Enum.KeyCode.Space and CanJump then
-        CanJump = false
+    if key.KeyCode == Enum.KeyCode.Space and Config.CanJump then
+        Config.CanJump = false
         performJump()
         
-        -- Cooldown singkat untuk prevent spam
         spawn(function()
             wait(0.1)
-            CanJump = true
+            Config.CanJump = true
         end)
     end
 end
 
--- Detect mobile jump (Touch jump button)
 local function detectMobileJump()
-    if Humanoid.Jump and CanJump then
-        CanJump = false
+    if Humanoid.Jump and Config.CanJump then
+        Config.CanJump = false
         performJump()
         
-        -- Reset jump state
         Humanoid.Jump = false
         
-        -- Cooldown
         spawn(function()
             wait(0.1)
-            CanJump = true
+            Config.CanJump = true
         end)
     end
 end
 
--- Monitor jump state dan air speed untuk mobile
 local jumpConnection
 local airSpeedConnection
+
 local function setupMonitors()
-    if jumpConnection then
-        jumpConnection:Disconnect()
-    end
-    if airSpeedConnection then
-        airSpeedConnection:Disconnect()
-    end
+    if jumpConnection then jumpConnection:Disconnect() end
+    if airSpeedConnection then airSpeedConnection:Disconnect() end
     
-    -- Jump monitor
     jumpConnection = RunService.Heartbeat:Connect(function()
         if Character and Humanoid then
             detectMobileJump()
         end
     end)
     
-    -- Air speed monitor
     airSpeedConnection = RunService.Heartbeat:Connect(function()
         if Character and Humanoid and RootPart then
             airSpeedBoost()
@@ -145,62 +502,48 @@ local function setupMonitors()
     end)
 end
 
--- Setup saat character spawn/respawn
 local function onCharacterAdded(newCharacter)
     Character = newCharacter
     Humanoid = Character:WaitForChild("Humanoid")
     RootPart = Character:WaitForChild("HumanoidRootPart")
     
-    -- Setup monitors untuk mobile dan air speed
     setupMonitors()
     
-    -- Tingkatkan JumpPower default
     if Humanoid then
-        Humanoid.JumpPower = JumpHeight
-        Humanoid.JumpHeight = JumpHeight -- Untuk R15
-        Humanoid.WalkSpeed = NormalWalkSpeed -- Set normal speed
+        Humanoid.JumpPower = Config.JumpHeight
+        Humanoid.JumpHeight = Config.JumpHeight
+        Humanoid.WalkSpeed = Config.NormalWalkSpeed
     end
     
-    print("🔄 Infinite Jump & Air Speed ready on new character!")
+    print("🔄 Infinite Jump ready on new character!")
 end
 
--- Connect events
+-- Connect Events
 if UserInputService then
     UserInputService.InputBegan:Connect(onKeyDown)
 end
 
 LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
-
--- Setup initial character
 setupMonitors()
 
--- Tingkatkan JumpPower awal
 if Humanoid then
-    Humanoid.JumpPower = JumpHeight
-    Humanoid.JumpHeight = JumpHeight
-    Humanoid.WalkSpeed = NormalWalkSpeed
+    Humanoid.JumpPower = Config.JumpHeight
+    Humanoid.JumpHeight = Config.JumpHeight
+    Humanoid.WalkSpeed = Config.NormalWalkSpeed
 end
 
--- Notification tanpa GUI
-game:GetService("StarterGui"):SetCore("SendNotification", {
-    Title = "Infinite Jump & Air Speed";
-    Text = "Jump higher & move faster in air!";
-    Duration = 3;
-})
-
--- Auto-maintain jump power
+-- Auto-maintain settings
 spawn(function()
     while true do
         wait(1)
-        if Character and Humanoid then
-            -- Maintain jump power
-            Humanoid.JumpPower = JumpHeight
-            Humanoid.JumpHeight = JumpHeight
+        if Character and Humanoid and Config.GuiVisible then
+            Humanoid.JumpPower = Config.JumpHeight
+            Humanoid.JumpHeight = Config.JumpHeight
         end
     end
 end)
 
--- Anti-fall damage (optional)
+-- Anti-fall damage
 spawn(function()
     while true do
         wait(0.5)
@@ -214,8 +557,15 @@ spawn(function()
     end
 end)
 
-print("✅ Infinite Jump & Air Speed Active!")
-print("🎮 Use game's jump button or Space key")
-print("🚀 Jump height: " .. JumpHeight)
-print("💨 Air speed: " .. AirSpeed .. " (x" .. AirSpeedMultiplier .. " faster)")
-print("⚡ No GUI interference - Clean gameplay!")
+-- Success notification
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "✅ Infinite Jump Pro Loaded";
+    Text = "Professional GUI with full controls!";
+    Duration = 3;
+})
+
+print("✅ Professional Infinite Jump Active!")
+print("🎮 GUI Controls: Toggle, Height Slider, Air Speed")
+print("🖱️ Draggable • Minimize • Close buttons")
+print("🚀 Jump Height: " .. Config.JumpHeight)
+print("💨 Air Speed: x" .. Config.AirSpeedMultiplier .. " faster")
