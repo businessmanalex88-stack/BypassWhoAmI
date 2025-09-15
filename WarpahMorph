@@ -333,7 +333,7 @@ local function SimpleReset()
     return true
 end
 
--- Professional GUI Design
+-- Professional GUI Design - FIXED MINIMIZE ISSUE
 local function CreateSimpleGUI()
     local existingGui = LocalPlayer.PlayerGui:FindFirstChild("WarpahMorph")
     if existingGui then existingGui:Destroy() end
@@ -352,6 +352,7 @@ local function CreateSimpleGUI()
     mainFrame.Active = true
     mainFrame.Draggable = true
     mainFrame.Parent = screenGui
+    mainFrame.ClipsDescendants = true  -- PENTING: Mencegah tumpang tindih saat minimize
     
     local mainCorner = Instance.new("UICorner")
     mainCorner.CornerRadius = UDim.new(0, 8)
@@ -388,6 +389,14 @@ local function CreateSimpleGUI()
     titleFix.BackgroundColor3 = Color3.fromRGB(42, 42, 48)
     titleFix.BorderSizePixel = 0
     titleFix.Parent = titleBar
+    
+    -- CONTAINER UNTUK KONTEN YANG BISA DISEMBUNYIKAN
+    local contentContainer = Instance.new("Frame")
+    contentContainer.Name = "ContentContainer"
+    contentContainer.Size = UDim2.new(1, 0, 1, -32)
+    contentContainer.Position = UDim2.new(0, 0, 0, 32)
+    contentContainer.BackgroundTransparency = 1
+    contentContainer.Parent = mainFrame
     
     -- Professional title
     local title = Instance.new("TextLabel")
@@ -453,10 +462,17 @@ local function CreateSimpleGUI()
     minimizeBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
+            -- Sembunyikan konten dan ubah ukuran frame
+            contentContainer.Visible = false
             mainFrame:TweenSize(UDim2.new(0, 240, 0, 32), "Out", "Quad", 0.3, true)
-            minimizeBtn.Text = "+"
+            shadow:TweenSize(UDim2.new(1, 4, 0, 36), "Out", "Quad", 0.3, true)
+            minimizeBtn.Text = "▢"
         else
-            mainFrame:TweenSize(UDim2.new(0, 240, 0, 320), "Out", "Quad", 0.3, true)
+            -- Tampilkan konten dan kembalikan ukuran frame
+            mainFrame:TweenSize(UDim2.new(0, 240, 0, 320), "Out", "Quad", 0.3, true, function()
+                contentContainer.Visible = true
+            end)
+            shadow:TweenSize(UDim2.new(1, 4, 1, 4), "Out", "Quad", 0.3, true)
             minimizeBtn.Text = "—"
         end
     end)
@@ -465,12 +481,12 @@ local function CreateSimpleGUI()
         mainFrame.Visible = false
     end)
     
-    -- Status indicator
+    -- Status indicator - Dipindah ke contentContainer
     local statusFrame = Instance.new("Frame")
     statusFrame.Size = UDim2.new(1, -12, 0, 20)
-    statusFrame.Position = UDim2.new(0, 6, 0, 38)
+    statusFrame.Position = UDim2.new(0, 6, 0, 6)
     statusFrame.BackgroundTransparency = 1
-    statusFrame.Parent = mainFrame
+    statusFrame.Parent = contentContainer
     
     local statusDot = Instance.new("Frame")
     statusDot.Size = UDim2.new(0, 6, 0, 6)
@@ -494,15 +510,15 @@ local function CreateSimpleGUI()
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
     statusLabel.Parent = statusFrame
     
-    -- Player list - Cleaner design
+    -- Player list - Dipindah ke contentContainer
     local scrollFrame = Instance.new("ScrollingFrame")
     scrollFrame.Size = UDim2.new(1, -12, 0, 220)
-    scrollFrame.Position = UDim2.new(0, 6, 0, 64)
+    scrollFrame.Position = UDim2.new(0, 6, 0, 32)
     scrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     scrollFrame.BorderSizePixel = 0
     scrollFrame.ScrollBarThickness = 4
     scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 105)
-    scrollFrame.Parent = mainFrame
+    scrollFrame.Parent = contentContainer
     
     local scrollCorner = Instance.new("UICorner")
     scrollCorner.CornerRadius = UDim.new(0, 6)
@@ -626,12 +642,12 @@ local function CreateSimpleGUI()
         scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#Players:GetPlayers() * 38) + 8)
     end
     
-    -- Control buttons - Professional design
+    -- Control buttons - Dipindah ke contentContainer
     local controlFrame = Instance.new("Frame")
     controlFrame.Size = UDim2.new(1, -12, 0, 28)
     controlFrame.Position = UDim2.new(0, 6, 1, -34)
     controlFrame.BackgroundTransparency = 1
-    controlFrame.Parent = mainFrame
+    controlFrame.Parent = contentContainer
     
     local resetBtn = Instance.new("TextButton")
     resetBtn.Size = UDim2.new(0.48, 0, 1, 0)
