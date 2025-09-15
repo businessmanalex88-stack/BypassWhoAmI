@@ -462,6 +462,18 @@ local function showSpeedMenu()
     backBtn.Visible = true
 end
 
+-- NEW: Infinite Jump menu - FIXED: Now directly loads script
+local function showInfiniteJumpMenu()
+    clearContent()
+    currentMenu = "main" -- Stay in main menu
+    
+    -- Directly load the InfiniteJump script
+    print("🦘 Loading Infinite Jump...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/InfiniteJump"))()
+    
+    backBtn.Visible = false
+end
+
 -- Fling Player menu - FIXED: Now has two submenus
 local function showFlingMenu()
     clearContent()
@@ -576,6 +588,18 @@ local function showWarpahMorphMenu()
     backBtn.Visible = false
 end
 
+-- NEW: Teleport menu - FIXED: Now directly loads script
+local function showTeleportMenu()
+    clearContent()
+    currentMenu = "main" -- Stay in main menu
+    
+    -- Directly load the WarpahTeleport script
+    print("🚀 Loading Teleport...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/WarpahTeleport"))()
+    
+    backBtn.Visible = false
+end
+
 local function showCheats()
     clearContent()
     currentMenu = "main"
@@ -584,6 +608,7 @@ local function showCheats()
         { label = "🏔️ Auto Puncak", callback = showAutoPuncak },
         { label = "✈️ Fly Mode", callback = showFlyMenu },
         { label = "🏃 Speed Run", callback = showSpeedMenu },
+        { label = "🦘 Infinite Jump", callback = showInfiniteJumpMenu }, -- NEW: Added Infinite Jump
         { label = "✨ Radiant Body", callback = function()
             print("✨ Loading Radiant Body...")
             loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Radiant%20body"))()
@@ -595,7 +620,8 @@ local function showCheats()
         end },
         { label = "🎭 Hide Name Visual", callback = showHideNameMenu },
         { label = "👁️ Spectate Player", callback = showSpectatePlayerMenu },
-        { label = "🦋 WarpahMorph", callback = showWarpahMorphMenu }, -- NEW: Added WarpahMorph
+        { label = "🦋 WarpahMorph", callback = showWarpahMorphMenu },
+        { label = "🚀 Teleport", callback = showTeleportMenu }, -- NEW: Added Teleport
     }
 
     for _, item in ipairs(items) do
@@ -848,7 +874,9 @@ print("  - 👮 Detect Admin now loads DetectAdmin script")
 print("  - 👤 TP to Player now loads TptoPlayer script")
 print("  - 🎭 Hide Name Visual now directly loads HideNameVisual script")
 print("  - 👁️ Spectate Player now directly loads SpectateWarpah script")
-print("  - 🦋 WarpahMorph now directly loads WarpahMorph script") -- NEW FEATURE
+print("  - 🦋 WarpahMorph now directly loads WarpahMorph script")
+print("  - 🚀 Teleport now directly loads WarpahTeleport script") -- NEW FEATURE
+print("  - 🦘 Infinite Jump now directly loads InfiniteJump script") -- NEW FEATURE
 print("  - 🏃 Speed Run now has submenu with Speed Hack V1 & V2")
 print("  - ❌ Aimbot menu removed completely")
 print("  - 🛡️ Enhanced error handling and memory management")
