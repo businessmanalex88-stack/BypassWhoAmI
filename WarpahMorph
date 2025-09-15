@@ -1,21 +1,43 @@
--- SMOOTH Avatar Morpher - Versi yang Dioptimalkan
--- Fokus pada stabilitas tanpa lag
+-- ENHANCED Avatar Morpher - Dengan Copy Username & Rank
+-- Mempertahankan sistem avatar dan animasi yang sudah bagus
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GroupService = game:GetService("GroupService")
 
 local LocalPlayer = Players.LocalPlayer
 local originalUserId = LocalPlayer.UserId
+local originalName = LocalPlayer.Name
+local originalDisplayName = LocalPlayer.DisplayName
 
 -- Variabel global
 local currentTarget = nil
 local monitorConnection = nil
 local isMonitoring = false
+local originalRankInGroup = {}
 
--- Enhanced notification
+-- Fungsi untuk mendapatkan rank dalam grup
+local function GetPlayerRank(player, groupId)
+    pcall(function()
+        local rank = player:GetRankInGroup(groupId)
+        return rank
+    end)
+    return 0
+end
+
+-- Fungsi untuk mendapatkan role dalam grup
+local function GetPlayerRole(player, groupId)
+    pcall(function()
+        local role = player:GetRoleInGroup(groupId)
+        return role
+    end)
+    return "Guest"
+end
+
+-- Enhanced notification (tidak diubah)
 local function Notify(text, color, icon)
     local gui = Instance.new("ScreenGui")
     gui.Parent = LocalPlayer.PlayerGui
@@ -61,7 +83,7 @@ local function Notify(text, color, icon)
     end)
 end
 
--- Simple Animation Copy - Tanpa lag
+-- Simple Animation Copy (tidak diubah - sudah bagus)
 local function SimpleAnimationCopy(targetPlayer, character)
     if not targetPlayer or not character then return false end
     
@@ -113,7 +135,140 @@ local function SimpleAnimationCopy(targetPlayer, character)
     return true
 end
 
--- Light monitoring - Hanya 1x per 5 detik untuk avoid lag
+-- NEW: Copy Username & Display Name
+local function CopyUsername(targetPlayer)
+    if not targetPlayer or targetPlayer == LocalPlayer then return false end
+    
+    spawn(function()
+        pcall(function()
+            -- Simpan original jika belum disimpan
+            if not originalName then
+                originalName = LocalPlayer.Name
+                originalDisplayName = LocalPlayer.DisplayName
+            end
+            
+            -- Copy username dengan metode yang aman
+            local success = false
+            
+            -- Method 1: Menggunakan RemoteEvents jika tersedia
+            pcall(function()
+                if ReplicatedStorage:FindFirstChild("ChangeUsername") then
+                    ReplicatedStorage.ChangeUsername:FireServer(targetPlayer.Name)
+                    success = true
+                end
+            end)
+            
+            -- Method 2: Direct property change (beberapa game mengizinkan ini)
+            if not success then
+                pcall(function()
+                    LocalPlayer.Name = targetPlayer.Name
+                    if targetPlayer.DisplayName and targetPlayer.DisplayName ~= "" then
+                        LocalPlayer.DisplayName = targetPlayer.DisplayName
+                    end
+                    success = true
+                end)
+            end
+            
+            -- Method 3: Character name change
+            if not success and LocalPlayer.Character then
+                pcall(function()
+                    LocalPlayer.Character.Name = targetPlayer.Name
+                    
+                    -- Update humanoid display name jika ada
+                    local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        humanoid.DisplayName = targetPlayer.DisplayName or targetPlayer.Name
+                    end
+                    
+                    success = true
+                end)
+            end
+            
+            if success then
+                Notify("Username copied: " .. targetPlayer.Name, Color3.fromRGB(100, 200, 255), "👤")
+            else
+                Notify("Username copy method not available", Color3.fromRGB(255, 150, 0), "⚠️")
+            end
+        end)
+    end)
+    
+    return true
+end
+
+-- NEW: Copy Group Ranks
+local function CopyGroupRanks(targetPlayer)
+    if not targetPlayer or targetPlayer == LocalPlayer then return false end
+    
+    spawn(function()
+        pcall(function()
+            Notify("Copying group ranks...", Color3.fromRGB(255, 200, 0), "🏆")
+            
+            -- Dapatkan grup yang umum (ganti dengan ID grup yang ingin dicopy)
+            local commonGroups = {
+                -- Tambahkan ID grup di sini, contoh:
+                -- 12345678, -- Grup 1
+                -- 87654321, -- Grup 2
+            }
+            
+            -- Jika tidak ada grup yang ditentukan, coba deteksi otomatis
+            if #commonGroups == 0 then
+                -- Coba beberapa grup populer atau gunakan grup yang player target ikuti
+                pcall(function()
+                    -- Ini adalah contoh implementasi, mungkin perlu disesuaikan
+                    local groups = GroupService:GetGroupsAsync(targetPlayer.UserId)
+                    for _, groupInfo in ipairs(groups.Data) do
+                        table.insert(commonGroups, groupInfo.Group.Id)
+                        if #commonGroups >= 5 then break end -- Batasi maksimal 5 grup
+                    end
+                end)
+            end
+            
+            local copiedRanks = 0
+            
+            for _, groupId in ipairs(commonGroups) do
+                pcall(function()
+                    local targetRank = GetPlayerRank(targetPlayer, groupId)
+                    local targetRole = GetPlayerRole(targetPlayer, groupId)
+                    
+                    if targetRank > 0 then
+                        -- Simpan rank asli jika belum disimpan
+                        if not originalRankInGroup[groupId] then
+                            originalRankInGroup[groupId] = GetPlayerRank(LocalPlayer, groupId)
+                        end
+                        
+                        -- Method 1: Menggunakan RemoteEvents untuk grup
+                        pcall(function()
+                            if ReplicatedStorage:FindFirstChild("ChangeGroupRank") then
+                                ReplicatedStorage.ChangeGroupRank:FireServer(groupId, targetRank)
+                                copiedRanks = copiedRanks + 1
+                            end
+                        end)
+                        
+                        -- Method 2: Direct rank change (jarang berhasil karena keamanan Roblox)
+                        pcall(function()
+                            -- Ini biasanya tidak berhasil karena pembatasan Roblox
+                            -- Tapi dicoba tetap untuk kompatibilitas dengan beberapa game
+                            LocalPlayer:SetRankInGroup(groupId, targetRank)
+                            copiedRanks = copiedRanks + 1
+                        end)
+                    end
+                    
+                    wait(0.1) -- Delay untuk avoid rate limiting
+                end)
+            end
+            
+            if copiedRanks > 0 then
+                Notify("Copied " .. copiedRanks .. " group ranks", Color3.fromRGB(100, 255, 100), "🏆")
+            else
+                Notify("Group rank copy not supported", Color3.fromRGB(255, 150, 0), "⚠️")
+            end
+        end)
+    end)
+    
+    return true
+end
+
+-- Light monitoring (tidak diubah - sudah bagus)
 local function StartLightMonitoring()
     -- Stop existing monitoring
     if monitorConnection then
@@ -153,8 +308,8 @@ local function StartLightMonitoring()
     end)
 end
 
--- Smooth Morph Function
-local function SmoothMorph(targetPlayer)
+-- ENHANCED: Smooth Morph Function dengan Username & Rank Copy
+local function SmoothMorph(targetPlayer, copyUsername, copyRanks)
     if not targetPlayer or targetPlayer == LocalPlayer then
         Notify("Invalid target", Color3.fromRGB(255, 150, 0), "⚠️")
         return false
@@ -183,11 +338,11 @@ local function SmoothMorph(targetPlayer)
     
     spawn(function()
         pcall(function()
-            Notify("Morphing smoothly...", Color3.fromRGB(255, 200, 0), "🔄")
+            Notify("Starting enhanced morph...", Color3.fromRGB(255, 200, 0), "🔄")
             
             local success = false
             
-            -- METHOD 1: Create new character
+            -- METHOD 1: Create new character (tidak diubah - sudah bagus)
             local newCharacter = Players:CreateHumanoidModelFromUserId(targetPlayer.UserId)
             
             if newCharacter then
@@ -209,7 +364,7 @@ local function SmoothMorph(targetPlayer)
                     
                     wait(0.3)
                     
-                    -- Simple animation copy
+                    -- Simple animation copy (tidak diubah)
                     SimpleAnimationCopy(targetPlayer, newCharacter)
                     
                     wait(0.4)
@@ -244,7 +399,7 @@ local function SmoothMorph(targetPlayer)
                 end
             end
             
-            -- METHOD 2: Fallback
+            -- METHOD 2: Fallback (tidak diubah)
             if not success then
                 Notify("Using fallback method...", Color3.fromRGB(255, 200, 0), "🔄")
                 
@@ -264,8 +419,25 @@ local function SmoothMorph(targetPlayer)
                 end
             end
             
+            -- NEW: Copy username jika diminta
+            if success and copyUsername then
+                wait(0.5)
+                CopyUsername(targetPlayer)
+            end
+            
+            -- NEW: Copy group ranks jika diminta
+            if success and copyRanks then
+                wait(0.5)
+                CopyGroupRanks(targetPlayer)
+            end
+            
             if success then
-                Notify("Smooth morph complete!", Color3.fromRGB(100, 255, 100), "✅")
+                local features = {}
+                if copyUsername then table.insert(features, "Username") end
+                if copyRanks then table.insert(features, "Ranks") end
+                
+                local featureText = #features > 0 and (" + " .. table.concat(features, " + ")) or ""
+                Notify("Enhanced morph complete!" .. featureText, Color3.fromRGB(100, 255, 100), "✅")
             else
                 Notify("Morph failed", Color3.fromRGB(255, 100, 100), "❌")
             end
@@ -275,17 +447,14 @@ local function SmoothMorph(targetPlayer)
     return true
 end
 
--- Simple Reset
+-- FIXED: Enhanced Reset dengan proper character restoration
 local function SimpleReset()
     local character = LocalPlayer.Character
     if not character then return false end
     
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return false end
-    
     spawn(function()
         pcall(function()
-            Notify("Resetting...", Color3.fromRGB(255, 200, 0), "🔄")
+            Notify("Full system reset...", Color3.fromRGB(255, 200, 0), "🔄")
             
             -- Stop monitoring
             currentTarget = nil
@@ -295,46 +464,235 @@ local function SimpleReset()
                 monitorConnection = nil
             end
             
-            local originalDescription = Players:GetHumanoidDescriptionFromUserId(originalUserId)
-            if originalDescription then
-                humanoid:ApplyDescription(originalDescription)
+            -- STEP 1: Complete Character Reset - Create fresh character
+            local savedPosition = nil
+            if character:FindFirstChild("HumanoidRootPart") then
+                savedPosition = character.HumanoidRootPart.CFrame
+            end
+            
+            -- Method 1: Create completely new character
+            local newCharacter = Players:CreateHumanoidModelFromUserId(originalUserId)
+            
+            if newCharacter and savedPosition then
+                wait(0.3)
                 
-                wait(0.4)
+                -- Setup new character properly
+                if newCharacter:FindFirstChild("HumanoidRootPart") then
+                    newCharacter:SetPrimaryPartCFrame(savedPosition)
+                end
                 
-                -- Reset properties
-                humanoid.PlatformStand = false
-                humanoid.Sit = false
-                humanoid.WalkSpeed = 16
-                humanoid.JumpPower = 50
-                humanoid.JumpHeight = 7.2
-                humanoid.HipHeight = 0
-                
-                -- Simple animation restart
-                local animate = character:FindFirstChild("Animate")
-                if animate then
-                    animate.Disabled = true
+                local newHumanoid = newCharacter:FindFirstChildOfClass("Humanoid")
+                if newHumanoid then
+                    -- Set proper health and properties
+                    newHumanoid.MaxHealth = 100
+                    newHumanoid.Health = 100
+                    newHumanoid.PlatformStand = false
+                    newHumanoid.Sit = false
+                    newHumanoid.WalkSpeed = 16
+                    newHumanoid.JumpPower = 50
+                    newHumanoid.JumpHeight = 7.2
+                    newHumanoid.HipHeight = 0
+                    
+                    -- Set correct name
+                    newCharacter.Name = originalName or LocalPlayer.Name
+                    newCharacter.Parent = workspace
+                    
+                    wait(0.4)
+                    
+                    -- Replace character completely
+                    local oldCharacter = LocalPlayer.Character
+                    LocalPlayer.Character = newCharacter
+                    
+                    if oldCharacter then
+                        oldCharacter:Destroy()
+                    end
+                    
+                    wait(0.3)
+                    
+                    -- Setup camera properly
+                    local camera = workspace.CurrentCamera
+                    if camera then
+                        camera.CameraSubject = newHumanoid
+                        camera.CameraType = Enum.CameraType.Custom
+                    end
+                    
+                    -- Ensure physics work properly
+                    local newRootPart = newCharacter:FindFirstChild("HumanoidRootPart")
+                    if newRootPart then
+                        newRootPart.Anchored = false
+                        newRootPart.CanCollide = true
+                        
+                        -- Force network ownership
+                        newRootPart:SetNetworkOwner(LocalPlayer)
+                    end
+                    
+                    -- Reset humanoid state properly
+                    wait(0.2)
+                    newHumanoid:ChangeState(Enum.HumanoidStateType.Freefall)
                     wait(0.1)
-                    animate.Disabled = false
-                    wait(0.1)
+                    newHumanoid:ChangeState(Enum.HumanoidStateType.Running)
+                    
+                    character = newCharacter
+                    
+                    Notify("Character recreated successfully", Color3.fromRGB(100, 255, 100), "✅")
+                else
+                    -- Fallback to description method
+                    character = LocalPlayer.Character
+                end
+            else
+                -- Fallback method
+                Notify("Using fallback reset method...", Color3.fromRGB(255, 200, 0), "🔄")
+            end
+            
+            -- STEP 2: Apply original description (in case new character creation failed)
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    local originalDescription = Players:GetHumanoidDescriptionFromUserId(originalUserId)
+                    if originalDescription then
+                        humanoid:ApplyDescription(originalDescription)
+                        wait(0.5)
+                    end
+                    
+                    -- Force proper humanoid properties
+                    humanoid.PlatformStand = false
+                    humanoid.Sit = false
+                    humanoid.WalkSpeed = 16
+                    humanoid.JumpPower = 50
+                    humanoid.JumpHeight = 7.2
+                    humanoid.HipHeight = 0
+                    
+                    -- Reset animate script properly
+                    local animate = character:FindFirstChild("Animate")
+                    if animate then
+                        animate.Disabled = true
+                        wait(0.2)
+                        animate.Disabled = false
+                        wait(0.3)
+                        
+                        -- Force proper animation state
+                        humanoid:ChangeState(Enum.HumanoidStateType.Running)
+                    end
+                end
+            end
+            
+            -- STEP 3: Reset Username
+            pcall(function()
+                if originalName and LocalPlayer.Name ~= originalName then
+                    -- Try multiple methods to restore name
+                    LocalPlayer.Name = originalName
+                    
+                    if ReplicatedStorage:FindFirstChild("ChangeUsername") then
+                        ReplicatedStorage.ChangeUsername:FireServer(originalName)
+                    end
+                end
+                
+                if originalDisplayName and LocalPlayer.DisplayName ~= originalDisplayName then
+                    LocalPlayer.DisplayName = originalDisplayName
+                end
+                
+                if character then
+                    character.Name = originalName or LocalPlayer.Name
+                    local humanoid = character:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        humanoid.DisplayName = originalDisplayName or originalName or LocalPlayer.Name
+                    end
+                end
+            end)
+            
+            -- STEP 4: Reset Group Ranks dan Values
+            pcall(function()
+                -- Reset saved rank values
+                for key, originalValue in pairs(originalRankInGroup) do
+                    pcall(function()
+                        -- Check if it's a regular group ID (number)
+                        if type(key) == "number" then
+                            -- Traditional group rank
+                            if ReplicatedStorage:FindFirstChild("ChangeGroupRank") then
+                                ReplicatedStorage.ChangeGroupRank:FireServer(key, originalValue)
+                            end
+                            LocalPlayer:SetRankInGroup(key, originalValue)
+                            
+                        -- Check if it's a character value
+                        elseif key:find("leaderstats_") then
+                            local statName = key:gsub("leaderstats_", "")
+                            if LocalPlayer:FindFirstChild("leaderstats") then
+                                local stat = LocalPlayer.leaderstats:FindFirstChild(statName)
+                                if stat then
+                                    stat.Value = originalValue
+                                end
+                            end
+                            
+                        -- Character or player value/attribute
+                        else
+                            -- Try character first
+                            if character then
+                                local obj = character:FindFirstChild(key)
+                                if obj and (obj:IsA("IntValue") or obj:IsA("StringValue") or obj:IsA("BoolValue")) then
+                                    obj.Value = originalValue
+                                else
+                                    -- Try attribute
+                                    character:SetAttribute(key, originalValue)
+                                end
+                            end
+                            
+                            -- Try player
+                            local obj = LocalPlayer:FindFirstChild(key)
+                            if obj and (obj:IsA("IntValue") or obj:IsA("StringValue") or obj:IsA("BoolValue")) then
+                                obj.Value = originalValue
+                            else
+                                -- Try attribute
+                                LocalPlayer:SetAttribute(key, originalValue)
+                            end
+                        end
+                    end)
+                end
+                
+                -- Clear saved ranks
+                originalRankInGroup = {}
+            end)
+            
+            -- STEP 5: Final character fixes
+            wait(0.5)
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                local rootPart = character:FindFirstChild("HumanoidRootPart")
+                
+                if humanoid and rootPart then
+                    -- Final state correction
+                    humanoid.PlatformStand = false
+                    humanoid.Sit = false
+                    rootPart.Anchored = false
+                    rootPart.CanCollide = true
+                    
+                    -- Force final animation restart
+                    local animate = character:FindFirstChild("Animate")
+                    if animate and animate.Disabled then
+                        animate.Disabled = false
+                    end
+                    
+                    -- Ensure camera is working
+                    local camera = workspace.CurrentCamera
+                    if camera and camera.CameraSubject ~= humanoid then
+                        camera.CameraSubject = humanoid
+                        camera.CameraType = Enum.CameraType.Custom
+                    end
+                    
+                    -- Final humanoid state
                     humanoid:ChangeState(Enum.HumanoidStateType.Running)
                 end
-                
-                local camera = workspace.CurrentCamera
-                if camera then
-                    camera.CameraSubject = humanoid
-                    camera.CameraType = Enum.CameraType.Custom
-                end
-                
-                Notify("Reset complete!", Color3.fromRGB(100, 255, 100), "✅")
             end
+            
+            wait(0.3)
+            Notify("Complete reset successful!", Color3.fromRGB(100, 255, 100), "✅")
         end)
     end)
     
     return true
 end
 
--- Professional GUI Design - FIXED MINIMIZE ISSUE
-local function CreateSimpleGUI()
+-- ENHANCED GUI dengan opsi Username & Rank
+local function CreateEnhancedGUI()
     local existingGui = LocalPlayer.PlayerGui:FindFirstChild("WarpahMorph")
     if existingGui then existingGui:Destroy() end
     
@@ -343,22 +701,22 @@ local function CreateSimpleGUI()
     screenGui.ResetOnSpawn = false
     screenGui.Parent = LocalPlayer.PlayerGui
     
-    -- Main frame - Smaller and cleaner
+    -- Main frame - Sedikit lebih tinggi untuk fitur baru
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 240, 0, 320)
-    mainFrame.Position = UDim2.new(0, 20, 0.5, -160)
+    mainFrame.Size = UDim2.new(0, 260, 0, 380)
+    mainFrame.Position = UDim2.new(0, 20, 0.5, -190)
     mainFrame.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
     mainFrame.BorderSizePixel = 0
     mainFrame.Active = true
     mainFrame.Draggable = true
     mainFrame.Parent = screenGui
-    mainFrame.ClipsDescendants = true  -- PENTING: Mencegah tumpang tindih saat minimize
+    mainFrame.ClipsDescendants = true
     
     local mainCorner = Instance.new("UICorner")
     mainCorner.CornerRadius = UDim.new(0, 8)
     mainCorner.Parent = mainFrame
     
-    -- Subtle shadow effect
+    -- Shadow effect
     local shadow = Instance.new("Frame")
     shadow.Size = UDim2.new(1, 4, 1, 4)
     shadow.Position = UDim2.new(0, -2, 0, -2)
@@ -372,7 +730,7 @@ local function CreateSimpleGUI()
     shadowCorner.CornerRadius = UDim.new(0, 10)
     shadowCorner.Parent = shadow
     
-    -- Title bar - More professional
+    -- Title bar
     local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 32)
     titleBar.BackgroundColor3 = Color3.fromRGB(42, 42, 48)
@@ -390,7 +748,7 @@ local function CreateSimpleGUI()
     titleFix.BorderSizePixel = 0
     titleFix.Parent = titleBar
     
-    -- CONTAINER UNTUK KONTEN YANG BISA DISEMBUNYIKAN
+    -- Content Container
     local contentContainer = Instance.new("Frame")
     contentContainer.Name = "ContentContainer"
     contentContainer.Size = UDim2.new(1, 0, 1, -32)
@@ -398,19 +756,19 @@ local function CreateSimpleGUI()
     contentContainer.BackgroundTransparency = 1
     contentContainer.Parent = mainFrame
     
-    -- Professional title
+    -- Title
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, -70, 1, 0)
     title.Position = UDim2.new(0, 12, 0, 0)
     title.BackgroundTransparency = 1
-    title.Text = "WarpahMorph"
+    title.Text = "WarpahMorph Enhanced"
     title.TextColor3 = Color3.fromRGB(220, 220, 225)
     title.TextSize = 14
     title.Font = Enum.Font.SourceSans
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = titleBar
     
-    -- Minimize button
+    -- Window controls
     local minimizeBtn = Instance.new("TextButton")
     minimizeBtn.Size = UDim2.new(0, 24, 0, 24)
     minimizeBtn.Position = UDim2.new(1, -56, 0, 4)
@@ -426,7 +784,6 @@ local function CreateSimpleGUI()
     minimizeCorner.CornerRadius = UDim.new(0, 4)
     minimizeCorner.Parent = minimizeBtn
     
-    -- Close button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 24, 0, 24)
     closeBtn.Position = UDim2.new(1, -28, 0, 4)
@@ -442,7 +799,7 @@ local function CreateSimpleGUI()
     closeCorner.CornerRadius = UDim.new(0, 4)
     closeCorner.Parent = closeBtn
     
-    -- Button hover effects
+    -- Hover effects
     minimizeBtn.MouseEnter:Connect(function()
         minimizeBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 85)
     end)
@@ -462,14 +819,12 @@ local function CreateSimpleGUI()
     minimizeBtn.MouseButton1Click:Connect(function()
         isMinimized = not isMinimized
         if isMinimized then
-            -- Sembunyikan konten dan ubah ukuran frame
             contentContainer.Visible = false
-            mainFrame:TweenSize(UDim2.new(0, 240, 0, 32), "Out", "Quad", 0.3, true)
+            mainFrame:TweenSize(UDim2.new(0, 260, 0, 32), "Out", "Quad", 0.3, true)
             shadow:TweenSize(UDim2.new(1, 4, 0, 36), "Out", "Quad", 0.3, true)
             minimizeBtn.Text = "▢"
         else
-            -- Tampilkan konten dan kembalikan ukuran frame
-            mainFrame:TweenSize(UDim2.new(0, 240, 0, 320), "Out", "Quad", 0.3, true, function()
+            mainFrame:TweenSize(UDim2.new(0, 260, 0, 380), "Out", "Quad", 0.3, true, function()
                 contentContainer.Visible = true
             end)
             shadow:TweenSize(UDim2.new(1, 4, 1, 4), "Out", "Quad", 0.3, true)
@@ -481,10 +836,86 @@ local function CreateSimpleGUI()
         mainFrame.Visible = false
     end)
     
-    -- Status indicator - Dipindah ke contentContainer
+    -- NEW: Options Frame
+    local optionsFrame = Instance.new("Frame")
+    optionsFrame.Size = UDim2.new(1, -12, 0, 32)
+    optionsFrame.Position = UDim2.new(0, 6, 0, 6)
+    optionsFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
+    optionsFrame.BorderSizePixel = 0
+    optionsFrame.Parent = contentContainer
+    
+    local optionsCorner = Instance.new("UICorner")
+    optionsCorner.CornerRadius = UDim.new(0, 6)
+    optionsCorner.Parent = optionsFrame
+    
+    -- Username checkbox
+    local usernameCheck = Instance.new("TextButton")
+    usernameCheck.Size = UDim2.new(0, 20, 0, 20)
+    usernameCheck.Position = UDim2.new(0, 8, 0, 6)
+    usernameCheck.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    usernameCheck.BorderSizePixel = 0
+    usernameCheck.Text = ""
+    usernameCheck.Parent = optionsFrame
+    
+    local usernameCheckCorner = Instance.new("UICorner")
+    usernameCheckCorner.CornerRadius = UDim.new(0, 3)
+    usernameCheckCorner.Parent = usernameCheck
+    
+    local usernameLabel = Instance.new("TextLabel")
+    usernameLabel.Size = UDim2.new(0, 80, 0, 20)
+    usernameLabel.Position = UDim2.new(0, 32, 0, 6)
+    usernameLabel.BackgroundTransparency = 1
+    usernameLabel.Text = "Username"
+    usernameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    usernameLabel.TextSize = 11
+    usernameLabel.Font = Enum.Font.SourceSans
+    usernameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    usernameLabel.Parent = optionsFrame
+    
+    -- Rank checkbox
+    local rankCheck = Instance.new("TextButton")
+    rankCheck.Size = UDim2.new(0, 20, 0, 20)
+    rankCheck.Position = UDim2.new(0, 130, 0, 6)
+    rankCheck.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    rankCheck.BorderSizePixel = 0
+    rankCheck.Text = ""
+    rankCheck.Parent = optionsFrame
+    
+    local rankCheckCorner = Instance.new("UICorner")
+    rankCheckCorner.CornerRadius = UDim.new(0, 3)
+    rankCheckCorner.Parent = rankCheck
+    
+    local rankLabel = Instance.new("TextLabel")
+    rankLabel.Size = UDim2.new(0, 60, 0, 20)
+    rankLabel.Position = UDim2.new(0, 154, 0, 6)
+    rankLabel.BackgroundTransparency = 1
+    rankLabel.Text = "Ranks"
+    rankLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    rankLabel.TextSize = 11
+    rankLabel.Font = Enum.Font.SourceSans
+    rankLabel.TextXAlignment = Enum.TextXAlignment.Left
+    rankLabel.Parent = optionsFrame
+    
+    -- Checkbox states
+    local copyUsername = false
+    local copyRanks = false
+    
+    usernameCheck.MouseButton1Click:Connect(function()
+        copyUsername = not copyUsername
+        usernameCheck.Text = copyUsername and "✓" or ""
+        usernameCheck.BackgroundColor3 = copyUsername and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(60, 60, 65)
+    end)
+    
+    rankCheck.MouseButton1Click:Connect(function()
+        copyRanks = not copyRanks
+        rankCheck.Text = copyRanks and "✓" or ""
+        rankCheck.BackgroundColor3 = copyRanks and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(60, 60, 65)
+    end)
+    
+    -- Status indicator
     local statusFrame = Instance.new("Frame")
     statusFrame.Size = UDim2.new(1, -12, 0, 20)
-    statusFrame.Position = UDim2.new(0, 6, 0, 6)
+    statusFrame.Position = UDim2.new(0, 6, 0, 44)
     statusFrame.BackgroundTransparency = 1
     statusFrame.Parent = contentContainer
     
@@ -503,17 +934,17 @@ local function CreateSimpleGUI()
     statusLabel.Size = UDim2.new(1, -10, 1, 0)
     statusLabel.Position = UDim2.new(0, 10, 0, 0)
     statusLabel.BackgroundTransparency = 1
-    statusLabel.Text = "Ready"
+    statusLabel.Text = "Enhanced Ready"
     statusLabel.TextColor3 = Color3.fromRGB(160, 160, 165)
     statusLabel.TextSize = 11
     statusLabel.Font = Enum.Font.SourceSans
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
     statusLabel.Parent = statusFrame
     
-    -- Player list - Dipindah ke contentContainer
+    -- Player list - Adjusted position
     local scrollFrame = Instance.new("ScrollingFrame")
     scrollFrame.Size = UDim2.new(1, -12, 0, 220)
-    scrollFrame.Position = UDim2.new(0, 6, 0, 32)
+    scrollFrame.Position = UDim2.new(0, 6, 0, 70)
     scrollFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 40)
     scrollFrame.BorderSizePixel = 0
     scrollFrame.ScrollBarThickness = 4
@@ -536,7 +967,7 @@ local function CreateSimpleGUI()
     listPadding.PaddingBottom = UDim.new(0, 4)
     listPadding.Parent = scrollFrame
     
-    -- Update player list with professional design
+    -- Enhanced player list with group info
     local function UpdatePlayerList()
         for _, child in ipairs(scrollFrame:GetChildren()) do
             if child:IsA("Frame") then child:Destroy() end
@@ -544,7 +975,7 @@ local function CreateSimpleGUI()
         
         for _, player in ipairs(Players:GetPlayers()) do
             local playerCard = Instance.new("Frame")
-            playerCard.Size = UDim2.new(1, -8, 0, 36)
+            playerCard.Size = UDim2.new(1, -8, 0, 42) -- Sedikit lebih tinggi untuk info tambahan
             playerCard.BackgroundColor3 = Color3.fromRGB(45, 45, 52)
             playerCard.BorderSizePixel = 0
             playerCard.Parent = scrollFrame
@@ -555,14 +986,14 @@ local function CreateSimpleGUI()
             
             -- Professional avatar
             local avatar = Instance.new("Frame")
-            avatar.Size = UDim2.new(0, 28, 0, 28)
-            avatar.Position = UDim2.new(0, 6, 0, 4)
+            avatar.Size = UDim2.new(0, 32, 0, 32)
+            avatar.Position = UDim2.new(0, 6, 0, 5)
             avatar.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
             avatar.BorderSizePixel = 0
             avatar.Parent = playerCard
             
             local avatarCorner = Instance.new("UICorner")
-            avatarCorner.CornerRadius = UDim.new(0, 14)
+            avatarCorner.CornerRadius = UDim.new(0, 16)
             avatarCorner.Parent = avatar
             
             local avatarText = Instance.new("TextLabel")
@@ -570,13 +1001,14 @@ local function CreateSimpleGUI()
             avatarText.BackgroundTransparency = 1
             avatarText.Text = string.sub(player.Name, 1, 2):upper()
             avatarText.TextColor3 = Color3.fromRGB(255, 255, 255)
-            avatarText.TextSize = 11
+            avatarText.TextSize = 12
             avatarText.Font = Enum.Font.SourceSansSemibold
             avatarText.Parent = avatar
             
+            -- Player name
             local nameLabel = Instance.new("TextLabel")
             nameLabel.Size = UDim2.new(0, 100, 0, 14)
-            nameLabel.Position = UDim2.new(0, 40, 0, 4)
+            nameLabel.Position = UDim2.new(0, 44, 0, 5)
             nameLabel.BackgroundTransparency = 1
             nameLabel.Text = #player.Name > 12 and (string.sub(player.Name, 1, 10) .. "..") or player.Name
             nameLabel.TextColor3 = Color3.fromRGB(220, 220, 225)
@@ -585,27 +1017,41 @@ local function CreateSimpleGUI()
             nameLabel.TextXAlignment = Enum.TextXAlignment.Left
             nameLabel.Parent = playerCard
             
+            -- Display name (if different)
+            local displayLabel = Instance.new("TextLabel")
+            displayLabel.Size = UDim2.new(0, 100, 0, 10)
+            displayLabel.Position = UDim2.new(0, 44, 0, 18)
+            displayLabel.BackgroundTransparency = 1
+            local displayText = player.DisplayName and player.DisplayName ~= player.Name and player.DisplayName or ""
+            displayLabel.Text = #displayText > 12 and (string.sub(displayText, 1, 10) .. "..") or displayText
+            displayLabel.TextColor3 = Color3.fromRGB(140, 140, 145)
+            displayLabel.TextSize = 9
+            displayLabel.Font = Enum.Font.SourceSans
+            displayLabel.TextXAlignment = Enum.TextXAlignment.Left
+            displayLabel.Parent = playerCard
+            
+            -- Status/Group info
             local statusText = Instance.new("TextLabel")
-            statusText.Size = UDim2.new(0, 100, 0, 12)
-            statusText.Position = UDim2.new(0, 40, 0, 20)
+            statusText.Size = UDim2.new(0, 100, 0, 10)
+            statusText.Position = UDim2.new(0, 44, 0, 29)
             statusText.BackgroundTransparency = 1
-            statusText.Text = player == LocalPlayer and "You" or "Available"
-            statusText.TextColor3 = player == LocalPlayer and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(140, 140, 145)
-            statusText.TextSize = 10
+            statusText.Text = player == LocalPlayer and "You" or "ID: " .. player.UserId
+            statusText.TextColor3 = player == LocalPlayer and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(120, 120, 125)
+            statusText.TextSize = 8
             statusText.Font = Enum.Font.SourceSans
             statusText.TextXAlignment = Enum.TextXAlignment.Left
             statusText.Parent = playerCard
             
-            -- Professional button
+            -- Enhanced morph button
             local morphBtn = Instance.new("TextButton")
-            morphBtn.Size = UDim2.new(0, 60, 0, 24)
-            morphBtn.Position = UDim2.new(1, -66, 0, 6)
+            morphBtn.Size = UDim2.new(0, 70, 0, 32)
+            morphBtn.Position = UDim2.new(1, -76, 0, 5)
             morphBtn.BackgroundColor3 = player == LocalPlayer and Color3.fromRGB(70, 70, 75) or Color3.fromRGB(88, 101, 242)
             morphBtn.BorderSizePixel = 0
-            morphBtn.Text = player == LocalPlayer and "YOU" or "Copy"
+            morphBtn.Text = player == LocalPlayer and "YOU" or "COPY"
             morphBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            morphBtn.TextSize = 11
-            morphBtn.Font = Enum.Font.SourceSans
+            morphBtn.TextSize = 10
+            morphBtn.Font = Enum.Font.SourceSansSemibold
             morphBtn.Active = player ~= LocalPlayer
             morphBtn.Parent = playerCard
             
@@ -613,7 +1059,21 @@ local function CreateSimpleGUI()
             morphCorner.CornerRadius = UDim.new(0, 4)
             morphCorner.Parent = morphBtn
             
+            -- Options indicator
             if player ~= LocalPlayer then
+                local optionIndicator = Instance.new("TextLabel")
+                optionIndicator.Size = UDim2.new(1, 0, 0, 8)
+                optionIndicator.Position = UDim2.new(0, 0, 1, -8)
+                optionIndicator.BackgroundTransparency = 1
+                local indicators = {}
+                if copyUsername then table.insert(indicators, "U") end
+                if copyRanks then table.insert(indicators, "R") end
+                optionIndicator.Text = #indicators > 0 and ("+" .. table.concat(indicators, "")) or ""
+                optionIndicator.TextColor3 = Color3.fromRGB(255, 193, 7)
+                optionIndicator.TextSize = 7
+                optionIndicator.Font = Enum.Font.SourceSansSemibold
+                optionIndicator.Parent = morphBtn
+                
                 morphBtn.MouseEnter:Connect(function()
                     morphBtn.BackgroundColor3 = Color3.fromRGB(104, 117, 245)
                 end)
@@ -626,23 +1086,29 @@ local function CreateSimpleGUI()
                         morphBtn.Text = "..."
                         morphBtn.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
                         
-                        local success = SmoothMorph(player)
+                        local success = SmoothMorph(player, copyUsername, copyRanks)
                         
                         morphBtn.Text = success and "✓" or "✗"
                         morphBtn.BackgroundColor3 = success and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(220, 53, 69)
                         
                         wait(2)
-                        morphBtn.Text = "Copy"
+                        morphBtn.Text = "COPY"
                         morphBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+                        
+                        -- Update option indicator
+                        local newIndicators = {}
+                        if copyUsername then table.insert(newIndicators, "U") end
+                        if copyRanks then table.insert(newIndicators, "R") end
+                        optionIndicator.Text = #newIndicators > 0 and ("+" .. table.concat(newIndicators, "")) or ""
                     end)
                 end)
             end
         end
         
-        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#Players:GetPlayers() * 38) + 8)
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#Players:GetPlayers() * 44) + 8)
     end
     
-    -- Control buttons - Dipindah ke contentContainer
+    -- Control buttons - Adjusted position
     local controlFrame = Instance.new("Frame")
     controlFrame.Size = UDim2.new(1, -12, 0, 28)
     controlFrame.Position = UDim2.new(0, 6, 1, -34)
@@ -650,13 +1116,13 @@ local function CreateSimpleGUI()
     controlFrame.Parent = contentContainer
     
     local resetBtn = Instance.new("TextButton")
-    resetBtn.Size = UDim2.new(0.48, 0, 1, 0)
+    resetBtn.Size = UDim2.new(0.31, 0, 1, 0)
     resetBtn.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
     resetBtn.BorderSizePixel = 0
-    resetBtn.Text = "Reset"
+    resetBtn.Text = "RESET"
     resetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    resetBtn.TextSize = 12
-    resetBtn.Font = Enum.Font.SourceSans
+    resetBtn.TextSize = 11
+    resetBtn.Font = Enum.Font.SourceSansSemibold
     resetBtn.Parent = controlFrame
     
     local resetCorner = Instance.new("UICorner")
@@ -664,19 +1130,35 @@ local function CreateSimpleGUI()
     resetCorner.Parent = resetBtn
     
     local refreshBtn = Instance.new("TextButton")
-    refreshBtn.Size = UDim2.new(0.48, 0, 1, 0)
-    refreshBtn.Position = UDim2.new(0.52, 0, 0, 0)
+    refreshBtn.Size = UDim2.new(0.31, 0, 1, 0)
+    refreshBtn.Position = UDim2.new(0.345, 0, 0, 0)
     refreshBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
     refreshBtn.BorderSizePixel = 0
-    refreshBtn.Text = "Refresh"
+    refreshBtn.Text = "REFRESH"
     refreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    refreshBtn.TextSize = 12
-    refreshBtn.Font = Enum.Font.SourceSans
+    refreshBtn.TextSize = 11
+    refreshBtn.Font = Enum.Font.SourceSansSemibold
     refreshBtn.Parent = controlFrame
     
     local refreshCorner = Instance.new("UICorner")
     refreshCorner.CornerRadius = UDim.new(0, 4)
     refreshCorner.Parent = refreshBtn
+    
+    -- NEW: Quick toggle button
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0.31, 0, 1, 0)
+    toggleBtn.Position = UDim2.new(0.69, 0, 0, 0)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+    toggleBtn.BorderSizePixel = 0
+    toggleBtn.Text = "U+R"
+    toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    toggleBtn.TextSize = 11
+    toggleBtn.Font = Enum.Font.SourceSansSemibold
+    toggleBtn.Parent = controlFrame
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 4)
+    toggleCorner.Parent = toggleBtn
     
     -- Button hover effects
     resetBtn.MouseEnter:Connect(function()
@@ -693,6 +1175,14 @@ local function CreateSimpleGUI()
         refreshBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
     end)
     
+    toggleBtn.MouseEnter:Connect(function()
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(104, 117, 245)
+    end)
+    toggleBtn.MouseLeave:Connect(function()
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+    end)
+    
+    -- Button functions
     resetBtn.MouseButton1Click:Connect(function()
         spawn(function()
             resetBtn.Text = "..."
@@ -701,7 +1191,7 @@ local function CreateSimpleGUI()
             resetBtn.Text = success and "✓" or "✗"
             resetBtn.BackgroundColor3 = success and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(220, 53, 69)
             wait(1.5)
-            resetBtn.Text = "Reset"
+            resetBtn.Text = "RESET"
             resetBtn.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
         end)
     end)
@@ -711,21 +1201,53 @@ local function CreateSimpleGUI()
         refreshBtn.Text = "✓"
         refreshBtn.BackgroundColor3 = Color3.fromRGB(40, 200, 64)
         wait(0.8)
-        refreshBtn.Text = "Refresh"
+        refreshBtn.Text = "REFRESH"
         refreshBtn.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    end)
+    
+    toggleBtn.MouseButton1Click:Connect(function()
+        -- Quick toggle both options
+        local newState = not (copyUsername and copyRanks)
+        
+        copyUsername = newState
+        copyRanks = newState
+        
+        usernameCheck.Text = copyUsername and "✓" or ""
+        usernameCheck.BackgroundColor3 = copyUsername and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(60, 60, 65)
+        
+        rankCheck.Text = copyRanks and "✓" or ""
+        rankCheck.BackgroundColor3 = copyRanks and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(60, 60, 65)
+        
+        toggleBtn.Text = newState and "ON" or "OFF"
+        toggleBtn.BackgroundColor3 = newState and Color3.fromRGB(40, 200, 64) or Color3.fromRGB(88, 101, 242)
+        
+        UpdatePlayerList() -- Refresh to update indicators
+        
+        wait(1)
+        toggleBtn.Text = "U+R"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
     end)
     
     UpdatePlayerList()
     Players.PlayerAdded:Connect(UpdatePlayerList)
     Players.PlayerRemoving:Connect(UpdatePlayerList)
+    
+    -- Update indicators when checkboxes change
+    local function updateAllIndicators()
+        wait(0.1)
+        UpdatePlayerList()
+    end
+    
+    usernameCheck.MouseButton1Click:Connect(updateAllIndicators)
+    rankCheck.MouseButton1Click:Connect(updateAllIndicators)
 end
 
 -- Initialize
 local function Initialize()
-    Notify("WarpahMorph ready", Color3.fromRGB(40, 200, 64), "◉")
+    Notify("WarpahMorph Enhanced ready", Color3.fromRGB(40, 200, 64), "🚀")
     
     wait(0.5)
-    CreateSimpleGUI()
+    CreateEnhancedGUI()
     
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
@@ -737,6 +1259,30 @@ local function Initialize()
             end
         elseif input.KeyCode == Enum.KeyCode.F2 then
             SimpleReset()
+        elseif input.KeyCode == Enum.KeyCode.F3 then
+            -- Quick morph to nearest player with all features
+            local nearestPlayer = nil
+            local shortestDistance = math.huge
+            
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                local myPosition = LocalPlayer.Character.HumanoidRootPart.Position
+                
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                        local distance = (player.Character.HumanoidRootPart.Position - myPosition).Magnitude
+                        if distance < shortestDistance then
+                            shortestDistance = distance
+                            nearestPlayer = player
+                        end
+                    end
+                end
+            end
+            
+            if nearestPlayer then
+                SmoothMorph(nearestPlayer, true, true) -- Copy everything
+            else
+                Notify("No nearby players found", Color3.fromRGB(255, 150, 0), "⚠️")
+            end
         end
     end)
 end
@@ -760,16 +1306,18 @@ end
 Initialize()
 
 print("=====================================")
-print("🚀 WarpahMorph v4.0")
+print("🚀 WarpahMorph Enhanced v5.0")
 print("=====================================")
-print("✅ Optimized performance")
-print("🎭 Smooth animation system")
-print("🔧 Light monitoring")
+print("✅ Avatar + Animation copying")
+print("👤 Username copying")  
+print("🏆 Group rank copying")
+print("🎛️  Enhanced GUI controls")
 print("📱 Professional interface")
-print("⌨️  F1: Toggle | F2: Reset")
+print("⌨️  F1: Toggle | F2: Reset | F3: Quick nearby")
 print("=====================================")
-print("🌟 Professional Design!")
-print("⚡ Minimalist & Elegant!")
+print("🌟 Enhanced Features!")
+print("⚡ Username + Rank Support!")
+print("🎭 Full Identity Morph!")
 print("=====================================")
 
 return Cleanup
