@@ -1,116 +1,241 @@
--- Touch fling gui
+-- Warpah Fling GUI - Improved Version
+-- Touch fling gui with minimalist design
 
 -- Gui to Lua (VIP VERSION)
--- Version: 6.9
+-- Version: 7.0
 
 -- Instances:
 
 local ScreenGui = Instance.new("ScreenGui")
-local Frame = Instance.new("Frame")
-local Frame_2 = Instance.new("Frame")
-local TextLabel = Instance.new("TextLabel")
-local TextButton = Instance.new("TextButton")
+local MainFrame = Instance.new("Frame")
+local TopFrame = Instance.new("Frame")
+local TitleLabel = Instance.new("TextLabel")
+local MinimizeButton = Instance.new("TextButton")
+local CloseButton = Instance.new("TextButton")
+local ContentFrame = Instance.new("Frame")
+local FlingButton = Instance.new("TextButton")
+local NeonBorder = Instance.new("Frame")
+
+-- Services
+local TweenService = game:GetService("TweenService")
 
 --Properties:
 
 ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
-print("sub to DuplexScripts")
+print("Warpah Fling GUI Loaded")
 
-Frame.Parent = ScreenGui
-Frame.BackgroundColor3 = Color3.fromRGB(34, 34, 34)
-Frame.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Frame.BorderSizePixel = 0
-Frame.Position = UDim2.new(0.388539821, 0, 0.427821517, 0)
-Frame.Size = UDim2.new(0, 158, 0, 110)
+-- Main Frame
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.4, 0, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 200, 0, 120)
+MainFrame.Active = true
+MainFrame.Draggable = true
 
-Frame_2.Parent = Frame
-Frame_2.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-Frame_2.BorderColor3 = Color3.fromRGB(0, 0, 0)
-Frame_2.BorderSizePixel = 0
-Frame_2.Size = UDim2.new(0, 158, 0, 25)
+-- Neon Border Effect
+NeonBorder.Parent = MainFrame
+NeonBorder.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+NeonBorder.BackgroundTransparency = 0.3
+NeonBorder.BorderSizePixel = 0
+NeonBorder.Position = UDim2.new(0, -2, 0, -2)
+NeonBorder.Size = UDim2.new(1, 4, 1, 4)
+NeonBorder.ZIndex = -1
 
-TextLabel.Parent = Frame_2
-TextLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-TextLabel.BackgroundTransparency = 1.000
-TextLabel.BorderColor3 = Color3.fromRGB(0, 0, 0)
-TextLabel.BorderSizePixel = 0
-TextLabel.Position = UDim2.new(0.112792775, 0, -0.0151660154, 0)
-TextLabel.Size = UDim2.new(0, 121, 0, 26)
-TextLabel.Font = Enum.Font.Sarpanch
-TextLabel.Text = "Touch Fling"
-TextLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-TextLabel.TextSize = 25.000
+-- Top Frame (Header)
+TopFrame.Parent = MainFrame
+TopFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+TopFrame.BorderSizePixel = 0
+TopFrame.Size = UDim2.new(1, 0, 0, 30)
 
-TextButton.Parent = Frame
-TextButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-TextButton.BorderColor3 = Color3.fromRGB(255, 255, 255)
-TextButton.BorderSizePixel = 0
-TextButton.Position = UDim2.new(0.113924049, 0, 0.418181807, 0)
-TextButton.Size = UDim2.new(0, 121, 0, 37)
-TextButton.Font = Enum.Font.SourceSansItalic
-TextButton.Text = "OFF"
-TextButton.TextColor3 = Color3.fromRGB(0, 0, 0)
-TextButton.TextSize = 20.000
+-- Title Label
+TitleLabel.Parent = TopFrame
+TitleLabel.BackgroundTransparency = 1
+TitleLabel.Position = UDim2.new(0, 10, 0, 0)
+TitleLabel.Size = UDim2.new(0.7, -10, 1, 0)
+TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.Text = "Warpah Fling"
+TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+TitleLabel.TextSize = 16
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Minimize Button
+MinimizeButton.Parent = TopFrame
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Position = UDim2.new(1, -50, 0, 5)
+MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.Text = "—"
+MinimizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+MinimizeButton.TextSize = 14
+
+-- Close Button
+CloseButton.Parent = TopFrame
+CloseButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+CloseButton.BorderSizePixel = 0
+CloseButton.Position = UDim2.new(1, -25, 0, 5)
+CloseButton.Size = UDim2.new(0, 20, 0, 20)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Text = "×"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 14
+
+-- Content Frame
+ContentFrame.Parent = MainFrame
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Position = UDim2.new(0, 0, 0, 30)
+ContentFrame.Size = UDim2.new(1, 0, 1, -30)
+
+-- Fling Toggle Button
+FlingButton.Parent = ContentFrame
+FlingButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+FlingButton.BorderSizePixel = 0
+FlingButton.Position = UDim2.new(0.5, -75, 0.5, -20)
+FlingButton.Size = UDim2.new(0, 150, 0, 40)
+FlingButton.Font = Enum.Font.GothamSemibold
+FlingButton.Text = "OFF"
+FlingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+FlingButton.TextSize = 18
+
+-- Variables
+local isMinimized = false
+local originalSize = MainFrame.Size
+local minimizedSize = UDim2.new(0, 200, 0, 30)
+
+-- Animations
+local function createTween(object, properties, duration)
+    local tweenInfo = TweenInfo.new(
+        duration or 0.3,
+        Enum.EasingStyle.Quart,
+        Enum.EasingDirection.Out
+    )
+    return TweenService:Create(object, tweenInfo, properties)
+end
+
+-- Neon glow animation
+local function animateNeonGlow()
+    spawn(function()
+        while NeonBorder.Parent do
+            local glowTween = createTween(NeonBorder, {
+                BackgroundTransparency = 0.1
+            }, 1)
+            local dimTween = createTween(NeonBorder, {
+                BackgroundTransparency = 0.5
+            }, 1)
+            
+            glowTween:Play()
+            glowTween.Completed:Wait()
+            dimTween:Play()
+            dimTween.Completed:Wait()
+        end
+    end)
+end
+
+-- Start neon animation
+animateNeonGlow()
 
 -- Scripts:
 
-local function IIMAWH_fake_script() -- TextButton.LocalScript 
-	local script = Instance.new('LocalScript', TextButton)
+-- Minimize/Maximize functionality
+MinimizeButton.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    
+    local targetSize = isMinimized and minimizedSize or originalSize
+    local sizeTween = createTween(MainFrame, {Size = targetSize})
+    
+    ContentFrame.Visible = not isMinimized
+    MinimizeButton.Text = isMinimized and "□" or "—"
+    
+    sizeTween:Play()
+end)
 
-	local ReplicatedStorage = game:GetService("ReplicatedStorage")
-	local RunService = game:GetService("RunService")
-	local Players = game:GetService("Players")
-	
-	local toggleButton = script.Parent
-	local hiddenfling = false
-	local flingThread 
-	if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
-		local detection = Instance.new("Decal")
-		detection.Name = "juisdfj0i32i0eidsuf0iok"
-		detection.Parent = ReplicatedStorage
-	end
-	
-	local function fling()
-		local lp = Players.LocalPlayer
-		local c, hrp, vel, movel = nil, nil, nil, 0.1
-	
-		while hiddenfling do
-			RunService.Heartbeat:Wait()
-			c = lp.Character
-			hrp = c and c:FindFirstChild("HumanoidRootPart")
-	
-			if hrp then
-				vel = hrp.Velocity
-				hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
-				RunService.RenderStepped:Wait()
-				hrp.Velocity = vel
-				RunService.Stepped:Wait()
-				hrp.Velocity = vel + Vector3.new(0, movel, 0)
-				movel = -movel
-			end
-		end
-	end
-	
-	toggleButton.MouseButton1Click:Connect(function()
-		hiddenfling = not hiddenfling
-		toggleButton.Text = hiddenfling and "ON" or "OFF"
-	
-		if hiddenfling then
-			flingThread = coroutine.create(fling)
-			coroutine.resume(flingThread)
-		else
-			hiddenfling = false
-		end
-	end)
-	
-end
-coroutine.wrap(IIMAWH_fake_script)()
-local function QCJQJL_fake_script() -- Frame.LocalScript 
-	local script = Instance.new('LocalScript', Frame)
+-- Close functionality
+CloseButton.MouseButton1Click:Connect(function()
+    local closeTween = createTween(MainFrame, {
+        Size = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 1
+    })
+    
+    closeTween:Play()
+    closeTween.Completed:Connect(function()
+        ScreenGui:Destroy()
+    end)
+end)
 
-	script.Parent.Active = true
-	script.Parent.Draggable = true
+-- Fling functionality
+local function FLING_SCRIPT()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RunService = game:GetService("RunService")
+    local Players = game:GetService("Players")
+    
+    local toggleButton = FlingButton
+    local hiddenfling = false
+    local flingThread 
+    
+    if not ReplicatedStorage:FindFirstChild("juisdfj0i32i0eidsuf0iok") then
+        local detection = Instance.new("Decal")
+        detection.Name = "juisdfj0i32i0eidsuf0iok"
+        detection.Parent = ReplicatedStorage
+    end
+    
+    local function fling()
+        local lp = Players.LocalPlayer
+        local c, hrp, vel, movel = nil, nil, nil, 0.1
+
+        while hiddenfling do
+            RunService.Heartbeat:Wait()
+            c = lp.Character
+            hrp = c and c:FindFirstChild("HumanoidRootPart")
+
+            if hrp then
+                vel = hrp.Velocity
+                hrp.Velocity = vel * 10000 + Vector3.new(0, 10000, 0)
+                RunService.RenderStepped:Wait()
+                hrp.Velocity = vel
+                RunService.Stepped:Wait()
+                hrp.Velocity = vel + Vector3.new(0, movel, 0)
+                movel = -movel
+            end
+        end
+    end
+    
+    toggleButton.MouseButton1Click:Connect(function()
+        hiddenfling = not hiddenfling
+        
+        -- Update button appearance
+        if hiddenfling then
+            toggleButton.Text = "ON"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+            toggleButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+            
+            flingThread = coroutine.create(fling)
+            coroutine.resume(flingThread)
+        else
+            toggleButton.Text = "OFF"
+            toggleButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            hiddenfling = false
+        end
+    end)
 end
-coroutine.wrap(QCJQJL_fake_script)()
+
+-- Button hover effects
+local function addHoverEffect(button, hoverColor, originalColor)
+    button.MouseEnter:Connect(function()
+        createTween(button, {BackgroundColor3 = hoverColor}):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        createTween(button, {BackgroundColor3 = originalColor}):Play()
+    end)
+end
+
+-- Apply hover effects
+addHoverEffect(MinimizeButton, Color3.fromRGB(255, 235, 59), Color3.fromRGB(255, 193, 7))
+addHoverEffect(CloseButton, Color3.fromRGB(244, 67, 54), Color3.fromRGB(220, 53, 69))
+
+-- Initialize fling script
+coroutine.wrap(FLING_SCRIPT)()
