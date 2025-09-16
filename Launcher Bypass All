@@ -131,7 +131,7 @@ local Config = {
         ["WarpahVip_AJ827HDJA9Q1W8E"] = true,
         ["WarpahVip_AJ827HDJA7R2T5Y"] = true,
         ["WarpahVip_AJ827HDJA1U6I9O"] = true,
-        ["WarpahVip_TRIAL"] = false
+        ["WarpahVip_AJ827HDJA5P3A4S"] = true
     },
     MAIN_SCRIPT_URL = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats",
     DISCORD_LINK = "https://discord.gg/e77s79ZJ",
