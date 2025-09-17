@@ -1,0 +1,685 @@
+-- Akhirat VIP Teleport Script v4 - Fixed Version
+-- Compatible with Delta Executor Android
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Variables
+local isAutoTeleporting = false
+local autoTeleportConnection = nil
+local currentPositionIndex = 1
+local autoTeleportDelay = 8 -- 8 seconds between teleports (default)
+local autoToggleButton = nil
+local scrollFrame = nil
+local lastNotificationTime = 0 -- Anti-spam notification
+local notificationCooldown = 3 -- seconds between notifications
+
+-- Koordinat teleport positions
+local positions = {
+    {pos = Vector3.new(-134.43, 422.32, -217.41), name = "Pos 1"},
+    {pos = Vector3.new(-3.18, 952.70, -1053.86), name = "Pos 2"},
+    {pos = Vector3.new(111.31, 1206.23, -1356.40), name = "Pos 3"},
+    {pos = Vector3.new(108.02, 1467.02, -1804.42), name = "Pos 4"},
+    {pos = Vector3.new(303.81, 1867.93, -2330.43), name = "Pos 5"},
+    {pos = Vector3.new(559.39, 2084.67, -2562.86), name = "Pos 6"},
+    {pos = Vector3.new(748.39, 2187.41, -2500.19), name = "Pos 7"},
+    {pos = Vector3.new(789.69, 2329.30, -2639.04), name = "Pos 8"},
+    {pos = Vector3.new(963.58, 2517.00, -2629.80), name = "Pos 9"},
+    {pos = Vector3.new(1240.59, 2696.38, -2799.42), name = "Pos 10"},
+    {pos = Vector3.new(1619.78, 3060.41, -2750.63), name = "Pos 11"},
+    {pos = Vector3.new(1817.28, 3578.10, -3242.55), name = "Pos 12"},
+    {pos = Vector3.new(2805.50, 4424.71, -4798.03), name = "Pos 13"},
+    {pos = Vector3.new(3470.92, 4856.90, -4190.18), name = "Pos 14"},
+    {pos = Vector3.new(3479.09, 5105.96, -4276.96), name = "Pos 15"},
+    {pos = Vector3.new(3979.67, 5668.54, -3977.19), name = "Pos 16", specialDelay = 20},
+    {pos = Vector3.new(4499.22, 5897.03, -3791.61), name = "Pos 17"},
+    {pos = Vector3.new(5062.53, 6377.63, -2982.51), name = "Pos 18"},
+    {pos = Vector3.new(5538.94, 6591.27, -2489.95), name = "Pos 19"},
+    {pos = Vector3.new(5552.08, 6873.36, -1055.56), name = "Pos 20"},
+    {pos = Vector3.new(4334.64, 7639.79, 129.64), name = "Pos 21"},
+    {pos = Vector3.new(3454.40, 7709.20, 937.28), name = "Pos 22", specialDelay = 20},
+    {pos = Vector3.new(3053.08, 7876.80, 1035.44), name = "Puncak", isPuncak = true}
+}
+
+-- Anti-spam notification function
+local function sendNotification(title, text, duration)
+    local currentTime = tick()
+    if currentTime - lastNotificationTime >= notificationCooldown then
+        lastNotificationTime = currentTime
+        pcall(function()
+            game.StarterGui:SetCore("SendNotification", {
+                Title = title,
+                Text = text,
+                Duration = duration or 2
+            })
+        end)
+    end
+end
+
+-- Function to auto-click "Kembali ke Pangkal" button
+local function autoClickKembaliKePangkal()
+    spawn(function()
+        wait(3) -- Wait 3 seconds after reaching puncak
+        
+        -- Try to find and click the "Kembali ke Pangkal" button
+        pcall(function()
+            local playerGui = player:WaitForChild("PlayerGui")
+            
+            -- Search for UI elements that might contain the button
+            local function searchForButton(parent)
+                for _, child in pairs(parent:GetChildren()) do
+                    if child:IsA("TextButton") or child:IsA("ImageButton") then
+                        if child.Text and (string.find(string.lower(child.Text), "kembali") or string.find(string.lower(child.Text), "pangkal")) then
+                            sendNotification("Akhirat VIP", "Auto-clicking Kembali ke Pangkal...", 2)
+                            child:GetPropertyChangedSignal("Visible"):Wait()
+                            if child.Visible then
+                                -- Simulate click
+                                for i = 1, 5 do -- Try clicking multiple times
+                                    pcall(function()
+                                        firetouchinterest(child, child, 0)
+                                        firetouchinterest(child, child, 1)
+                                    end)
+                                    pcall(function()
+                                        fireclickdetector(child.ClickDetector)
+                                    end)
+                                    pcall(function()
+                                        child.MouseButton1Click:Fire()
+                                    end)
+                                    wait(0.5)
+                                end
+                                return true
+                            end
+                        end
+                    elseif child:IsA("Frame") or child:IsA("ScreenGui") then
+                        if searchForButton(child) then
+                            return true
+                        end
+                    end
+                end
+                return false
+            end
+            
+            -- Alternative method: Look for specific UI patterns
+            local function findKembaliButton()
+                -- Method 1: Search in PlayerGui
+                if searchForButton(playerGui) then
+                    return true
+                end
+                
+                -- Method 2: Try common UI names
+                local commonNames = {"MainUI", "GameUI", "Interface", "Menu", "HUD"}
+                for _, name in pairs(commonNames) do
+                    local ui = playerGui:FindFirstChild(name)
+                    if ui and searchForButton(ui) then
+                        return true
+                    end
+                end
+                
+                -- Method 3: Search for specific button coordinates/positions
+                -- This part would need to be customized based on the actual game UI
+                local screenGui = playerGui:GetChildren()
+                for _, gui in pairs(screenGui) do
+                    if gui:IsA("ScreenGui") then
+                        local buttons = gui:GetDescendants()
+                        for _, button in pairs(buttons) do
+                            if button:IsA("TextButton") then
+                                local pos = button.AbsolutePosition
+                                local size = button.AbsoluteSize
+                                -- Check if button is in the expected area (right side of screen)
+                                if pos.X > 1000 and pos.Y > 200 and pos.Y < 400 then
+                                    -- This might be the "Kembali ke Pangkal" button
+                                    sendNotification("Akhirat VIP", "Found potential button, clicking...", 2)
+                                    pcall(function()
+                                        button.MouseButton1Click:Fire()
+                                    end)
+                                    wait(1)
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                return false
+            end
+            
+            -- Try to find and click the button
+            if not findKembaliButton() then
+                sendNotification("Akhirat VIP", "Could not find Kembali ke Pangkal button", 3)
+            else
+                sendNotification("Akhirat VIP", "Successfully clicked Kembali ke Pangkal!", 2)
+            end
+        end)
+    end)
+end
+
+-- Simple teleport function with movement
+local function simpleTeleport(targetPosition)
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    
+    local humanoidRootPart = character.HumanoidRootPart
+    
+    -- Direct teleport without tween
+    humanoidRootPart.CFrame = CFrame.new(targetPosition)
+    
+    -- Wait a bit then move 7 studs in random direction and return
+    spawn(function()
+        wait(0.5) -- Wait half second after teleport
+        
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local currentPos = humanoidRootPart.Position
+            
+            -- Choose random direction (forward, backward, left, right)
+            local directions = {
+                Vector3.new(7, 0, 0),   -- Right
+                Vector3.new(-7, 0, 0),  -- Left  
+                Vector3.new(0, 0, 7),   -- Forward
+                Vector3.new(0, 0, -7)   -- Backward
+            }
+            
+            local randomDirection = directions[math.random(1, #directions)]
+            local movePosition = currentPos + randomDirection
+            
+            -- Move 7 studs in random direction
+            humanoidRootPart.CFrame = CFrame.new(movePosition)
+            
+            wait(1) -- Stay at moved position for 1 second
+            
+            -- Return to original coordinate
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                humanoidRootPart.CFrame = CFrame.new(targetPosition)
+            end
+        end
+    end)
+    
+    return true
+end
+
+-- Fungsi teleport
+local function teleportToPosition(positionData, isManual)
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        -- Use simple teleport
+        local success = simpleTeleport(positionData.pos)
+        
+        if success then
+            -- Safe notification (anti-spam)
+            local delayText = positionData.specialDelay and " (10s delay)" or ""
+            sendNotification("Akhirat VIP", "Teleported to " .. positionData.name .. delayText, 1.5)
+            
+            -- Auto click Kembali ke Pangkal if reached puncak and using auto mode
+            if positionData.isPuncak and not isManual then
+                sendNotification("Akhirat VIP", "Reached summit! Auto-clicking Kembali ke Pangkal...", 3)
+                autoClickKembaliKePangkal()
+            end
+        end
+    end
+end
+
+-- Auto teleport function with dynamic delay
+local function startAutoTeleport()
+    if autoTeleportConnection then
+        autoTeleportConnection:Disconnect()
+        autoTeleportConnection = nil
+    end
+    
+    local lastTeleportTime = 0
+    autoTeleportConnection = RunService.Heartbeat:Connect(function()
+        if isAutoTeleporting then
+            local currentPos = positions[currentPositionIndex]
+            local currentDelay = currentPos.specialDelay or autoTeleportDelay
+            
+            if tick() - lastTeleportTime >= currentDelay then
+                teleportToPosition(currentPos, false)
+                
+                -- Special notification for positions with longer delays
+                if currentPos.specialDelay then
+                    sendNotification("Akhirat VIP", currentPos.name .. " - Extended " .. currentPos.specialDelay .. "s delay", 2)
+                end
+                
+                -- Stop auto teleport if reached puncak
+                if currentPos.isPuncak then
+                    isAutoTeleporting = false
+                    if autoToggleButton then
+                        autoToggleButton.Text = "▶ Start Auto (8s/10s + Move)"
+                        autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+                    end
+                    -- Re-enable individual buttons
+                    if scrollFrame then
+                        for _, button in pairs(scrollFrame:GetChildren()) do
+                            if button:IsA("TextButton") then
+                                local positionData = positions[button.LayoutOrder]
+                                if positionData and positionData.isPuncak then
+                                    button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+                                else
+                                    button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+                                end
+                            end
+                        end
+                    end
+                    stopAutoTeleport()
+                    return
+                end
+                
+                currentPositionIndex = currentPositionIndex + 1
+                if currentPositionIndex > #positions then
+                    currentPositionIndex = 1
+                end
+                
+                lastTeleportTime = tick()
+            end
+        end
+    end)
+end
+
+local function stopAutoTeleport()
+    if autoTeleportConnection then
+        autoTeleportConnection:Disconnect()
+        autoTeleportConnection = nil
+    end
+end
+
+-- Create GUI with error handling
+local function createGUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "AkhiratVipGui"
+    screenGui.ResetOnSpawn = false
+    
+    -- Try to parent to CoreGui, fallback to PlayerGui
+    local success = pcall(function()
+        screenGui.Parent = CoreGui
+    end)
+    
+    if not success then
+        screenGui.Parent = player:WaitForChild("PlayerGui")
+    end
+
+    -- Main Frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Parent = screenGui
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
+    mainFrame.Size = UDim2.new(0, 250, 0, 400)
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+
+    -- Corner rounding
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
+
+    -- Drop shadow effect
+    local shadow = Instance.new("Frame")
+    shadow.Name = "Shadow"
+    shadow.Parent = screenGui
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.8
+    shadow.BorderSizePixel = 0
+    shadow.Position = UDim2.new(0.05, 2, 0.25, 2)
+    shadow.Size = UDim2.new(0, 250, 0, 400)
+    shadow.ZIndex = mainFrame.ZIndex - 1
+
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 8)
+    shadowCorner.Parent = shadow
+
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Parent = mainFrame
+    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    titleBar.BorderSizePixel = 0
+    titleBar.Size = UDim2.new(1, 0, 0, 32)
+
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
+
+    -- Fix title bar bottom corners
+    local titleBarFix = Instance.new("Frame")
+    titleBarFix.Parent = titleBar
+    titleBarFix.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    titleBarFix.BorderSizePixel = 0
+    titleBarFix.Position = UDim2.new(0, 0, 0.5, 0)
+    titleBarFix.Size = UDim2.new(1, 0, 0.5, 0)
+
+    -- Title Label
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "TitleLabel"
+    titleLabel.Parent = titleBar
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.Size = UDim2.new(1, -90, 1, 0)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "Akhirat VIP [FAST + AUTO CLICK]"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    titleLabel.TextSize = 10
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Minimize Button
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Name = "MinimizeButton"
+    minimizeButton.Parent = titleBar
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+    minimizeButton.BorderSizePixel = 0
+    minimizeButton.Position = UDim2.new(1, -58, 0, 4)
+    minimizeButton.Size = UDim2.new(0, 24, 0, 24)
+    minimizeButton.Font = Enum.Font.GothamBold
+    minimizeButton.Text = "—"
+    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeButton.TextSize = 12
+
+    local minimizeCorner = Instance.new("UICorner")
+    minimizeCorner.CornerRadius = UDim.new(0, 4)
+    minimizeCorner.Parent = minimizeButton
+
+    -- Close Button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Parent = titleBar
+    closeButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+    closeButton.BorderSizePixel = 0
+    closeButton.Position = UDim2.new(1, -32, 0, 4)
+    closeButton.Size = UDim2.new(0, 24, 0, 24)
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.Text = "×"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextSize = 14
+
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeButton
+
+    -- Content Frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Parent = mainFrame
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Position = UDim2.new(0, 0, 0, 32)
+    contentFrame.Size = UDim2.new(1, 0, 1, -32)
+
+    -- Auto Teleport Control Frame
+    local autoFrame = Instance.new("Frame")
+    autoFrame.Name = "AutoFrame"
+    autoFrame.Parent = contentFrame
+    autoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    autoFrame.BorderSizePixel = 0
+    autoFrame.Position = UDim2.new(0, 8, 0, 8)
+    autoFrame.Size = UDim2.new(1, -16, 0, 45)
+
+    local autoCorner = Instance.new("UICorner")
+    autoCorner.CornerRadius = UDim.new(0, 6)
+    autoCorner.Parent = autoFrame
+
+    -- Control Label
+    local controlLabel = Instance.new("TextLabel")
+    controlLabel.Name = "ControlLabel"
+    controlLabel.Parent = autoFrame
+    controlLabel.BackgroundTransparency = 1
+    controlLabel.Position = UDim2.new(0, 8, 0, 2)
+    controlLabel.Size = UDim2.new(1, -16, 0, 18)
+    controlLabel.Font = Enum.Font.GothamBold
+    controlLabel.Text = "Auto Teleport [8s/20s DELAY + MOVEMENT + AUTO CLICK]"
+    controlLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    controlLabel.TextSize = 8
+    controlLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Start/Stop Button
+    autoToggleButton = Instance.new("TextButton")
+    autoToggleButton.Name = "AutoToggleButton"
+    autoToggleButton.Parent = autoFrame
+    autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    autoToggleButton.BorderSizePixel = 0
+    autoToggleButton.Position = UDim2.new(0, 8, 0, 22)
+    autoToggleButton.Size = UDim2.new(1, -16, 0, 18)
+    autoToggleButton.Font = Enum.Font.Gotham
+    autoToggleButton.Text = "▶ Start Auto (8s/20s + Move + Click)"
+    autoToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoToggleButton.TextSize = 8
+
+    local autoButtonCorner = Instance.new("UICorner")
+    autoButtonCorner.CornerRadius = UDim.new(0, 4)
+    autoButtonCorner.Parent = autoToggleButton
+
+    -- Scroll Frame for positions
+    scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "ScrollFrame"
+    scrollFrame.Parent = contentFrame
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.Position = UDim2.new(0, 8, 0, 58)
+    scrollFrame.Size = UDim2.new(1, -16, 1, -66)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.ScrollBarThickness = 3
+    scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
+
+    -- UI List Layout
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Parent = scrollFrame
+    listLayout.Padding = UDim.new(0, 3)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    -- Create position buttons
+    local buttonHeight = 22
+    local totalHeight = 0
+
+    for i, positionData in ipairs(positions) do
+        local button = Instance.new("TextButton")
+        button.Name = positionData.name
+        button.Parent = scrollFrame
+        
+        -- Special color for different types
+        if positionData.isPuncak then
+            button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        elseif positionData.specialDelay then
+            button.BackgroundColor3 = Color3.fromRGB(255, 140, 0) -- Orange for special delay positions
+        else
+            button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+        end
+        
+        button.BorderSizePixel = 0
+        button.Size = UDim2.new(1, -6, 0, buttonHeight)
+        button.Font = Enum.Font.Gotham
+        
+        -- Button text with delay indicator
+        local delayText = positionData.specialDelay and " (20s)" or ""
+        button.Text = positionData.name .. " - Fast Teleport + Move" .. delayText
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.TextSize = 9
+        button.LayoutOrder = i
+        
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 4)
+        buttonCorner.Parent = button
+        
+        -- Hover effects with error handling
+        button.MouseEnter:Connect(function()
+            pcall(function()
+                if not isAutoTeleporting then
+                    if positionData.isPuncak then
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 50, 50)}):Play()
+                    elseif positionData.specialDelay then
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 160, 40)}):Play()
+                    else
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90, 150, 200)}):Play()
+                    end
+                end
+            end)
+        end)
+        
+        button.MouseLeave:Connect(function()
+            pcall(function()
+                if not isAutoTeleporting then
+                    if positionData.isPuncak then
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 0, 0)}):Play()
+                    elseif positionData.specialDelay then
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0)}):Play()
+                    else
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 130, 180)}):Play()
+                    end
+                end
+            end)
+        end)
+        
+        -- Click to teleport
+        button.MouseButton1Click:Connect(function()
+            pcall(function()
+                if not isAutoTeleporting then
+                    teleportToPosition(positionData, true)
+                    currentPositionIndex = i
+                    
+                    -- Button click animation
+                    local originalColor, clickColor
+                    if positionData.isPuncak then
+                        originalColor = Color3.fromRGB(255, 0, 0)
+                        clickColor = Color3.fromRGB(200, 0, 0)
+                    elseif positionData.specialDelay then
+                        originalColor = Color3.fromRGB(255, 140, 0)
+                        clickColor = Color3.fromRGB(220, 120, 0)
+                    else
+                        originalColor = Color3.fromRGB(70, 130, 180)
+                        clickColor = Color3.fromRGB(50, 110, 160)
+                    end
+                    
+                    TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = clickColor}):Play()
+                    wait(0.1)
+                    TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = originalColor}):Play()
+                end
+            end)
+        end)
+        
+        totalHeight = totalHeight + buttonHeight + 3
+    end
+
+    -- Update canvas size
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+
+    -- Minimize/Restore functionality
+    local isMinimized = false
+    local originalSize = UDim2.new(0, 250, 0, 400)
+    local minimizedSize = UDim2.new(0, 250, 0, 32)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        pcall(function()
+            isMinimized = not isMinimized
+            
+            if isMinimized then
+                -- Minimize
+                minimizeButton.Text = "+"
+                local minimizeTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = minimizedSize})
+                local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = minimizedSize})
+                minimizeTween:Play()
+                shadowTween:Play()
+                contentFrame.Visible = false
+            else
+                -- Restore
+                minimizeButton.Text = "—"
+                local restoreTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = originalSize})
+                local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = originalSize})
+                restoreTween:Play()
+                shadowTween:Play()
+                contentFrame.Visible = true
+            end
+        end)
+    end)
+
+    -- Auto toggle button functionality
+    autoToggleButton.MouseButton1Click:Connect(function()
+        pcall(function()
+            isAutoTeleporting = not isAutoTeleporting
+            
+            if isAutoTeleporting then
+                autoToggleButton.Text = "⏸ Stop Auto (8s/20s + Move + Click)"
+                autoToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+                startAutoTeleport()
+                
+                -- Disable individual buttons during auto mode
+                for _, button in pairs(scrollFrame:GetChildren()) do
+                    if button:IsA("TextButton") then
+                        button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+                    end
+                end
+            else
+                autoToggleButton.Text = "▶ Start Auto (8s/20s + Move + Click)"
+                autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+                stopAutoTeleport()
+                
+                -- Re-enable individual buttons
+                for _, button in pairs(scrollFrame:GetChildren()) do
+                    if button:IsA("TextButton") then
+                        local positionData = positions[button.LayoutOrder]
+                        if positionData and positionData.isPuncak then
+                            button.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                        elseif positionData and positionData.specialDelay then
+                            button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+                        else
+                            button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+
+    -- Close button functionality
+    closeButton.MouseButton1Click:Connect(function()
+        pcall(function()
+            stopAutoTeleport()
+            screenGui:Destroy()
+        end)
+    end)
+
+    -- Initial animation
+    mainFrame.Size = UDim2.new(0, 0, 0, 0)
+    shadow.Size = UDim2.new(0, 0, 0, 0)
+
+    local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 250, 0, 400)})
+    local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 250, 0, 400)})
+
+    openTween:Play()
+    shadowTween:Play()
+
+    -- Success notification (only once)
+    wait(0.5)
+    sendNotification("Akhirat VIP", "Enhanced script loaded! Pos 16 & 22 = 20s delay + Auto-click enabled!", 5)
+
+    -- Cleanup on destroy
+    screenGui.AncestryChanged:Connect(function()
+        if not screenGui.Parent then
+            stopAutoTeleport()
+        end
+    end)
+    
+    return screenGui
+end
+
+-- Character respawn handling
+player.CharacterAdded:Connect(function(newCharacter)
+    pcall(function()
+        character = newCharacter
+        humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        
+        -- Reset auto teleport position to start after respawn
+        currentPositionIndex = 1
+        
+        -- Show respawn notification (anti-spam)
+        wait(2)
+        sendNotification("Akhirat VIP", "Respawned! Auto teleport will restart from Pos 1", 3)
+    end)
+end)
+
+-- Initialize script
+pcall(function()
+    createGUI()
+    sendNotification("Akhirat VIP", "Script initialized successfully!", 2)
+end)
