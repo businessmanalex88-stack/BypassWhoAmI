@@ -1,0 +1,456 @@
+-- Atin VIP Teleport Script v3
+-- Compatible with Delta Executor Android
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Variables
+local isAutoTeleporting = false
+local autoTeleportConnection = nil
+local currentPositionIndex = 1
+local autoTeleportDelay = 3 -- seconds between teleports
+
+-- Koordinat teleport positions (Extended to 27 positions)
+local positions = {
+    {pos = Vector3.new(1.49, 12.60, -404.14), name = "Pos 1"},
+    {pos = Vector3.new(-184.59, 128.12, 409.80), name = "Pos 2"},
+    {pos = Vector3.new(-165.12, 229.43, 652.29), name = "Pos 3"},
+    {pos = Vector3.new(-38.04, 406.58, 616.05), name = "Pos 4"},
+    {pos = Vector3.new(130.73, 651.83, 613.44), name = "Pos 5"},
+    {pos = Vector3.new(-246.17, 665.75, 733.94), name = "Pos 6"},
+    {pos = Vector3.new(-684.11, 640.74, 867.61), name = "Pos 7"},
+    {pos = Vector3.new(-658.25, 688.45, 1458.05), name = "Pos 8"},
+    {pos = Vector3.new(-508.04, 902.91, 1867.34), name = "Pos 9"},
+    {pos = Vector3.new(61.31, 949.94, 2088.90), name = "Pos 10"},
+    {pos = Vector3.new(52.00, 981.51, 2450.38), name = "Pos 11"},
+    {pos = Vector3.new(72.57, 1096.93, 2456.87), name = "Pos 12"},
+    {pos = Vector3.new(262.78, 1270.08, 2038.06), name = "Pos 13"},
+    {pos = Vector3.new(-418.91, 1302.14, 2394.07), name = "Pos 14"},
+    {pos = Vector3.new(-772.94, 1313.90, 2664.81), name = "Pos 15"},
+    {pos = Vector3.new(-837.79, 1475.01, 2625.80), name = "Pos 16"},
+    {pos = Vector3.new(-468.91, 1465.63, 2769.14), name = "Pos 17"},
+    {pos = Vector3.new(-467.47, 1537.37, 2836.62), name = "Pos 18"},
+    {pos = Vector3.new(-385.12, 1640.26, 2793.91), name = "Pos 19"},
+    {pos = Vector3.new(-208.21, 1665.67, 2748.67), name = "Pos 20"},
+    {pos = Vector3.new(-232.22, 1742.06, 2792.94), name = "Pos 21"},
+    {pos = Vector3.new(-424.36, 1741.28, 2797.04), name = "Pos 22"},
+    {pos = Vector3.new(-423.99, 1712.66, 3420.04), name = "Pos 23"},
+    {pos = Vector3.new(70.75, 1718.66, 3426.66), name = "Pos 24"},
+    {pos = Vector3.new(436.12, 1720.55, 3430.80), name = "Pos 25"},
+    {pos = Vector3.new(624.73, 1799.11, 3432.70), name = "Pos 26"},
+    {pos = Vector3.new(776.34, 2185.50, 3946.24), name = "Puncak", isPuncak = true}
+}
+
+-- Fungsi teleport dengan smooth animation
+local function teleportToPosition(positionData, isManual)
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        local humanoidRootPart = character.HumanoidRootPart
+        humanoidRootPart.CFrame = CFrame.new(positionData.pos)
+        
+        -- Notification
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Atin VIP",
+            Text = "Teleported to " .. positionData.name,
+            Duration = 1.5
+        })
+        
+        -- Auto rejoin jika sampai puncak dan menggunakan auto mode
+        if positionData.isPuncak and not isManual then
+            wait(2)
+            game.StarterGui:SetCore("SendNotification", {
+                Title = "Atin VIP",
+                Text = "Reached summit! Rejoining...",
+                Duration = 3
+            })
+            wait(1)
+            TeleportService:Teleport(game.PlaceId, player)
+        end
+    end
+end
+
+-- Auto teleport function
+local function startAutoTeleport()
+    if autoTeleportConnection then
+        autoTeleportConnection:Disconnect()
+    end
+    
+    local lastTeleportTime = 0
+    autoTeleportConnection = RunService.Heartbeat:Connect(function()
+        if isAutoTeleporting and tick() - lastTeleportTime >= autoTeleportDelay then
+            teleportToPosition(positions[currentPositionIndex], false)
+            
+            -- Stop auto teleport if reached puncak
+            if positions[currentPositionIndex].isPuncak then
+                isAutoTeleporting = false
+                if autoToggleButton then
+                    autoToggleButton.Text = "▶ Start Auto"
+                    autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+                end
+                -- Re-enable individual buttons
+                for _, button in pairs(scrollFrame:GetChildren()) do
+                    if button:IsA("TextButton") then
+                        button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+                    end
+                end
+                stopAutoTeleport()
+                return
+            end
+            
+            currentPositionIndex = currentPositionIndex + 1
+            if currentPositionIndex > #positions then
+                currentPositionIndex = 1
+            end
+            lastTeleportTime = tick()
+        end
+    end)
+end
+
+local function stopAutoTeleport()
+    if autoTeleportConnection then
+        autoTeleportConnection:Disconnect()
+        autoTeleportConnection = nil
+    end
+end
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AtinVipGui"
+screenGui.Parent = CoreGui
+screenGui.ResetOnSpawn = false
+
+-- Main Frame (Adjusted size for more positions)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Parent = screenGui
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+mainFrame.BorderSizePixel = 0
+mainFrame.Position = UDim2.new(0.05, 0, 0.2, 0)
+mainFrame.Size = UDim2.new(0, 230, 0, 350)
+mainFrame.Active = true
+mainFrame.Draggable = true
+
+-- Corner rounding
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 8)
+corner.Parent = mainFrame
+
+-- Drop shadow effect
+local shadow = Instance.new("Frame")
+shadow.Name = "Shadow"
+shadow.Parent = screenGui
+shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+shadow.BackgroundTransparency = 0.8
+shadow.BorderSizePixel = 0
+shadow.Position = UDim2.new(0.05, 2, 0.2, 2)
+shadow.Size = UDim2.new(0, 230, 0, 350)
+shadow.ZIndex = mainFrame.ZIndex - 1
+
+local shadowCorner = Instance.new("UICorner")
+shadowCorner.CornerRadius = UDim.new(0, 8)
+shadowCorner.Parent = shadow
+
+-- Title Bar
+local titleBar = Instance.new("Frame")
+titleBar.Name = "TitleBar"
+titleBar.Parent = mainFrame
+titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+titleBar.BorderSizePixel = 0
+titleBar.Size = UDim2.new(1, 0, 0, 32)
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 8)
+titleCorner.Parent = titleBar
+
+-- Fix title bar bottom corners
+local titleBarFix = Instance.new("Frame")
+titleBarFix.Parent = titleBar
+titleBarFix.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+titleBarFix.BorderSizePixel = 0
+titleBarFix.Position = UDim2.new(0, 0, 0.5, 0)
+titleBarFix.Size = UDim2.new(1, 0, 0.5, 0)
+
+-- Title Label
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Parent = titleBar
+titleLabel.BackgroundTransparency = 1
+titleLabel.Position = UDim2.new(0, 10, 0, 0)
+titleLabel.Size = UDim2.new(1, -70, 1, 0)
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Text = "Atin VIP"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 12
+titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Minimize Button
+local minimizeButton = Instance.new("TextButton")
+minimizeButton.Name = "MinimizeButton"
+minimizeButton.Parent = titleBar
+minimizeButton.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+minimizeButton.BorderSizePixel = 0
+minimizeButton.Position = UDim2.new(1, -60, 0, 4)
+minimizeButton.Size = UDim2.new(0, 24, 0, 24)
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.Text = "−"
+minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+minimizeButton.TextSize = 14
+
+local minimizeCorner = Instance.new("UICorner")
+minimizeCorner.CornerRadius = UDim.new(0, 4)
+minimizeCorner.Parent = minimizeButton
+
+-- Close Button
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "CloseButton"
+closeButton.Parent = titleBar
+closeButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+closeButton.BorderSizePixel = 0
+closeButton.Position = UDim2.new(1, -32, 0, 4)
+closeButton.Size = UDim2.new(0, 24, 0, 24)
+closeButton.Font = Enum.Font.GothamBold
+closeButton.Text = "×"
+closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+closeButton.TextSize = 14
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 4)
+closeCorner.Parent = closeButton
+
+-- Content Frame
+local contentFrame = Instance.new("Frame")
+contentFrame.Name = "ContentFrame"
+contentFrame.Parent = mainFrame
+contentFrame.BackgroundTransparency = 1
+contentFrame.Position = UDim2.new(0, 0, 0, 32)
+contentFrame.Size = UDim2.new(1, 0, 1, -32)
+
+-- Auto Teleport Control Frame
+local autoFrame = Instance.new("Frame")
+autoFrame.Name = "AutoFrame"
+autoFrame.Parent = contentFrame
+autoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+autoFrame.BorderSizePixel = 0
+autoFrame.Position = UDim2.new(0, 8, 0, 8)
+autoFrame.Size = UDim2.new(1, -16, 0, 45)
+
+local autoCorner = Instance.new("UICorner")
+autoCorner.CornerRadius = UDim.new(0, 6)
+autoCorner.Parent = autoFrame
+
+-- Select All Label
+local selectAllLabel = Instance.new("TextLabel")
+selectAllLabel.Name = "SelectAllLabel"
+selectAllLabel.Parent = autoFrame
+selectAllLabel.BackgroundTransparency = 1
+selectAllLabel.Position = UDim2.new(0, 8, 0, 2)
+selectAllLabel.Size = UDim2.new(1, -16, 0, 18)
+selectAllLabel.Font = Enum.Font.GothamBold
+selectAllLabel.Text = "Auto Teleport Control (27 Positions)"
+selectAllLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+selectAllLabel.TextSize = 10
+selectAllLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Start/Stop Button
+autoToggleButton = Instance.new("TextButton")
+autoToggleButton.Name = "AutoToggleButton"
+autoToggleButton.Parent = autoFrame
+autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+autoToggleButton.BorderSizePixel = 0
+autoToggleButton.Position = UDim2.new(0, 8, 0, 22)
+autoToggleButton.Size = UDim2.new(1, -16, 0, 18)
+autoToggleButton.Font = Enum.Font.Gotham
+autoToggleButton.Text = "▶ Start Auto (Auto Rejoin at Summit)"
+autoToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+autoToggleButton.TextSize = 9
+
+local autoButtonCorner = Instance.new("UICorner")
+autoButtonCorner.CornerRadius = UDim.new(0, 4)
+autoButtonCorner.Parent = autoToggleButton
+
+-- Scroll Frame for positions
+scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Name = "ScrollFrame"
+scrollFrame.Parent = contentFrame
+scrollFrame.BackgroundTransparency = 1
+scrollFrame.BorderSizePixel = 0
+scrollFrame.Position = UDim2.new(0, 8, 0, 58)
+scrollFrame.Size = UDim2.new(1, -16, 1, -66)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.ScrollBarThickness = 3
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
+
+-- UI List Layout
+local listLayout = Instance.new("UIListLayout")
+listLayout.Parent = scrollFrame
+listLayout.Padding = UDim.new(0, 4)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+-- Create position buttons
+local buttonHeight = 25
+local totalHeight = 0
+
+for i, positionData in ipairs(positions) do
+    local button = Instance.new("TextButton")
+    button.Name = positionData.name
+    button.Parent = scrollFrame
+    
+    -- Special color for Puncak
+    if positionData.isPuncak then
+        button.BackgroundColor3 = Color3.fromRGB(255, 140, 0) -- Orange for summit
+    else
+        button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+    end
+    
+    button.BorderSizePixel = 0
+    button.Size = UDim2.new(1, -6, 0, buttonHeight)
+    button.Font = Enum.Font.Gotham
+    button.Text = positionData.name .. " - Teleport"
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 10
+    button.LayoutOrder = i
+    
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 5)
+    buttonCorner.Parent = button
+    
+    -- Hover effects
+    button.MouseEnter:Connect(function()
+        if not isAutoTeleporting then
+            if positionData.isPuncak then
+                TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 165, 0)}):Play()
+            else
+                TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90, 150, 200)}):Play()
+            end
+        end
+    end)
+    
+    button.MouseLeave:Connect(function()
+        if not isAutoTeleporting then
+            if positionData.isPuncak then
+                TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0)}):Play()
+            else
+                TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 130, 180)}):Play()
+            end
+        end
+    end)
+    
+    -- Click to teleport (manual mode - no rejoin)
+    button.MouseButton1Click:Connect(function()
+        if not isAutoTeleporting then
+            teleportToPosition(positionData, true) -- true = manual mode
+            currentPositionIndex = i
+            
+            -- Button click animation
+            local originalColor = positionData.isPuncak and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(70, 130, 180)
+            local clickColor = positionData.isPuncak and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(50, 110, 160)
+            
+            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = clickColor}):Play()
+            wait(0.1)
+            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = originalColor}):Play()
+        end
+    end)
+    
+    totalHeight = totalHeight + buttonHeight + 4
+end
+
+-- Update canvas size
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+
+-- Auto toggle button functionality
+autoToggleButton.MouseButton1Click:Connect(function()
+    isAutoTeleporting = not isAutoTeleporting
+    
+    if isAutoTeleporting then
+        autoToggleButton.Text = "⏸ Stop Auto (Will Rejoin at Summit)"
+        autoToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+        startAutoTeleport()
+        
+        -- Disable individual buttons during auto mode
+        for _, button in pairs(scrollFrame:GetChildren()) do
+            if button:IsA("TextButton") then
+                button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            end
+        end
+    else
+        autoToggleButton.Text = "▶ Start Auto (Auto Rejoin at Summit)"
+        autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+        stopAutoTeleport()
+        
+        -- Re-enable individual buttons
+        for _, button in pairs(scrollFrame:GetChildren()) do
+            if button:IsA("TextButton") then
+                local positionData = positions[button.LayoutOrder]
+                if positionData and positionData.isPuncak then
+                    button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+                else
+                    button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+                end
+            end
+        end
+    end
+end)
+
+-- Minimize functionality
+local isMinimized = false
+minimizeButton.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    
+    if isMinimized then
+        -- Minimize
+        contentFrame.Visible = false
+        mainFrame.Size = UDim2.new(0, 230, 0, 32)
+        shadow.Size = UDim2.new(0, 230, 0, 32)
+        minimizeButton.Text = "□"
+    else
+        -- Restore
+        contentFrame.Visible = true
+        mainFrame.Size = UDim2.new(0, 230, 0, 350)
+        shadow.Size = UDim2.new(0, 230, 0, 350)
+        minimizeButton.Text = "−"
+    end
+end)
+
+-- Close button functionality
+closeButton.MouseButton1Click:Connect(function()
+    stopAutoTeleport()
+    screenGui:Destroy()
+end)
+
+-- Character respawn handling
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+end)
+
+-- Initial animation
+mainFrame.Size = UDim2.new(0, 0, 0, 0)
+shadow.Size = UDim2.new(0, 0, 0, 0)
+
+local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 350)})
+local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 350)})
+
+openTween:Play()
+shadowTween:Play()
+
+-- Success notification
+wait(0.5)
+game.StarterGui:SetCore("SendNotification", {
+    Title = "Atin VIP",
+    Text = "27 positions loaded! Summit auto-rejoin enabled!",
+    Duration = 3
+})
+
+-- Cleanup on destroy
+screenGui.AncestryChanged:Connect(function()
+    if not screenGui.Parent then
+        stopAutoTeleport()
+    end
+end)
