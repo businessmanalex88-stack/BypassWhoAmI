@@ -18,8 +18,8 @@ local Config = {
     API_BASE = "https://whoami-key-api.vercel.app/api",
     ADMIN_PASSWORD = "Whoamidev1819",
     FALLBACK_KEYS = {
-        ["Adminganteng"] = true,
-        ["Whoamidev"] = true,
+        ["Adminganteng"] = false,
+        ["Whoamidev"] = false,
         ["WhoAmIAdmin2025"] = true
     },
     -- Custom Key System - 100 Generated Keys dengan format WarpahVip_AJ827HDJA + random
