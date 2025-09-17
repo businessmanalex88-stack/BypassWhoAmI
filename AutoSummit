@@ -21,6 +21,136 @@ screenGui.Name = "WarpahSummitsGUI"
 screenGui.Parent = playerGui
 screenGui.ResetOnSpawn = false
 
+-- Loading Frame
+local loadingFrame = Instance.new("Frame")
+loadingFrame.Name = "LoadingFrame"
+loadingFrame.Size = UDim2.new(0, 300, 0, 150)
+loadingFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+loadingFrame.BorderSizePixel = 0
+loadingFrame.Visible = false
+loadingFrame.Parent = screenGui
+
+local loadingOutline = Instance.new("UIStroke")
+loadingOutline.Color = Color3.fromRGB(0, 255, 65)
+loadingOutline.Thickness = 2
+loadingOutline.Parent = loadingFrame
+
+local loadingCorner = Instance.new("UICorner")
+loadingCorner.CornerRadius = UDim.new(0, 8)
+loadingCorner.Parent = loadingFrame
+
+-- Loading Title
+local loadingTitle = Instance.new("TextLabel")
+loadingTitle.Size = UDim2.new(1, 0, 0, 40)
+loadingTitle.Position = UDim2.new(0, 0, 0, 10)
+loadingTitle.BackgroundTransparency = 1
+loadingTitle.Text = "⏳ Loading Script..."
+loadingTitle.TextColor3 = Color3.fromRGB(0, 255, 65)
+loadingTitle.TextSize = 16
+loadingTitle.Font = Enum.Font.GothamBold
+loadingTitle.TextXAlignment = Enum.TextXAlignment.Center
+loadingTitle.Parent = loadingFrame
+
+-- Progress Bar Background
+local progressBg = Instance.new("Frame")
+progressBg.Size = UDim2.new(0, 250, 0, 10)
+progressBg.Position = UDim2.new(0.5, -125, 0.5, -5)
+progressBg.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+progressBg.BorderSizePixel = 0
+progressBg.Parent = loadingFrame
+
+local progressBgCorner = Instance.new("UICorner")
+progressBgCorner.CornerRadius = UDim.new(0, 5)
+progressBgCorner.Parent = progressBg
+
+-- Progress Bar Fill
+local progressFill = Instance.new("Frame")
+progressFill.Size = UDim2.new(0, 0, 1, 0)
+progressFill.Position = UDim2.new(0, 0, 0, 0)
+progressFill.BackgroundColor3 = Color3.fromRGB(0, 255, 65)
+progressFill.BorderSizePixel = 0
+progressFill.Parent = progressBg
+
+local progressFillCorner = Instance.new("UICorner")
+progressFillCorner.CornerRadius = UDim.new(0, 5)
+progressFillCorner.Parent = progressFill
+
+-- Loading Status
+local loadingStatus = Instance.new("TextLabel")
+loadingStatus.Size = UDim2.new(1, -10, 0, 60)
+loadingStatus.Position = UDim2.new(0, 5, 0, 80)
+loadingStatus.BackgroundTransparency = 1
+loadingStatus.Text = "Memuat script..."
+loadingStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
+loadingStatus.TextSize = 12
+loadingStatus.Font = Enum.Font.Gotham
+loadingStatus.TextXAlignment = Enum.TextXAlignment.Center
+loadingStatus.TextYAlignment = Enum.TextYAlignment.Top
+loadingStatus.TextWrapped = true
+loadingStatus.Parent = loadingFrame
+
+-- Disclaimer Frame
+local disclaimerFrame = Instance.new("Frame")
+disclaimerFrame.Name = "DisclaimerFrame"
+disclaimerFrame.Size = UDim2.new(0, 450, 0, 200)
+disclaimerFrame.Position = UDim2.new(0.5, -225, 0.5, -100)
+disclaimerFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+disclaimerFrame.BorderSizePixel = 0
+disclaimerFrame.Visible = false
+disclaimerFrame.Parent = screenGui
+
+local disclaimerOutline = Instance.new("UIStroke")
+disclaimerOutline.Color = Color3.fromRGB(255, 165, 0)
+disclaimerOutline.Thickness = 2
+disclaimerOutline.Parent = disclaimerFrame
+
+local disclaimerCorner = Instance.new("UICorner")
+disclaimerCorner.CornerRadius = UDim.new(0, 8)
+disclaimerCorner.Parent = disclaimerFrame
+
+-- Disclaimer Title
+local disclaimerTitle = Instance.new("TextLabel")
+disclaimerTitle.Size = UDim2.new(1, 0, 0, 40)
+disclaimerTitle.Position = UDim2.new(0, 0, 0, 10)
+disclaimerTitle.BackgroundTransparency = 1
+disclaimerTitle.Text = "⚠️ DISCLAIMER - WARPAH VIP"
+disclaimerTitle.TextColor3 = Color3.fromRGB(255, 165, 0)
+disclaimerTitle.TextSize = 18
+disclaimerTitle.Font = Enum.Font.GothamBold
+disclaimerTitle.TextXAlignment = Enum.TextXAlignment.Center
+disclaimerTitle.Parent = disclaimerFrame
+
+-- Disclaimer Text
+local disclaimerText = Instance.new("TextLabel")
+disclaimerText.Size = UDim2.new(1, -20, 0, 100)
+disclaimerText.Position = UDim2.new(0, 10, 0, 50)
+disclaimerText.BackgroundTransparency = 1
+disclaimerText.Text = "Sedikit saran jika summit eror bisa klik manual dan usahakan ketika menginjak checkpoint tunggu sampai terhitung Stay safe buat kalian salam WarpahVIP"
+disclaimerText.TextColor3 = Color3.fromRGB(255, 255, 255)
+disclaimerText.TextSize = 14
+disclaimerText.Font = Enum.Font.Gotham
+disclaimerText.TextXAlignment = Enum.TextXAlignment.Center
+disclaimerText.TextYAlignment = Enum.TextYAlignment.Top
+disclaimerText.TextWrapped = true
+disclaimerText.Parent = disclaimerFrame
+
+-- OK Button for Disclaimer
+local okButton = Instance.new("TextButton")
+okButton.Size = UDim2.new(0, 100, 0, 30)
+okButton.Position = UDim2.new(0.5, -50, 1, -45)
+okButton.BackgroundColor3 = Color3.fromRGB(0, 200, 50)
+okButton.Text = "OK"
+okButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+okButton.TextSize = 14
+okButton.Font = Enum.Font.GothamBold
+okButton.BorderSizePixel = 0
+okButton.Parent = disclaimerFrame
+
+local okButtonCorner = Instance.new("UICorner")
+okButtonCorner.CornerRadius = UDim.new(0, 6)
+okButtonCorner.Parent = okButton
+
 -- Main Frame (Draggable)
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
@@ -233,22 +363,52 @@ listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Padding = UDim.new(0, 3)
 listLayout.Parent = scrollFrame
 
--- Mountain data
+-- Mountain data with URLs
 local mountains = {
-    {name = "Mt.Atin", icon = "⛰️"},
-    {name = "Mt.Akhirat", icon = "💀"},
-    {name = "Mt.Arunika", icon = "🌋"},
-    {name = "Mt.Bandahara", icon = "💰"},
-    {name = "Mt.CKPTW", icon = "⚡"},
-    {name = "Mt.Daun", icon = "🍃"},
-    {name = "Mt.Duntul", icon = "🗻"},
-    {name = "Mt.Hanami", icon = "🌸"},
-    {name = "Mt.Kahung", icon = "⛰️"},
-    {name = "Mt.Sumala", icon = "🏞️"},
-    {name = "Mt.Sibuatan", icon = "🌊"},
-    {name = "Mt.Yahaha", icon = "😂"},
-    {name = "Mt.Yahayuk", icon = "🎭"}
+    {name = "Mt.Atin", icon = "⛰️", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/AtinVip"},
+    {name = "Mt.Akhirat", icon = "💀", url = nil},
+    {name = "Mt.Arunika", icon = "🌋", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/ArunikaVip"},
+    {name = "Mt.Bandahara", icon = "💰", url = nil},
+    {name = "Mt.CKPTW", icon = "⚡", url = nil},
+    {name = "Mt.Daun", icon = "🍃", url = nil},
+    {name = "Mt.Duntul", icon = "🗻", url = nil},
+    {name = "Mt.Hanami", icon = "🌸", url = nil},
+    {name = "Mt.Kahung", icon = "⛰️", url = nil},
+    {name = "Mt.Sumala", icon = "🏞️", url = nil},
+    {name = "Mt.Sibuatan", icon = "🌊", url = nil},
+    {name = "Mt.Yahaha", icon = "😂", url = nil},
+    {name = "Mt.Yahayuk", icon = "🎭", url = nil}
 }
+
+-- Loading animation function with disclaimer
+local function showLoadingAnimation(mountainName, url)
+    loadingFrame.Visible = true
+    loadingTitle.Text = "⏳ Loading " .. mountainName
+    loadingStatus.Text = "Sedikit saran jika summit eror bisa klik manual dan usahakan ketika menginjak checkpoint tunggu sampai terhitung Stay safe buat kalian salam WarpahVIP"
+    
+    -- Animate progress bar
+    local progressTween = TweenService:Create(progressFill, TweenInfo.new(3, Enum.EasingStyle.Quad), {Size = UDim2.new(1, 0, 1, 0)})
+    progressTween:Play()
+    
+    -- Update after 3 seconds and execute loadstring
+    spawn(function()
+        wait(3)
+        
+        -- Execute loadstring
+        if url then
+            pcall(function()
+                loadstring(game:HttpGet(url))()
+            end)
+        end
+        
+        loadingStatus.Text = "Script berhasil dimuat!"
+        wait(0.5)
+        loadingFrame.Visible = false
+        
+        -- Reset progress bar
+        progressFill.Size = UDim2.new(0, 0, 1, 0)
+    end)
+end
 
 -- Function to create mountain button
 local function createMountainButton(mountain, index)
@@ -323,23 +483,43 @@ local function createMountainButton(mountain, index)
     
     -- Button click function
     btn.MouseButton1Click:Connect(function()
-        pcall(function()
-            game:GetService("StarterGui"):SetCore("SendNotification", {
-                Title = "✅ " .. mountain.name,
-                Text = mountain.name .. " activated!",
-                Duration = 3
-            })
-        end)
+        if mountain.url then
+            -- Show loading animation and execute script for Atin and Arunika only
+            if mountain.name == "Mt.Atin" or mountain.name == "Mt.Arunika" then
+                -- Hide summit frame immediately
+                summitFrame.Visible = false
+                
+                showLoadingAnimation(mountain.name, mountain.url)
+                
+                pcall(function()
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "✅ " .. mountain.name,
+                        Text = mountain.name .. " script loading...",
+                        Duration = 3
+                    })
+                end)
+            else
+                pcall(function()
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "⚠️ " .. mountain.name,
+                        Text = "Script belum tersedia",
+                        Duration = 3
+                    })
+                end)
+                summitFrame.Visible = false
+            end
+        else
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "⚠️ " .. mountain.name,
+                    Text = "Script belum tersedia",
+                    Duration = 3
+                })
+            end)
+            summitFrame.Visible = false
+        end
         
         print("🎯 " .. mountain.name .. " function executed")
-        
-        -- Add your mountain function here
-        -- Example: 
-        -- if mountain.name == "Mt.Atin" then
-        --     -- Your Mt.Atin function
-        -- end
-        
-        summitFrame.Visible = false
     end)
 end
 
@@ -378,6 +558,11 @@ end)
 
 closeSummitBtn.MouseButton1Click:Connect(function()
     summitFrame.Visible = false
+end)
+
+-- OK button for disclaimer
+okButton.MouseButton1Click:Connect(function()
+    disclaimerFrame.Visible = false
 end)
 
 -- Hover effects
@@ -419,6 +604,20 @@ closeSummitBtn.MouseLeave:Connect(function()
     closeSummitBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
 end)
 
+okButton.MouseEnter:Connect(function()
+    okButton.BackgroundColor3 = Color3.fromRGB(0, 220, 70)
+end)
+
+okButton.MouseLeave:Connect(function()
+    okButton.BackgroundColor3 = Color3.fromRGB(0, 200, 50)
+end)
+
+-- Show disclaimer on startup (removed auto-show)
+-- spawn(function()
+--     wait(1)
+--     disclaimerFrame.Visible = true
+-- end)
+
 -- Welcome notification
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -430,3 +629,4 @@ end)
 
 print("✨ Warpah Summits - Professional Edition loaded!")
 print("🎨 Clean, elegant design ready for use!")
+print("🔗 Mt.Atin & Mt.Arunika scripts ready!")
