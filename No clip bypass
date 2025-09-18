@@ -1,0 +1,530 @@
+-- Advanced Noclip/Tembus Script untuk Delta Executor Android
+-- Bypass kurungan, barrier, dan reload systems
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- Konfigurasi Noclip
+local NOCLIP_ENABLED = false
+local NOCLIP_SPEED = 16
+local AUTO_NOCLIP = false
+local SMART_DETECTION = true
+local BYPASS_RELOAD = true
+
+-- Variables untuk state management
+local originalStates = {}
+local noclipConnection = nil
+local isStuck = false
+local stuckTimer = 0
+local lastPosition = nil
+
+-- Blacklist parts yang tidak boleh di-noclip
+local partBlacklist = {
+    "Baseplate",
+    "SpawnLocation", 
+    "Spawn"
+}
+
+-- Fungsi untuk cek apakah part aman untuk di-noclip
+local function isSafeToNoclip(part)
+    if not part or not part.Name then return false end
+    
+    for _, blacklisted in pairs(partBlacklist) do
+        if string.find(string.lower(part.Name), string.lower(blacklisted)) then
+            return false
+        end
+    end
+    
+    -- Jangan noclip ground/floor
+    if part.Position.Y < -10 then
+        return false
+    end
+    
+    return true
+end
+
+-- Fungsi untuk backup state asli character
+local function backupCharacterStates()
+    if not LocalPlayer.Character then return end
+    
+    for _, part in pairs(LocalPlayer.Character:GetChildren()) do
+        if part:IsA("BasePart") then
+            originalStates[part] = {
+                CanCollide = part.CanCollide,
+                Transparency = part.Transparency
+            }
+        end
+    end
+end
+
+-- Fungsi untuk restore state asli
+local function restoreCharacterStates()
+    if not LocalPlayer.Character then return end
+    
+    for part, states in pairs(originalStates) do
+        if part and part.Parent then
+            part.CanCollide = states.CanCollide
+            part.Transparency = states.Transparency
+        end
+    end
+    
+    originalStates = {}
+end
+
+-- Main Noclip Function dengan smart detection
+local function performNoclip()
+    if not LocalPlayer.Character then return end
+    
+    for _, part in pairs(LocalPlayer.Character:GetChildren()) do
+        if part:IsA("BasePart") then
+            -- Aktifkan noclip
+            part.CanCollide = false
+            
+            -- Visual feedback (opsional transparency)
+            if NOCLIP_ENABLED and part.Name ~= "HumanoidRootPart" then
+                part.Transparency = math.min(part.Transparency + 0.1, 0.7)
+            end
+        end
+    end
+end
+
+-- Fungsi untuk deteksi kurungan/barrier
+local function detectBarrier()
+    if not LocalPlayer.Character then return false end
+    
+    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    
+    -- Raycast ke semua arah untuk deteksi barrier
+    local rayDirections = {
+        Vector3.new(1, 0, 0),   -- kanan
+        Vector3.new(-1, 0, 0),  -- kiri  
+        Vector3.new(0, 0, 1),   -- depan
+        Vector3.new(0, 0, -1),  -- belakang
+        Vector3.new(0, 1, 0),   -- atas
+        Vector3.new(0, -1, 0)   -- bawah
+    }
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    
+    local blockedCount = 0
+    local totalRays = #rayDirections
+    
+    for _, direction in pairs(rayDirections) do
+        local ray = workspace:Raycast(hrp.Position, direction * 3, raycastParams)
+        if ray then
+            blockedCount = blockedCount + 1
+        end
+    end
+    
+    -- Jika lebih dari 60% arah terblokir, kemungkinan terkurung
+    return (blockedCount / totalRays) > 0.6
+end
+
+-- Fungsi untuk deteksi stuck/tidak bergerak
+local function detectStuck()
+    if not LocalPlayer.Character then return false end
+    
+    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+    
+    if not hrp or not humanoid then return false end
+    
+    local currentPosition = hrp.Position
+    
+    -- Cek apakah posisi tidak berubah meski sedang bergerak
+    if lastPosition then
+        local distance = (currentPosition - lastPosition).Magnitude
+        local isMoving = humanoid.MoveDirection.Magnitude > 0
+        
+        if isMoving and distance < 0.1 then
+            stuckTimer = stuckTimer + 1
+            if stuckTimer > 30 then -- Stuck selama 1 detik (30 frames)
+                stuckTimer = 0
+                lastPosition = currentPosition
+                return true
+            end
+        else
+            stuckTimer = 0
+        end
+    end
+    
+    lastPosition = currentPosition
+    return false
+end
+
+-- Advanced Noclip dengan bypass reload
+local function advancedNoclip()
+    if not NOCLIP_ENABLED then return end
+    
+    performNoclip()
+    
+    -- Bypass reload systems
+    if BYPASS_RELOAD then
+        local character = LocalPlayer.Character
+        if character then
+            -- Bypass common reload/teleport methods
+            for _, script in pairs(character:GetChildren()) do
+                if script:IsA("LocalScript") or script:IsA("Script") then
+                    if string.find(string.lower(script.Name), "reload") or
+                       string.find(string.lower(script.Name), "teleport") or
+                       string.find(string.lower(script.Name), "barrier") then
+                        script.Disabled = true
+                    end
+                end
+            end
+            
+            -- Disable physics pada semua part
+            for _, part in pairs(character:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                    
+                    -- Anti-reload: hapus velocity constraints
+                    for _, constraint in pairs(part:GetChildren()) do
+                        if constraint:IsA("BodyVelocity") or 
+                           constraint:IsA("BodyPosition") or
+                           constraint:IsA("BodyAngularVelocity") then
+                            constraint:Destroy()
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- Auto-noclip ketika terdeteksi barrier
+local function autoNoclipCheck()
+    if not AUTO_NOCLIP or not SMART_DETECTION then return end
+    
+    local isBarrierDetected = detectBarrier()
+    local isStuckDetected = detectStuck()
+    
+    if (isBarrierDetected or isStuckDetected) and not NOCLIP_ENABLED then
+        print("🔓 Auto-noclip activated - Barrier/Stuck detected")
+        enableNoclip()
+    elseif not isBarrierDetected and not isStuckDetected and NOCLIP_ENABLED and AUTO_NOCLIP then
+        print("✅ Auto-noclip deactivated - Clear path")
+        disableNoclip()
+    end
+end
+
+-- Fungsi untuk enable noclip
+function enableNoclip()
+    if NOCLIP_ENABLED then return end
+    
+    NOCLIP_ENABLED = true
+    backupCharacterStates()
+    
+    noclipConnection = RunService.Stepped:Connect(advancedNoclip)
+    
+    print("🔓 Noclip ENABLED")
+end
+
+-- Fungsi untuk disable noclip  
+function disableNoclip()
+    if not NOCLIP_ENABLED then return end
+    
+    NOCLIP_ENABLED = false
+    
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+    
+    restoreCharacterStates()
+    
+    print("🔒 Noclip DISABLED")
+end
+
+-- Advanced GUI dengan kontrol lengkap
+local function createNoclipGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    local MainFrame = Instance.new("Frame")
+    local TitleLabel = Instance.new("TextLabel")
+    local NoclipToggle = Instance.new("TextButton")
+    local AutoToggle = Instance.new("TextButton")
+    local SpeedSlider = Instance.new("TextBox")
+    local SpeedLabel = Instance.new("TextLabel")
+    local StatusLabel = Instance.new("TextLabel")
+    local BypassToggle = Instance.new("TextButton")
+    local DetectionToggle = Instance.new("TextButton")
+    local EmergencyButton = Instance.new("TextButton")
+    
+    ScreenGui.Name = "NoclipGUI"
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    
+    MainFrame.Size = UDim2.new(0, 300, 0, 250)
+    MainFrame.Position = UDim2.new(0.5, -150, 0.5, -125)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    MainFrame.BackgroundTransparency = 0.1
+    MainFrame.BorderSizePixel = 0
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    MainFrame.Parent = ScreenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 15)
+    corner.Parent = MainFrame
+    
+    TitleLabel.Size = UDim2.new(1, 0, 0, 30)
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Text = "🔓 ADVANCED NOCLIP SYSTEM"
+    TitleLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+    TitleLabel.TextSize = 16
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.Parent = MainFrame
+    
+    NoclipToggle.Size = UDim2.new(0.45, 0, 0, 35)
+    NoclipToggle.Position = UDim2.new(0.025, 0, 0, 35)
+    NoclipToggle.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    NoclipToggle.Text = "🔒 NOCLIP: OFF"
+    NoclipToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    NoclipToggle.TextSize = 12
+    NoclipToggle.Font = Enum.Font.Gotham
+    NoclipToggle.Parent = MainFrame
+    
+    local noclipCorner = Instance.new("UICorner")
+    noclipCorner.CornerRadius = UDim.new(0, 8)
+    noclipCorner.Parent = NoclipToggle
+    
+    AutoToggle.Size = UDim2.new(0.45, 0, 0, 35)
+    AutoToggle.Position = UDim2.new(0.525, 0, 0, 35)
+    AutoToggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    AutoToggle.Text = "🤖 AUTO: OFF"
+    AutoToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AutoToggle.TextSize = 12
+    AutoToggle.Font = Enum.Font.Gotham
+    AutoToggle.Parent = MainFrame
+    
+    local autoCorner = Instance.new("UICorner")
+    autoCorner.CornerRadius = UDim.new(0, 8)
+    autoCorner.Parent = AutoToggle
+    
+    StatusLabel.Size = UDim2.new(1, 0, 0, 25)
+    StatusLabel.Position = UDim2.new(0, 0, 0, 75)
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Text = "Status: 🔒 Disabled - No Barriers"
+    StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    StatusLabel.TextSize = 11
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.Parent = MainFrame
+    
+    SpeedLabel.Size = UDim2.new(0.6, 0, 0, 20)
+    SpeedLabel.Position = UDim2.new(0, 0, 0, 105)
+    SpeedLabel.BackgroundTransparency = 1
+    SpeedLabel.Text = "Speed: " .. NOCLIP_SPEED
+    SpeedLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    SpeedLabel.TextSize = 11
+    SpeedLabel.Font = Enum.Font.Gotham
+    SpeedLabel.Parent = MainFrame
+    
+    SpeedSlider.Size = UDim2.new(0.35, 0, 0, 20)
+    SpeedSlider.Position = UDim2.new(0.6, 0, 0, 105)
+    SpeedSlider.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    SpeedSlider.Text = tostring(NOCLIP_SPEED)
+    SpeedSlider.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SpeedSlider.TextSize = 11
+    SpeedSlider.Font = Enum.Font.Gotham
+    SpeedSlider.Parent = MainFrame
+    
+    BypassToggle.Size = UDim2.new(0.45, 0, 0, 30)
+    BypassToggle.Position = UDim2.new(0.025, 0, 0, 130)
+    BypassToggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    BypassToggle.Text = "🚫 BYPASS: ON"
+    BypassToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    BypassToggle.TextSize = 11
+    BypassToggle.Font = Enum.Font.Gotham
+    BypassToggle.Parent = MainFrame
+    
+    local bypassCorner = Instance.new("UICorner")
+    bypassCorner.CornerRadius = UDim.new(0, 6)
+    bypassCorner.Parent = BypassToggle
+    
+    DetectionToggle.Size = UDim2.new(0.45, 0, 0, 30)
+    DetectionToggle.Position = UDim2.new(0.525, 0, 0, 130)
+    DetectionToggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    DetectionToggle.Text = "🔍 DETECT: ON"
+    DetectionToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    DetectionToggle.TextSize = 11
+    DetectionToggle.Font = Enum.Font.Gotham
+    DetectionToggle.Parent = MainFrame
+    
+    local detectCorner = Instance.new("UICorner")
+    detectCorner.CornerRadius = UDim.new(0, 6)
+    detectCorner.Parent = DetectionToggle
+    
+    EmergencyButton.Size = UDim2.new(0.8, 0, 0, 35)
+    EmergencyButton.Position = UDim2.new(0.1, 0, 0, 170)
+    EmergencyButton.BackgroundColor3 = Color3.fromRGB(255, 100, 0)
+    EmergencyButton.Text = "🚨 EMERGENCY NOCLIP"
+    EmergencyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    EmergencyButton.TextSize = 13
+    EmergencyButton.Font = Enum.Font.GothamBold
+    EmergencyButton.Parent = MainFrame
+    
+    local emergencyCorner = Instance.new("UICorner")
+    emergencyCorner.CornerRadius = UDim.new(0, 8)
+    emergencyCorner.Parent = EmergencyButton
+    
+    -- Event Handlers
+    NoclipToggle.MouseButton1Click:Connect(function()
+        if NOCLIP_ENABLED then
+            disableNoclip()
+        else
+            enableNoclip()
+        end
+    end)
+    
+    AutoToggle.MouseButton1Click:Connect(function()
+        AUTO_NOCLIP = not AUTO_NOCLIP
+        if AUTO_NOCLIP then
+            AutoToggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            AutoToggle.Text = "🤖 AUTO: ON"
+        else
+            AutoToggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            AutoToggle.Text = "🤖 AUTO: OFF"
+        end
+    end)
+    
+    BypassToggle.MouseButton1Click:Connect(function()
+        BYPASS_RELOAD = not BYPASS_RELOAD
+        if BYPASS_RELOAD then
+            BypassToggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            BypassToggle.Text = "🚫 BYPASS: ON"
+        else
+            BypassToggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            BypassToggle.Text = "🚫 BYPASS: OFF"
+        end
+    end)
+    
+    DetectionToggle.MouseButton1Click:Connect(function()
+        SMART_DETECTION = not SMART_DETECTION
+        if SMART_DETECTION then
+            DetectionToggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            DetectionToggle.Text = "🔍 DETECT: ON"
+        else
+            DetectionToggle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+            DetectionToggle.Text = "🔍 DETECT: OFF"
+        end
+    end)
+    
+    EmergencyButton.MouseButton1Click:Connect(function()
+        enableNoclip()
+        -- Force noclip selama 3 detik
+        wait(3)
+        if AUTO_NOCLIP then
+            disableNoclip()
+        end
+    end)
+    
+    SpeedSlider.FocusLost:Connect(function()
+        local newSpeed = tonumber(SpeedSlider.Text)
+        if newSpeed and newSpeed > 0 and newSpeed <= 100 then
+            NOCLIP_SPEED = newSpeed
+            SpeedLabel.Text = "Speed: " .. NOCLIP_SPEED
+            
+            -- Update humanoid speed
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+                LocalPlayer.Character.Humanoid.WalkSpeed = NOCLIP_SPEED
+            end
+        else
+            SpeedSlider.Text = tostring(NOCLIP_SPEED)
+        end
+    end)
+    
+    -- Real-time status updates
+    spawn(function()
+        while ScreenGui.Parent do
+            wait(0.2)
+            
+            -- Update toggle colors dan text
+            if NOCLIP_ENABLED then
+                NoclipToggle.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+                NoclipToggle.Text = "🔓 NOCLIP: ON"
+            else
+                NoclipToggle.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+                NoclipToggle.Text = "🔒 NOCLIP: OFF"
+            end
+            
+            -- Update status
+            local barrierDetected = detectBarrier()
+            local stuckDetected = detectStuck()
+            
+            if NOCLIP_ENABLED then
+                StatusLabel.Text = "Status: 🔓 ACTIVE - Phasing through walls"
+                StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+            elseif barrierDetected or stuckDetected then
+                StatusLabel.Text = "Status: ⚠️ BARRIER/STUCK DETECTED"
+                StatusLabel.TextColor3 = Color3.fromRGB(255, 150, 0)
+            else
+                StatusLabel.Text = "Status: ✅ CLEAR - No obstacles"
+                StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            end
+        end
+    end)
+end
+
+-- Keybind untuk toggle cepat
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    -- N key untuk toggle noclip
+    if input.KeyCode == Enum.KeyCode.N then
+        if NOCLIP_ENABLED then
+            disableNoclip()
+        else
+            enableNoclip()
+        end
+    end
+    
+    -- B key untuk emergency noclip
+    if input.KeyCode == Enum.KeyCode.B then
+        enableNoclip()
+        print("🚨 Emergency noclip activated!")
+    end
+end)
+
+-- Auto-check loop
+RunService.Heartbeat:Connect(function()
+    autoNoclipCheck()
+end)
+
+-- Character respawn handler
+LocalPlayer.CharacterAdded:Connect(function(character)
+    wait(1)
+    originalStates = {}
+    lastPosition = nil
+    stuckTimer = 0
+    
+    if NOCLIP_ENABLED then
+        enableNoclip()
+    end
+end)
+
+-- Initialize
+print("🔓 Advanced Noclip System Loaded!")
+print("📝 Controls:")
+print("   - N key: Toggle Noclip")
+print("   - B key: Emergency Noclip")
+print("   - GUI: Full control panel")
+
+createNoclipGUI()
+
+-- Notification
+local function showNotification(title, text)
+    pcall(function()
+        game.StarterGui:SetCore("SendNotification", {
+            Title = title;
+            Text = text;
+            Duration = 4;
+        })
+    end)
+end
+
+showNotification("🔓 Noclip Ready", "Press N to toggle, B for emergency!")
