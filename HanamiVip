@@ -1,4 +1,4 @@
--- Hanami VIP Teleport Script v4 - Fixed Version
+-- Hanami VIP Teleport Script v4 - Fixed Version with New Coordinates
 -- Compatible with Delta Executor Android
 
 local Players = game:GetService("Players")
@@ -22,7 +22,7 @@ local scrollFrame = nil
 local lastNotificationTime = 0 -- Anti-spam notification
 local notificationCooldown = 3 -- seconds between notifications
 
--- Koordinat teleport positions (updated from second script)
+-- Koordinat teleport positions (updated with new coordinates)
 local positions = {
     {pos = Vector3.new(515, 141, -122), name = "Pos 1"},
     {pos = Vector3.new(359, 195, -614), name = "Pos 2"},
@@ -32,8 +32,22 @@ local positions = {
     {pos = Vector3.new(-1976, 609, 131), name = "Pos 6"},
     {pos = Vector3.new(-2766, 669, 43), name = "Pos 7"},
     {pos = Vector3.new(-2613, 848, -324), name = "Pos 8"},
+    {pos = Vector3.new(-2452, 848, -459), name = "Pos 9"},
+    {pos = Vector3.new(-2395, 118, -1229), name = "Pos 10"},
+    {pos = Vector3.new(-1879, 252, -2041), name = "Pos 11"},
+    {pos = Vector3.new(-3590, 436, -2404), name = "Pos 12"},
+    {pos = Vector3.new(-2654, 684, -2233), name = "Pos 13"},
+    {pos = Vector3.new(-1995, 680, -2226), name = "Pos 14"},
+    {pos = Vector3.new(-1896, 1058, -2723), name = "Pos 15"},
     {pos = Vector3.new(-2593, 848, -320), name = "Puncak", isPuncak = true}
 }
+
+-- Random movement function
+local function addRandomMovement(basePosition)
+    local randomX = math.random(-5, 5)
+    local randomZ = math.random(-5, 5)
+    return Vector3.new(basePosition.X + randomX, basePosition.Y, basePosition.Z + randomZ)
+end
 
 -- Anti-spam notification function
 local function sendNotification(title, text, duration)
@@ -58,7 +72,9 @@ end
 
 local function teleportTo(position)
     if humanoidRootPart then
-        humanoidRootPart.CFrame = CFrame.new(position)
+        -- Add random 5 stud movement to teleport position
+        local randomPosition = addRandomMovement(position)
+        humanoidRootPart.CFrame = CFrame.new(randomPosition)
         wait(0.5) -- Delay untuk stabilitas
     end
 end
@@ -66,7 +82,9 @@ end
 local function walkTo(targetPosition)
     local humanoid = character:FindFirstChild("Humanoid")
     if humanoid and humanoidRootPart then
-        humanoid:MoveTo(targetPosition)
+        -- Add random movement to walk target
+        local randomPosition = addRandomMovement(targetPosition)
+        humanoid:MoveTo(randomPosition)
         
         -- Wait until reached or timeout
         local timeout = 30 -- 30 seconds timeout
@@ -74,7 +92,7 @@ local function walkTo(targetPosition)
         
         repeat
             wait(0.1)
-            local distance = (humanoidRootPart.Position - targetPosition).Magnitude
+            local distance = (humanoidRootPart.Position - randomPosition).Magnitude
             if distance < 5 then -- Close enough
                 break
             end
@@ -87,13 +105,13 @@ local function teleportToPosition(positionData, isManual)
     if character and character:FindFirstChild("HumanoidRootPart") then
         updateCharacter()
         
-        -- Use teleport for positions 1-8, walk for final position
+        -- Use teleport for positions 1-15, walk for final position
         if positionData.isPuncak and not isManual then
-            -- Walk to final position
+            -- Walk to final position with random movement
             sendNotification("Hanami VIP", "Walking to " .. positionData.name, 1.5)
             walkTo(positionData.pos)
         else
-            -- Teleport to position
+            -- Teleport to position with random movement
             teleportTo(positionData.pos)
             sendNotification("Hanami VIP", "Teleported to " .. positionData.name, 1.5)
         end
@@ -184,14 +202,14 @@ local function createGUI()
         screenGui.Parent = player:WaitForChild("PlayerGui")
     end
 
-    -- Main Frame
+    -- Main Frame - Adjust height for more positions
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Parent = screenGui
     mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     mainFrame.BorderSizePixel = 0
-    mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
-    mainFrame.Size = UDim2.new(0, 230, 0, 290)
+    mainFrame.Position = UDim2.new(0.05, 0, 0.1, 0)
+    mainFrame.Size = UDim2.new(0, 230, 0, 400) -- Increased height for more positions
     mainFrame.Active = true
     mainFrame.Draggable = true
 
@@ -207,8 +225,8 @@ local function createGUI()
     shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     shadow.BackgroundTransparency = 0.8
     shadow.BorderSizePixel = 0
-    shadow.Position = UDim2.new(0.05, 2, 0.25, 2)
-    shadow.Size = UDim2.new(0, 230, 0, 290)
+    shadow.Position = UDim2.new(0.05, 2, 0.1, 2)
+    shadow.Size = UDim2.new(0, 230, 0, 400)
     shadow.ZIndex = mainFrame.ZIndex - 1
 
     local shadowCorner = Instance.new("UICorner")
@@ -243,7 +261,7 @@ local function createGUI()
     titleLabel.Position = UDim2.new(0, 10, 0, 0)
     titleLabel.Size = UDim2.new(1, -90, 1, 0)
     titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.Text = "Hanami VIP [ADVANCED]"
+    titleLabel.Text = "Hanami VIP [ADVANCED] v2"
     titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
     titleLabel.TextSize = 11
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -297,7 +315,7 @@ local function createGUI()
     autoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
     autoFrame.BorderSizePixel = 0
     autoFrame.Position = UDim2.new(0, 8, 0, 8)
-    autoFrame.Size = UDim2.new(1, -16, 0, 45)
+    autoFrame.Size = UDim2.new(1, -16, 0, 65) -- Increased height
 
     local autoCorner = Instance.new("UICorner")
     autoCorner.CornerRadius = UDim.new(0, 6)
@@ -316,16 +334,29 @@ local function createGUI()
     controlLabel.TextSize = 9
     controlLabel.TextXAlignment = Enum.TextXAlignment.Left
 
+    -- Random Movement Info Label
+    local randomLabel = Instance.new("TextLabel")
+    randomLabel.Name = "RandomLabel"
+    randomLabel.Parent = autoFrame
+    randomLabel.BackgroundTransparency = 1
+    randomLabel.Position = UDim2.new(0, 8, 0, 20)
+    randomLabel.Size = UDim2.new(1, -16, 0, 15)
+    randomLabel.Font = Enum.Font.Gotham
+    randomLabel.Text = "Random 5-stud movement enabled"
+    randomLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+    randomLabel.TextSize = 8
+    randomLabel.TextXAlignment = Enum.TextXAlignment.Left
+
     -- Start/Stop Button
     autoToggleButton = Instance.new("TextButton")
     autoToggleButton.Name = "AutoToggleButton"
     autoToggleButton.Parent = autoFrame
     autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
     autoToggleButton.BorderSizePixel = 0
-    autoToggleButton.Position = UDim2.new(0, 8, 0, 22)
-    autoToggleButton.Size = UDim2.new(1, -16, 0, 18)
+    autoToggleButton.Position = UDim2.new(0, 8, 0, 37)
+    autoToggleButton.Size = UDim2.new(1, -16, 0, 22)
     autoToggleButton.Font = Enum.Font.Gotham
-    autoToggleButton.Text = "▶ Start Auto (Advanced Mode)"
+    autoToggleButton.Text = "▶ Start Auto (Advanced Mode + Random)"
     autoToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     autoToggleButton.TextSize = 9
 
@@ -339,8 +370,8 @@ local function createGUI()
     scrollFrame.Parent = contentFrame
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.BorderSizePixel = 0
-    scrollFrame.Position = UDim2.new(0, 8, 0, 58)
-    scrollFrame.Size = UDim2.new(1, -16, 1, -66)
+    scrollFrame.Position = UDim2.new(0, 8, 0, 78)
+    scrollFrame.Size = UDim2.new(1, -16, 1, -86)
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     scrollFrame.ScrollBarThickness = 3
     scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
@@ -370,9 +401,9 @@ local function createGUI()
         button.BorderSizePixel = 0
         button.Size = UDim2.new(1, -6, 0, buttonHeight)
         button.Font = Enum.Font.Gotham
-        button.Text = positionData.name .. " - Advanced Teleport"
+        button.Text = positionData.name .. " - Advanced TP + Random"
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 10
+        button.TextSize = 9
         button.LayoutOrder = i
         
         local buttonCorner = Instance.new("UICorner")
@@ -430,7 +461,7 @@ local function createGUI()
 
     -- Minimize/Restore functionality
     local isMinimized = false
-    local originalSize = UDim2.new(0, 230, 0, 290)
+    local originalSize = UDim2.new(0, 230, 0, 400)
     local minimizedSize = UDim2.new(0, 230, 0, 32)
 
     minimizeButton.MouseButton1Click:Connect(function()
@@ -463,7 +494,7 @@ local function createGUI()
             isAutoTeleporting = not isAutoTeleporting
             
             if isAutoTeleporting then
-                autoToggleButton.Text = "⏸ Stop Auto (Advanced Mode)"
+                autoToggleButton.Text = "⏸ Stop Auto (Advanced Mode + Random)"
                 autoToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
                 startAutoTeleport()
                 
@@ -474,7 +505,7 @@ local function createGUI()
                     end
                 end
             else
-                autoToggleButton.Text = "▶ Start Auto (Advanced Mode)"
+                autoToggleButton.Text = "▶ Start Auto (Advanced Mode + Random)"
                 autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
                 stopAutoTeleport()
                 
@@ -505,15 +536,15 @@ local function createGUI()
     mainFrame.Size = UDim2.new(0, 0, 0, 0)
     shadow.Size = UDim2.new(0, 0, 0, 0)
 
-    local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 290)})
-    local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 290)})
+    local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 400)})
+    local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 400)})
 
     openTween:Play()
     shadowTween:Play()
 
     -- Success notification (only once)
     wait(0.5)
-    sendNotification("Hanami VIP", "Advanced teleporting enabled! Auto respawn at summit!", 4)
+    sendNotification("Hanami VIP", "Advanced teleporting with random movement enabled! " .. #positions .. " positions loaded!", 5)
 
     -- Cleanup on destroy
     screenGui.AncestryChanged:Connect(function()
