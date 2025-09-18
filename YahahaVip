@@ -1,0 +1,688 @@
+-- Yahaha VIP Teleport Script v4 - Sequential Version
+-- Compatible with Delta Executor Android
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+
+-- Function to get character safely
+local function getCharacter()
+    return player.Character or player.CharacterAdded:Wait()
+end
+
+local function getHumanoidRootPart()
+    local char = getCharacter()
+    if char then
+        return char:FindFirstChild("HumanoidRootPart")
+    end
+    return nil
+end
+
+-- Variables
+local isRunning = false
+local autoTeleportConnection = nil
+local currentCoordIndex = 1
+local autoToggleButton = nil
+local scrollFrame = nil
+local lastNotificationTime = 0
+local notificationCooldown = 3
+local hiddenParts = {}
+local originalTransparencies = {}
+local performanceMode = true
+
+-- Sequential coordinates (from new script)
+local coordinates = {
+    Vector3.new(-739, 237, 146),
+    Vector3.new(-772, 244, 823),
+    Vector3.new(-145, 220, 695),
+    Vector3.new(574, 429, 510),
+    Vector3.new(1258, 549, 23),
+    Vector3.new(1237, 530, 436),
+    Vector3.new(1466, 633, 484),
+    Vector3.new(1890, 1265, 1042)
+}
+
+-- Convert to position format for GUI display
+local positions = {}
+for i, coord in ipairs(coordinates) do
+    local isLast = (i == #coordinates)
+    table.insert(positions, {
+        pos = coord, 
+        name = "Checkpoint " .. i .. (isLast and " (Final)" or ""),
+        isPuncak = isLast
+    })
+end
+
+-- Anti-spam notification function
+local function sendNotification(title, text, duration)
+    local currentTime = tick()
+    if currentTime - lastNotificationTime >= notificationCooldown then
+        lastNotificationTime = currentTime
+        pcall(function()
+            game.StarterGui:SetCore("SendNotification", {
+                Title = title,
+                Text = text,
+                Duration = duration or 2
+            })
+        end)
+    end
+end
+
+-- Performance Optimization Functions
+local function enablePerformanceMode()
+    if not performanceMode then return end
+    
+    pcall(function()
+        -- Hide ALL map objects except player and checkpoints
+        for _, obj in pairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Parent ~= getCharacter() then
+                local shouldKeep = false
+                local name = obj.Name:lower()
+                
+                -- Keep only essential objects
+                if name:find("checkpoint") or name:find("spawn") or name:find("telepad") or 
+                   name:find("pad") or name:find("portal") or name:find("goal") or
+                   obj:FindFirstChild("TouchInterest") or obj:FindFirstChild("ClickDetector") then
+                    shouldKeep = true
+                end
+                
+                -- Keep player-related objects
+                if obj.Parent:IsA("Tool") or obj.Parent:IsA("Accessory") then
+                    shouldKeep = true
+                end
+                
+                -- Hide everything else
+                if not shouldKeep then
+                    originalTransparencies[obj] = obj.Transparency
+                    obj.Transparency = 1
+                    obj.CanCollide = false
+                    obj.CanTouch = false
+                    if obj:IsA("MeshPart") then
+                        obj.RenderFidelity = Enum.RenderFidelity.Performance
+                    end
+                    table.insert(hiddenParts, obj)
+                end
+            elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceGui") then
+                if obj.Parent ~= getCharacter() then
+                    originalTransparencies[obj] = obj.Transparency
+                    obj.Transparency = 1
+                    table.insert(hiddenParts, obj)
+                end
+            elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or 
+                   obj:IsA("Beam") or obj:IsA("Trail") then
+                obj.Enabled = false
+                table.insert(hiddenParts, obj)
+            end
+        end
+        
+        -- Hide terrain textures if possible
+        if Workspace.Terrain then
+            Workspace.Terrain.Decoration = false
+        end
+        
+        -- Set graphics quality to minimum
+        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+    end)
+end
+
+local function disablePerformanceMode()
+    if not performanceMode then return end
+    
+    -- Restore all hidden parts
+    for _, obj in pairs(hiddenParts) do
+        if obj and obj.Parent then
+            if originalTransparencies[obj] ~= nil then
+                obj.Transparency = originalTransparencies[obj]
+            end
+            if obj:IsA("BasePart") then
+                obj.CanCollide = true
+                obj.CanTouch = true
+                if obj:IsA("MeshPart") then
+                    obj.RenderFidelity = Enum.RenderFidelity.Automatic
+                end
+            elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or 
+                   obj:IsA("Beam") or obj:IsA("Trail") then
+                obj.Enabled = true
+            end
+        end
+    end
+    
+    -- Restore terrain
+    if Workspace.Terrain then
+        Workspace.Terrain.Decoration = true
+    end
+    
+    -- Clear arrays
+    hiddenParts = {}
+    originalTransparencies = {}
+    
+    -- Restore graphics quality
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+end
+
+-- Teleport function (from new script)
+local function teleportTo(position)
+    local character = getCharacter()
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        character.HumanoidRootPart.CFrame = CFrame.new(position)
+        print("Teleported to: " .. tostring(position))
+        return true
+    end
+    return false
+end
+
+-- Respawn function (from new script)
+local function respawnPlayer()
+    local character = getCharacter()
+    if character and character:FindFirstChild("Humanoid") then
+        print("Respawning...")
+        character.Humanoid.Health = 0
+        wait(5) -- Tunggu respawn
+        return true
+    end
+    return false
+end
+
+-- Main loop function (from new script system)
+local function mainLoop()
+    print("=== Starting Main Loop - Sequential Teleport ===")
+    print("Total coordinates: " .. #coordinates)
+    
+    while isRunning do
+        local targetCoord = coordinates[currentCoordIndex]
+        
+        print("Cycle " .. currentCoordIndex .. "/8: Teleporting to " .. tostring(targetCoord))
+        sendNotification("Yahaha VIP", "Teleporting to Checkpoint " .. currentCoordIndex .. "/8", 1.5)
+        
+        -- Teleport ke koordinat saat ini
+        if teleportTo(targetCoord) then
+            wait(2) -- Delay 2 detik di setiap koordinat
+            
+            -- Pindah ke koordinat berikutnya
+            currentCoordIndex = currentCoordIndex + 1
+            
+            -- Jika sudah sampai koordinat terakhir
+            if currentCoordIndex > #coordinates then
+                print("Reached final coordinate! Respawning and restarting...")
+                sendNotification("Yahaha VIP", "Final checkpoint reached! Respawning...", 3)
+                
+                -- Respawn dan reset ke koordinat pertama
+                respawnPlayer()
+                currentCoordIndex = 1
+                wait(3) -- Tunggu respawn selesai
+                
+                print("Restarting from coordinate 1...")
+                sendNotification("Yahaha VIP", "Restarting from Checkpoint 1...", 2)
+            end
+        else
+            print("Failed to teleport, retrying...")
+            wait(1)
+        end
+        
+        wait(0.5) -- Delay singkat sebelum teleport berikutnya
+    end
+    
+    print("=== Main Loop Stopped ===")
+end
+
+-- Auto teleport function
+local function startAutoTeleport()
+    if autoTeleportConnection then
+        autoTeleportConnection:Disconnect()
+        autoTeleportConnection = nil
+    end
+    
+    -- Enable performance mode
+    enablePerformanceMode()
+    
+    -- Start main loop in separate thread
+    spawn(mainLoop)
+end
+
+local function stopAutoTeleport()
+    if autoTeleportConnection then
+        autoTeleportConnection:Disconnect()
+        autoTeleportConnection = nil
+    end
+    disablePerformanceMode()
+end
+
+-- Manual teleport function
+local function teleportToManualPosition(positionData)
+    teleportTo(positionData.pos)
+    sendNotification("Yahaha VIP", "Teleported to " .. positionData.name, 1.5)
+end
+
+-- Create GUI
+local function createGUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "YahahaVipGui"
+    screenGui.ResetOnSpawn = false
+    
+    -- Try to parent to CoreGui, fallback to PlayerGui
+    local success = pcall(function()
+        screenGui.Parent = CoreGui
+    end)
+    
+    if not success then
+        screenGui.Parent = player:WaitForChild("PlayerGui")
+    end
+
+    -- Main Frame
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Parent = screenGui
+    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
+    mainFrame.Size = UDim2.new(0, 250, 0, 350)
+    mainFrame.Active = true
+    mainFrame.Draggable = true
+
+    -- Corner rounding
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = mainFrame
+
+    -- Drop shadow effect
+    local shadow = Instance.new("Frame")
+    shadow.Name = "Shadow"
+    shadow.Parent = screenGui
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.8
+    shadow.BorderSizePixel = 0
+    shadow.Position = UDim2.new(0.05, 2, 0.25, 2)
+    shadow.Size = UDim2.new(0, 250, 0, 350)
+    shadow.ZIndex = mainFrame.ZIndex - 1
+
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 8)
+    shadowCorner.Parent = shadow
+
+    -- Title Bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Parent = mainFrame
+    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    titleBar.BorderSizePixel = 0
+    titleBar.Size = UDim2.new(1, 0, 0, 32)
+
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
+
+    -- Fix title bar bottom corners
+    local titleBarFix = Instance.new("Frame")
+    titleBarFix.Parent = titleBar
+    titleBarFix.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+    titleBarFix.BorderSizePixel = 0
+    titleBarFix.Position = UDim2.new(0, 0, 0.5, 0)
+    titleBarFix.Size = UDim2.new(1, 0, 0.5, 0)
+
+    -- Title Label
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Name = "TitleLabel"
+    titleLabel.Parent = titleBar
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.Size = UDim2.new(1, -90, 1, 0)
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Text = "Yahaha VIP [SEQ]"
+    titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    titleLabel.TextSize = 11
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Minimize Button
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Name = "MinimizeButton"
+    minimizeButton.Parent = titleBar
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+    minimizeButton.BorderSizePixel = 0
+    minimizeButton.Position = UDim2.new(1, -58, 0, 4)
+    minimizeButton.Size = UDim2.new(0, 24, 0, 24)
+    minimizeButton.Font = Enum.Font.GothamBold
+    minimizeButton.Text = "—"
+    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeButton.TextSize = 12
+
+    local minimizeCorner = Instance.new("UICorner")
+    minimizeCorner.CornerRadius = UDim.new(0, 4)
+    minimizeCorner.Parent = minimizeButton
+
+    -- Close Button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Name = "CloseButton"
+    closeButton.Parent = titleBar
+    closeButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+    closeButton.BorderSizePixel = 0
+    closeButton.Position = UDim2.new(1, -32, 0, 4)
+    closeButton.Size = UDim2.new(0, 24, 0, 24)
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.Text = "×"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextSize = 14
+
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeButton
+
+    -- Content Frame
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Name = "ContentFrame"
+    contentFrame.Parent = mainFrame
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Position = UDim2.new(0, 0, 0, 32)
+    contentFrame.Size = UDim2.new(1, 0, 1, -32)
+
+    -- Auto Teleport Control Frame
+    local autoFrame = Instance.new("Frame")
+    autoFrame.Name = "AutoFrame"
+    autoFrame.Parent = contentFrame
+    autoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+    autoFrame.BorderSizePixel = 0
+    autoFrame.Position = UDim2.new(0, 8, 0, 8)
+    autoFrame.Size = UDim2.new(1, -16, 0, 100)
+
+    local autoCorner = Instance.new("UICorner")
+    autoCorner.CornerRadius = UDim.new(0, 6)
+    autoCorner.Parent = autoFrame
+
+    -- Control Label
+    local controlLabel = Instance.new("TextLabel")
+    controlLabel.Name = "ControlLabel"
+    controlLabel.Parent = autoFrame
+    controlLabel.BackgroundTransparency = 1
+    controlLabel.Position = UDim2.new(0, 8, 0, 2)
+    controlLabel.Size = UDim2.new(1, -16, 0, 18)
+    controlLabel.Font = Enum.Font.GothamBold
+    controlLabel.Text = "Sequential Mode [2s delays, auto respawn+loop]"
+    controlLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+    controlLabel.TextSize = 8
+    controlLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Start/Stop Button
+    autoToggleButton = Instance.new("TextButton")
+    autoToggleButton.Name = "AutoToggleButton"
+    autoToggleButton.Parent = autoFrame
+    autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+    autoToggleButton.BorderSizePixel = 0
+    autoToggleButton.Position = UDim2.new(0, 8, 0, 22)
+    autoToggleButton.Size = UDim2.new(1, -16, 0, 25)
+    autoToggleButton.Font = Enum.Font.Gotham
+    autoToggleButton.Text = "▶ START Sequential"
+    autoToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoToggleButton.TextSize = 10
+
+    local autoButtonCorner = Instance.new("UICorner")
+    autoButtonCorner.CornerRadius = UDim.new(0, 4)
+    autoButtonCorner.Parent = autoToggleButton
+
+    -- Reset Button
+    local resetButton = Instance.new("TextButton")
+    resetButton.Name = "ResetButton"
+    resetButton.Parent = autoFrame
+    resetButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    resetButton.BorderSizePixel = 0
+    resetButton.Position = UDim2.new(0, 8, 0, 52)
+    resetButton.Size = UDim2.new(1, -16, 0, 20)
+    resetButton.Font = Enum.Font.Gotham
+    resetButton.Text = "🔄 RESET Position"
+    resetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    resetButton.TextSize = 9
+
+    local resetButtonCorner = Instance.new("UICorner")
+    resetButtonCorner.CornerRadius = UDim.new(0, 4)
+    resetButtonCorner.Parent = resetButton
+
+    -- Status Label
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Name = "StatusLabel"
+    statusLabel.Parent = autoFrame
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Position = UDim2.new(0, 8, 0, 75)
+    statusLabel.Size = UDim2.new(1, -16, 0, 20)
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.Text = "Ready - Current: " .. currentCoordIndex .. "/8"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    statusLabel.TextSize = 8
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- Scroll Frame for positions
+    scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Name = "ScrollFrame"
+    scrollFrame.Parent = contentFrame
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.Position = UDim2.new(0, 8, 0, 115)
+    scrollFrame.Size = UDim2.new(1, -16, 1, -123)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.ScrollBarThickness = 3
+    scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
+
+    -- UI List Layout
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Parent = scrollFrame
+    listLayout.Padding = UDim.new(0, 4)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    -- Create position buttons
+    local buttonHeight = 25
+    local totalHeight = 0
+
+    for i, positionData in ipairs(positions) do
+        local button = Instance.new("TextButton")
+        button.Name = positionData.name
+        button.Parent = scrollFrame
+        
+        -- Special color for Final Checkpoint
+        if positionData.isPuncak then
+            button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+        else
+            button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+        end
+        
+        button.BorderSizePixel = 0
+        button.Size = UDim2.new(1, -6, 0, buttonHeight)
+        button.Font = Enum.Font.Gotham
+        button.Text = positionData.name
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.TextSize = 9
+        button.LayoutOrder = i
+        
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 5)
+        buttonCorner.Parent = button
+        
+        -- Hover effects
+        button.MouseEnter:Connect(function()
+            pcall(function()
+                if not isRunning then
+                    if positionData.isPuncak then
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 165, 0)}):Play()
+                    else
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90, 150, 200)}):Play()
+                    end
+                end
+            end)
+        end)
+        
+        button.MouseLeave:Connect(function()
+            pcall(function()
+                if not isRunning then
+                    if positionData.isPuncak then
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0)}):Play()
+                    else
+                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 130, 180)}):Play()
+                    end
+                end
+            end)
+        end)
+        
+        -- Click to teleport
+        button.MouseButton1Click:Connect(function()
+            pcall(function()
+                if not isRunning then
+                    teleportToManualPosition(positionData)
+                    currentCoordIndex = i
+                    statusLabel.Text = "Manual TP - Current: " .. currentCoordIndex .. "/8"
+                end
+            end)
+        end)
+        
+        totalHeight = totalHeight + buttonHeight + 4
+    end
+
+    -- Update canvas size
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+
+    -- Minimize/Restore functionality
+    local isMinimized = false
+    local originalSize = UDim2.new(0, 250, 0, 350)
+    local minimizedSize = UDim2.new(0, 250, 0, 32)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        pcall(function()
+            isMinimized = not isMinimized
+            
+            if isMinimized then
+                minimizeButton.Text = "+"
+                local minimizeTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = minimizedSize})
+                local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = minimizedSize})
+                minimizeTween:Play()
+                shadowTween:Play()
+                contentFrame.Visible = false
+            else
+                minimizeButton.Text = "—"
+                local restoreTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = originalSize})
+                local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = originalSize})
+                restoreTween:Play()
+                shadowTween:Play()
+                contentFrame.Visible = true
+            end
+        end)
+    end)
+
+    -- Auto toggle button functionality
+    autoToggleButton.MouseButton1Click:Connect(function()
+        pcall(function()
+            isRunning = not isRunning
+            
+            if isRunning then
+                autoToggleButton.Text = "⏸ STOP Sequential"
+                autoToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+                statusLabel.Text = "Running - Current: " .. currentCoordIndex .. "/8"
+                startAutoTeleport()
+                
+                -- Disable individual buttons during auto mode
+                for _, button in pairs(scrollFrame:GetChildren()) do
+                    if button:IsA("TextButton") then
+                        button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+                    end
+                end
+            else
+                autoToggleButton.Text = "▶ START Sequential"
+                autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+                statusLabel.Text = "Stopped - Current: " .. currentCoordIndex .. "/8"
+                stopAutoTeleport()
+                
+                -- Re-enable individual buttons
+                for _, button in pairs(scrollFrame:GetChildren()) do
+                    if button:IsA("TextButton") then
+                        local positionData = positions[button.LayoutOrder]
+                        if positionData and positionData.isPuncak then
+                            button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+                        else
+                            button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+
+    -- Reset button functionality
+    resetButton.MouseButton1Click:Connect(function()
+        pcall(function()
+            currentCoordIndex = 1
+            statusLabel.Text = "Reset - Current: " .. currentCoordIndex .. "/8"
+            sendNotification("Yahaha VIP", "Position reset to Checkpoint 1", 2)
+        end)
+    end)
+
+    -- Status update loop
+    spawn(function()
+        while true do
+            wait(1)
+            if statusLabel and statusLabel.Parent then
+                if isRunning then
+                    statusLabel.Text = "Running - Current: " .. currentCoordIndex .. "/8"
+                else
+                    statusLabel.Text = "Ready - Current: " .. currentCoordIndex .. "/8"
+                end
+            else
+                break
+            end
+        end
+    end)
+
+    -- Close button functionality
+    closeButton.MouseButton1Click:Connect(function()
+        pcall(function()
+            stopAutoTeleport()
+            isRunning = false
+            screenGui:Destroy()
+        end)
+    end)
+
+    -- Initial animation
+    mainFrame.Size = UDim2.new(0, 0, 0, 0)
+    shadow.Size = UDim2.new(0, 0, 0, 0)
+
+    local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 250, 0, 350)})
+    local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 250, 0, 350)})
+
+    openTween:Play()
+    shadowTween:Play()
+
+    -- Success notification
+    wait(0.5)
+    sendNotification("Yahaha VIP", "Sequential mode! 8 checkpoints → respawn → loop. 2s delays!", 4)
+
+    -- Cleanup on destroy
+    screenGui.AncestryChanged:Connect(function()
+        if not screenGui.Parent then
+            stopAutoTeleport()
+        end
+    end)
+    
+    return screenGui
+end
+
+-- Character respawn handling
+player.CharacterAdded:Connect(function(newCharacter)
+    pcall(function()
+        wait(2)
+        sendNotification("Yahaha VIP", "Character respawned! Sequential teleport continues...", 3)
+    end)
+end)
+
+-- Initialize script
+pcall(function()
+    createGUI()
+    
+    sendNotification("Yahaha VIP", "Script loaded! Sequential teleport: 8 checkpoints with auto respawn+loop.", 4)
+    print("Yahaha VIP Sequential Teleport Script Loaded!")
+    print("Sequential Mode: 8 coordinates with 2s delays")
+    print("Auto respawn at final checkpoint and restart from checkpoint 1")
+    print("Total checkpoints: " .. #coordinates)
+    print("COORDINATES LIST:")
+    for i, coord in ipairs(coordinates) do
+        print(i .. ". " .. tostring(coord))
+    end
+end)
