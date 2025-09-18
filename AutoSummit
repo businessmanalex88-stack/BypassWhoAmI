@@ -363,20 +363,20 @@ listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Padding = UDim.new(0, 3)
 listLayout.Parent = scrollFrame
 
--- Mountain data with URLs
+-- Mountain data with UPDATED URLs
 local mountains = {
     {name = "Mt.Atin", icon = "⛰️", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/AtinVip"},
-    {name = "Mt.Akhirat", icon = "💀", url = nil},
+    {name = "Mt.Akhirat", icon = "💀", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/AkhiratVip"},
     {name = "Mt.Arunika", icon = "🌋", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/ArunikaVip"},
     {name = "Mt.Bandahara", icon = "💰", url = nil},
-    {name = "Mt.CKPTW", icon = "⚡", url = nil},
+    {name = "Mt.CKPTW", icon = "⚡", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/CKPTWVIP"},
     {name = "Mt.Daun", icon = "🍃", url = nil},
-    {name = "Mt.Duntul", icon = "🗻", url = nil},
-    {name = "Mt.Hanami", icon = "🌸", url = nil},
+    {name = "Mt.Duntul", icon = "🗻", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Duntul%20Vip"},
+    {name = "Mt.Hanami", icon = "🌸", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/HanamiVip"},
     {name = "Mt.Kahung", icon = "⛰️", url = nil},
-    {name = "Mt.Sumala", icon = "🏞️", url = nil},
-    {name = "Mt.Sibuatan", icon = "🌊", url = nil},
-    {name = "Mt.Yahaha", icon = "😂", url = nil},
+    {name = "Mt.Sumala", icon = "🏞️", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/SumalaVip"},
+    {name = "Mt.Sibuatan", icon = "🌊", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Sibuatan%20Vip"},
+    {name = "Mt.Yahaha", icon = "😂", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/YahahaVip"},
     {name = "Mt.Yahayuk", icon = "🎭", url = nil}
 }
 
@@ -484,30 +484,18 @@ local function createMountainButton(mountain, index)
     -- Button click function
     btn.MouseButton1Click:Connect(function()
         if mountain.url then
-            -- Show loading animation and execute script for Atin and Arunika only
-            if mountain.name == "Mt.Atin" or mountain.name == "Mt.Arunika" then
-                -- Hide summit frame immediately
-                summitFrame.Visible = false
-                
-                showLoadingAnimation(mountain.name, mountain.url)
-                
-                pcall(function()
-                    game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "✅ " .. mountain.name,
-                        Text = mountain.name .. " script loading...",
-                        Duration = 3
-                    })
-                end)
-            else
-                pcall(function()
-                    game:GetService("StarterGui"):SetCore("SendNotification", {
-                        Title = "⚠️ " .. mountain.name,
-                        Text = "Script belum tersedia",
-                        Duration = 3
-                    })
-                end)
-                summitFrame.Visible = false
-            end
+            -- Hide summit frame immediately
+            summitFrame.Visible = false
+            
+            showLoadingAnimation(mountain.name, mountain.url)
+            
+            pcall(function()
+                game:GetService("StarterGui"):SetCore("SendNotification", {
+                    Title = "✅ " .. mountain.name,
+                    Text = mountain.name .. " script loading...",
+                    Duration = 3
+                })
+            end)
         else
             pcall(function()
                 game:GetService("StarterGui"):SetCore("SendNotification", {
@@ -629,4 +617,4 @@ end)
 
 print("✨ Warpah Summits - Professional Edition loaded!")
 print("🎨 Clean, elegant design ready for use!")
-print("🔗 Mt.Atin & Mt.Arunika scripts ready!")
+print("🔗 All mountain scripts ready!")
