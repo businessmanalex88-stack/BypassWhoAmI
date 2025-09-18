@@ -20,7 +20,7 @@ local Config = {
     -- Discord Webhook URL
     WEBHOOK_URL = "https://discord.com/api/webhooks/1417987178990141522/wguemluRqMxaDNWQ1Ce5JnLM1gctyuDM26u7gu7A00AMdhz8Sb2htRQzSMqHMvIkdv3z",
     FALLBACK_KEYS = {
-        ["Adminganteng"] = false,
+        ["Adminganteng"] = true,
         ["Whoamidev"] = false,
         ["WhoAmIAdmin2025"] = true
     },
