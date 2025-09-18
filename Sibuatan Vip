@@ -1,3 +1,190 @@
+-- Sibuatan VIP Teleport Script v4 - Fixed Version
+-- Compatible with Delta Executor Android
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local TeleportService = game:GetService("TeleportService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- Variables
+local isAutoTeleporting = false
+local autoTeleportConnection = nil
+local currentPositionIndex = 1
+local autoTeleportDelay = 2 -- 2 seconds between teleports
+local autoToggleButton = nil
+local scrollFrame = nil
+local lastNotificationTime = 0 -- Anti-spam notification
+local notificationCooldown = 3 -- seconds between notifications
+
+-- Koordinat teleport positions
+local positions = {
+    {pos = Vector3.new(-313, 154, -326), name = "Cp 1"},
+    {pos = Vector3.new(-728, 588, -125), name = "Cp 2"},
+    {pos = Vector3.new(-884, 992, -206), name = "Cp 3"},
+    {pos = Vector3.new(-1638, 992, 281), name = "Cp 4"},
+    {pos = Vector3.new(-1648, 994, 632), name = "Cp 5"},
+    {pos = Vector3.new(-1638, 1112, 2151), name = "Cp 6"},
+    {pos = Vector3.new(-521, 1448, 3280), name = "Cp 7"},
+    {pos = Vector3.new(-708, 1892, 2383), name = "Cp 8"},
+    {pos = Vector3.new(-862, 1940, 2070), name = "Cp 9"},
+    {pos = Vector3.new(-869, 2100, 1668), name = "Cp 10"},
+    {pos = Vector3.new(-902, 2340, 1440), name = "Cp 11"},
+    {pos = Vector3.new(-847, 2764, 1505), name = "Cp 12"},
+    {pos = Vector3.new(-615, 3284, 1920), name = "Cp 13"},
+    {pos = Vector3.new(-237, 3403, 2578), name = "Cp 14"},
+    {pos = Vector3.new(310, 3540, 3042), name = "Cp 15"},
+    {pos = Vector3.new(440, 3596, 3563), name = "Cp 16"},
+    {pos = Vector3.new(911, 3664, 4150), name = "Cp 17"},
+    {pos = Vector3.new(1422, 3904, 4996), name = "Cp 18"},
+    {pos = Vector3.new(1667, 4284, 5191), name = "Cp 19"},
+    {pos = Vector3.new(1721, 4468, 5171), name = "Cp 20"},
+    {pos = Vector3.new(1864, 4652, 5199), name = "Cp 21"},
+    {pos = Vector3.new(1901, 4960, 5156), name = "Cp 22"},
+    {pos = Vector3.new(2848, 5072, 5242), name = "Cp 23"},
+    {pos = Vector3.new(3460, 5240, 5121), name = "Cp 24"},
+    {pos = Vector3.new(4577, 5476, 5265), name = "Cp 25"},
+    {pos = Vector3.new(4636, 4948, 5236), name = "Cp 26"},
+    {pos = Vector3.new(4626, 4563, 5242), name = "Cp 27"},
+    {pos = Vector3.new(4878, 3984, 5181), name = "Cp Weather"},
+    {pos = Vector3.new(5831, 3996, 5741), name = "Cp 28"},
+    {pos = Vector3.new(6630, 4222, 5578), name = "Cp 29"},
+    {pos = Vector3.new(7478, 4221, 5306), name = "Cp 30"},
+    {pos = Vector3.new(8213, 4328, 4894), name = "Cp 31"},
+    {pos = Vector3.new(8694, 4480, 4544), name = "Cp 32"},
+    {pos = Vector3.new(8785, 4536, 4345), name = "Cp 33"},
+    {pos = Vector3.new(9198, 5072, 2465), name = "Cp 34"},
+    {pos = Vector3.new(9189, 5320, 2460), name = "Cp 35"},
+    {pos = Vector3.new(9075, 5888, 2042), name = "Cp 36"},
+    {pos = Vector3.new(9187, 6216, 1988), name = "Cp 37"},
+    {pos = Vector3.new(9064, 6497, 1828), name = "Cp 38"},
+    {pos = Vector3.new(8693, 6528, 1292), name = "Cp 39"},
+    {pos = Vector3.new(8396, 6556, 1140), name = "Cp 40"},
+    {pos = Vector3.new(7994, 6607, 1016), name = "Cp 41"},
+    {pos = Vector3.new(7139, 6772, 376), name = "Cp 42"},
+    {pos = Vector3.new(6571, 6965, 253), name = "Cp 43"},
+    {pos = Vector3.new(6041, 6964, 252), name = "Cp 44"},
+    {pos = Vector3.new(4874, 7144, 679), name = "Cp 45"},
+    {pos = Vector3.new(5394, 8108, 2207), name = "Cp 46", isFinal = true}
+}
+
+-- Anti-spam notification function
+local function sendNotification(title, text, duration)
+    local currentTime = tick()
+    if currentTime - lastNotificationTime >= notificationCooldown then
+        lastNotificationTime = currentTime
+        pcall(function()
+            game.StarterGui:SetCore("SendNotification", {
+                Title = title,
+                Text = text,
+                Duration = duration or 2
+            })
+        end)
+    end
+end
+
+-- Safe teleport function without complex anti-cheat bypass
+local function safeTeleport(targetPosition, duration)
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    
+    duration = duration or 0.5
+    local humanoidRootPart = character.HumanoidRootPart
+    
+    -- Simple safe teleport using TweenService
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = CFrame.new(targetPosition)})
+    
+    tween:Play()
+    return true
+end
+
+-- Fungsi teleport
+local function teleportToPosition(positionData, isManual)
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        -- Use safe teleport
+        local success = safeTeleport(positionData.pos, 0.8)
+        
+        if success then
+            -- Safe notification (anti-spam)
+            sendNotification("Sibuatan VIP", "Teleported to " .. positionData.name, 1.5)
+            
+            -- Auto respawn jika sampai checkpoint terakhir dan menggunakan auto mode
+            if positionData.isFinal and not isManual then
+                wait(2)
+                sendNotification("Sibuatan VIP", "Reached final checkpoint! Respawning in 5 seconds...", 5)
+                wait(5) -- 5 second delay before respawn
+                -- Kill player untuk auto respawn
+                pcall(function()
+                    if character and character:FindFirstChild("Humanoid") then
+                        character.Humanoid.Health = 0
+                    end
+                end)
+            end
+        end
+    end
+end
+
+-- Auto teleport function
+local function startAutoTeleport()
+    if autoTeleportConnection then
+        autoTeleportConnection:Disconnect()
+        autoTeleportConnection = nil
+    end
+    
+    local lastTeleportTime = 0
+    autoTeleportConnection = RunService.Heartbeat:Connect(function()
+        if isAutoTeleporting and tick() - lastTeleportTime >= autoTeleportDelay then
+            local currentPos = positions[currentPositionIndex]
+            teleportToPosition(currentPos, false)
+            
+            -- Stop auto teleport if reached final checkpoint
+            if currentPos.isFinal then
+                isAutoTeleporting = false
+                if autoToggleButton then
+                    autoToggleButton.Text = "▶ Start Auto"
+                    autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+                end
+                -- Re-enable individual buttons
+                if scrollFrame then
+                    for _, button in pairs(scrollFrame:GetChildren()) do
+                        if button:IsA("TextButton") then
+                            local positionData = positions[button.LayoutOrder]
+                            if positionData and positionData.isFinal then
+                                button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+                            else
+                                button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+                            end
+                        end
+                    end
+                end
+                stopAutoTeleport()
+                return
+            end
+            
+            currentPositionIndex = currentPositionIndex + 1
+            if currentPositionIndex > #positions then
+                currentPositionIndex = 1
+            end
+            
+            lastTeleportTime = tick()
+        end
+    end)
+end
+
+local function stopAutoTeleport()
+    if autoTeleportConnection then
+        autoTeleportConnection:Disconnect()
+        autoTeleportConnection = nil
+    end
+end
+
 -- Create GUI with error handling
 local function createGUI()
     local screenGui = Instance.new("ScreenGui")
@@ -20,7 +207,7 @@ local function createGUI()
     mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     mainFrame.BorderSizePixel = 0
     mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
-    mainFrame.Size = UDim2.new(0, 230, 0, 280) -- Increased height for auto loop button
+    mainFrame.Size = UDim2.new(0, 230, 0, 300)
     mainFrame.Active = true
     mainFrame.Draggable = true
 
@@ -37,7 +224,7 @@ local function createGUI()
     shadow.BackgroundTransparency = 0.8
     shadow.BorderSizePixel = 0
     shadow.Position = UDim2.new(0.05, 2, 0.25, 2)
-    shadow.Size = UDim2.new(0, 230, 0, 280)
+    shadow.Size = UDim2.new(0, 230, 0, 300)
     shadow.ZIndex = mainFrame.ZIndex - 1
 
     local shadowCorner = Instance.new("UICorner")
@@ -104,7 +291,7 @@ local function createGUI()
     closeButton.Size = UDim2.new(0, 24, 0, 24)
     closeButton.Font = Enum.Font.GothamBold
     closeButton.Text = "×"
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     closeButton.TextSize = 14
 
     local closeCorner = Instance.new("UICorner")
@@ -126,7 +313,7 @@ local function createGUI()
     autoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
     autoFrame.BorderSizePixel = 0
     autoFrame.Position = UDim2.new(0, 8, 0, 8)
-    autoFrame.Size = UDim2.new(1, -16, 0, 85) -- Increased height for loop button
+    autoFrame.Size = UDim2.new(1, -16, 0, 45)
 
     local autoCorner = Instance.new("UICorner")
     autoCorner.CornerRadius = UDim.new(0, 6)
@@ -140,7 +327,7 @@ local function createGUI()
     controlLabel.Position = UDim2.new(0, 8, 0, 2)
     controlLabel.Size = UDim2.new(1, -16, 0, 18)
     controlLabel.Font = Enum.Font.GothamBold
-    controlLabel.Text = "Auto Teleport Control [SAFE MODE]"
+    controlLabel.Text = "Auto Teleport Control [2s Delay]"
     controlLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
     controlLabel.TextSize = 9
     controlLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -154,7 +341,7 @@ local function createGUI()
     autoToggleButton.Position = UDim2.new(0, 8, 0, 22)
     autoToggleButton.Size = UDim2.new(1, -16, 0, 18)
     autoToggleButton.Font = Enum.Font.Gotham
-    autoToggleButton.Text = "▶ Start Auto (Safe Mode)"
+    autoToggleButton.Text = "▶ Start Auto (2s Delay)"
     autoToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
     autoToggleButton.TextSize = 9
 
@@ -162,44 +349,14 @@ local function createGUI()
     autoButtonCorner.CornerRadius = UDim.new(0, 4)
     autoButtonCorner.Parent = autoToggleButton
 
-    -- Auto Loop Button
-    local autoLoopButton = Instance.new("TextButton")
-    autoLoopButton.Name = "AutoLoopButton"
-    autoLoopButton.Parent = autoFrame
-    autoLoopButton.BackgroundColor3 = Color3.fromRGB(108, 117, 125)
-    autoLoopButton.BorderSizePixel = 0
-    autoLoopButton.Position = UDim2.new(0, 8, 0, 45)
-    autoLoopButton.Size = UDim2.new(1, -16, 0, 18)
-    autoLoopButton.Font = Enum.Font.Gotham
-    autoLoopButton.Text = "🔄 LOOP: OFF"
-    autoLoopButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    autoLoopButton.TextSize = 9
-
-    local loopButtonCorner = Instance.new("UICorner")
-    loopButtonCorner.CornerRadius = UDim.new(0, 4)
-    loopButtonCorner.Parent = autoLoopButton
-
-    -- Session Label
-    local sessionLabel = Instance.new("TextLabel")
-    sessionLabel.Name = "SessionLabel"
-    sessionLabel.Parent = autoFrame
-    sessionLabel.BackgroundTransparency = 1
-    sessionLabel.Position = UDim2.new(0, 8, 0, 67)
-    sessionLabel.Size = UDim2.new(1, -16, 0, 15)
-    sessionLabel.Font = Enum.Font.Gotham
-    sessionLabel.Text = "Session: " .. _G.AutoTeleportData.sessionCount
-    sessionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    sessionLabel.TextSize = 8
-    sessionLabel.TextXAlignment = Enum.TextXAlignment.Left
-
     -- Scroll Frame for positions
     scrollFrame = Instance.new("ScrollingFrame")
     scrollFrame.Name = "ScrollFrame"
     scrollFrame.Parent = contentFrame
     scrollFrame.BackgroundTransparency = 1
     scrollFrame.BorderSizePixel = 0
-    scrollFrame.Position = UDim2.new(0, 8, 0, 98)
-    scrollFrame.Size = UDim2.new(1, -16, 1, -106)
+    scrollFrame.Position = UDim2.new(0, 8, 0, 58)
+    scrollFrame.Size = UDim2.new(1, -16, 1, -66)
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     scrollFrame.ScrollBarThickness = 3
     scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
@@ -207,11 +364,11 @@ local function createGUI()
     -- UI List Layout
     local listLayout = Instance.new("UIListLayout")
     listLayout.Parent = scrollFrame
-    listLayout.Padding = UDim.new(0, 4)
+    listLayout.Padding = UDim.new(0, 2)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
     -- Create position buttons
-    local buttonHeight = 25
+    local buttonHeight = 22
     local totalHeight = 0
 
     for i, positionData in ipairs(positions) do
@@ -219,8 +376,8 @@ local function createGUI()
         button.Name = positionData.name
         button.Parent = scrollFrame
         
-        -- Special color for Puncak
-        if positionData.isPuncak then
+        -- Special color for final checkpoint
+        if positionData.isFinal then
             button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
         else
             button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
@@ -229,20 +386,20 @@ local function createGUI()
         button.BorderSizePixel = 0
         button.Size = UDim2.new(1, -6, 0, buttonHeight)
         button.Font = Enum.Font.Gotham
-        button.Text = positionData.name .. " - Safe Teleport"
+        button.Text = positionData.name
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 10
+        button.TextSize = 9
         button.LayoutOrder = i
         
         local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 5)
+        buttonCorner.CornerRadius = UDim.new(0, 4)
         buttonCorner.Parent = button
         
         -- Hover effects with error handling
         button.MouseEnter:Connect(function()
             pcall(function()
                 if not isAutoTeleporting then
-                    if positionData.isPuncak then
+                    if positionData.isFinal then
                         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 165, 0)}):Play()
                     else
                         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90, 150, 200)}):Play()
@@ -254,7 +411,7 @@ local function createGUI()
         button.MouseLeave:Connect(function()
             pcall(function()
                 if not isAutoTeleporting then
-                    if positionData.isPuncak then
+                    if positionData.isFinal then
                         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0)}):Play()
                     else
                         TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 130, 180)}):Play()
@@ -271,8 +428,8 @@ local function createGUI()
                     currentPositionIndex = i
                     
                     -- Button click animation
-                    local originalColor = positionData.isPuncak and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(70, 130, 180)
-                    local clickColor = positionData.isPuncak and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(50, 110, 160)
+                    local originalColor = positionData.isFinal and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(70, 130, 180)
+                    local clickColor = positionData.isFinal and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(50, 110, 160)
                     
                     TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = clickColor}):Play()
                     wait(0.1)
@@ -281,7 +438,7 @@ local function createGUI()
             end)
         end)
         
-        totalHeight = totalHeight + buttonHeight + 4
+        totalHeight = totalHeight + buttonHeight + 2
     end
 
     -- Update canvas size
@@ -289,7 +446,7 @@ local function createGUI()
 
     -- Minimize/Restore functionality
     local isMinimized = false
-    local originalSize = UDim2.new(0, 230, 0, 280)
+    local originalSize = UDim2.new(0, 230, 0, 300)
     local minimizedSize = UDim2.new(0, 230, 0, 32)
 
     minimizeButton.MouseButton1Click:Connect(function()
@@ -322,7 +479,7 @@ local function createGUI()
             isAutoTeleporting = not isAutoTeleporting
             
             if isAutoTeleporting then
-                autoToggleButton.Text = "⏸ Stop Auto (Safe Mode)"
+                autoToggleButton.Text = "⏸ Stop Auto (2s Delay)"
                 autoToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
                 startAutoTeleport()
                 
@@ -333,7 +490,7 @@ local function createGUI()
                     end
                 end
             else
-                autoToggleButton.Text = "▶ Start Auto (Safe Mode)"
+                autoToggleButton.Text = "▶ Start Auto (2s Delay)"
                 autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
                 stopAutoTeleport()
                 
@@ -341,33 +498,13 @@ local function createGUI()
                 for _, button in pairs(scrollFrame:GetChildren()) do
                     if button:IsA("TextButton") then
                         local positionData = positions[button.LayoutOrder]
-                        if positionData and positionData.isPuncak then
+                        if positionData and positionData.isFinal then
                             button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
                         else
                             button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
                         end
                     end
                 end
-            end
-            
-            -- Update session label
-            sessionLabel.Text = "Session: " .. _G.AutoTeleportData.sessionCount
-        end)
-    end)
-
-    -- Auto loop button functionality
-    autoLoopButton.MouseButton1Click:Connect(function()
-        pcall(function()
-            _G.AutoTeleportData.isAutoMode = not _G.AutoTeleportData.isAutoMode
-            
-            if _G.AutoTeleportData.isAutoMode then
-                autoLoopButton.Text = "🔄 LOOP: ON"
-                autoLoopButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
-                sendNotification("Sibuatan VIP", "Auto loop mode enabled! Will rejoin after reaching summit.", 3)
-            else
-                autoLoopButton.Text = "🔄 LOOP: OFF"
-                autoLoopButton.BackgroundColor3 = Color3.fromRGB(108, 117, 125)
-                sendNotification("Sibuatan VIP", "Auto loop mode disabled.", 2)
             end
         end)
     end)
@@ -376,8 +513,6 @@ local function createGUI()
     closeButton.MouseButton1Click:Connect(function()
         pcall(function()
             stopAutoTeleport()
-            _G.AutoTeleportData.isAutoMode = false
-            _G.AutoTeleportData.shouldAutoStart = false
             screenGui:Destroy()
         end)
     end)
@@ -386,15 +521,15 @@ local function createGUI()
     mainFrame.Size = UDim2.new(0, 0, 0, 0)
     shadow.Size = UDim2.new(0, 0, 0, 0)
 
-    local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 280)})
-    local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 280)})
+    local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 300)})
+    local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 300)})
 
     openTween:Play()
     shadowTween:Play()
 
     -- Success notification (only once)
     wait(0.5)
-    sendNotification("Sibuatan VIP", "Safe teleporting enabled! Auto respawn at summit!", 4)
+    sendNotification("Sibuatan VIP", "Safe teleporting enabled! 2 seconds delay between checkpoints!", 4)
 
     -- Cleanup on destroy
     screenGui.AncestryChanged:Connect(function()
@@ -403,393 +538,25 @@ local function createGUI()
         end
     end)
     
-    -- Update loop button state
-    if _G.AutoTeleportData.isAutoMode then
-        autoLoopButton.Text = "🔄 LOOP: ON"
-        autoLoopButton.BackgroundColor3 = Color3.fromRGB(46, 204, 113)
-    end
-    
     return screenGui
 end
 
 -- Character respawn handling
 player.CharacterAdded:Connect(function(newCharacter)
     pcall(function()
+        character = newCharacter
+        humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        
         -- Reset auto teleport position to start after respawn
         currentPositionIndex = 1
         
         -- Show respawn notification (anti-spam)
         wait(2)
-        sendNotification("Sibuatan VIP", "Respawned! Auto teleport will restart from Pos 1", 3)
-    end)
-end)
-
--- Hotkey support (T for toggle, L for loop)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    pcall(function()
-        if input.KeyCode == Enum.KeyCode.T then
-            -- Toggle auto teleport
-            if autoToggleButton then
-                autoToggleButton.MouseButton1Click:Fire()
-            end
-        elseif input.KeyCode == Enum.KeyCode.L then
-            -- Toggle auto loop
-            if autoLoopButton then
-                autoLoopButton.MouseButton1Click:Fire()
-            end
-        end
+        sendNotification("Sibuatan VIP", "Respawned! Auto teleport will restart from Cp 1", 3)
     end)
 end)
 
 -- Initialize script
 pcall(function()
     createGUI()
-    
-    -- Check for auto start after rejoin
-    spawn(function()
-        wait(1)
-        checkAutoStart()
-    end)
-    
-    sendNotification("Sibuatan VIP", "Script loaded! Press T to toggle, L for loop mode", 3)
-end)-- Sibuatan VIP Teleport Script v4 - Fixed Version
--- Compatible with Delta Executor Android
-
-local Players = game:GetService("Players")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
-local RunService = game:GetService("RunService")
-local TeleportService = game:GetService("TeleportService")
-local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
-
-local player = Players.LocalPlayer
-
--- Function to get character safely
-local function getCharacter()
-    return player.Character
-end
-
-local function getHumanoidRootPart()
-    local char = getCharacter()
-    if char then
-        return char:FindFirstChild("HumanoidRootPart")
-    end
-    return nil
-end
-
--- Persistent Data Storage (using _G for cross-session data)
-if not _G.AutoTeleportData then
-    _G.AutoTeleportData = {
-        isAutoMode = false,
-        shouldAutoStart = false,
-        sessionCount = 0
-    }
-
--- Anti-spam notification function
-local function sendNotification(title, text, duration)
-    local currentTime = tick()
-    if currentTime - lastNotificationTime >= notificationCooldown then
-        lastNotificationTime = currentTime
-        pcall(function()
-            game.StarterGui:SetCore("SendNotification", {
-                Title = title,
-                Text = text,
-                Duration = duration or 2
-            })
-        end)
-    end
-end
-
--- Performance Optimization Functions
-local function enablePerformanceMode()
-    if not performanceMode then return end
-    
-    pcall(function()
-        -- Hide ALL map objects except player and checkpoints
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("BasePart") and obj.Parent ~= getCharacter() then
-                local shouldKeep = false
-                local name = obj.Name:lower()
-                
-                -- Keep only essential objects (checkpoints, spawns, interactive objects)
-                if name:find("checkpoint") or name:find("spawn") or name:find("telepad") or 
-                   name:find("pad") or name:find("portal") or name:find("goal") or
-                   obj:FindFirstChild("TouchInterest") or obj:FindFirstChild("ClickDetector") then
-                    shouldKeep = true
-                end
-                
-                -- Keep player-related objects
-                if obj.Parent:IsA("Tool") or obj.Parent:IsA("Accessory") then
-                    shouldKeep = true
-                end
-                
-                -- Hide everything else (terrain, buildings, decorations, etc.)
-                if not shouldKeep then
-                    originalTransparencies[obj] = obj.Transparency
-                    obj.Transparency = 1
-                    obj.CanCollide = false
-                    obj.CanTouch = false
-                    if obj:IsA("MeshPart") then
-                        obj.RenderFidelity = Enum.RenderFidelity.Performance
-                    end
-                    table.insert(hiddenParts, obj)
-                end
-            elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceGui") then
-                -- Hide all textures and decals
-                if obj.Parent ~= getCharacter() then
-                    originalTransparencies[obj] = obj.Transparency
-                    obj.Transparency = 1
-                    table.insert(hiddenParts, obj)
-                end
-            elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or 
-                   obj:IsA("Beam") or obj:IsA("Trail") then
-                -- Disable all particle effects
-                obj.Enabled = false
-                table.insert(hiddenParts, obj)
-            end
-        end
-        
-        -- Hide terrain textures if possible
-        if Workspace.Terrain then
-            Workspace.Terrain.Decoration = false
-        end
-        
-        -- Set graphics quality to minimum
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-    end)
-end
-
-local function disablePerformanceMode()
-    if not performanceMode then return end
-    
-    -- Restore all hidden parts
-    for _, obj in pairs(hiddenParts) do
-        if obj and obj.Parent then
-            if originalTransparencies[obj] ~= nil then
-                obj.Transparency = originalTransparencies[obj]
-            end
-            if obj:IsA("BasePart") then
-                obj.CanCollide = true
-                obj.CanTouch = true
-                if obj:IsA("MeshPart") then
-                    obj.RenderFidelity = Enum.RenderFidelity.Automatic
-                end
-            elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or 
-                   obj:IsA("Beam") or obj:IsA("Trail") then
-                obj.Enabled = true
-            end
-        end
-    end
-    
-    -- Restore terrain
-    if Workspace.Terrain then
-        Workspace.Terrain.Decoration = true
-    end
-    
-    -- Clear arrays
-    hiddenParts = {}
-    originalTransparencies = {}
-    
-    -- Restore graphics quality
-    settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
-end
-
--- Safe teleport function
-local function safeTeleport(targetPosition, duration)
-    local humanoidRootPart = getHumanoidRootPart()
-    if not humanoidRootPart then
-        return false
-    end
-    
-    -- Direct teleport using CFrame (from script 2 approach)
-    pcall(function()
-        humanoidRootPart.CFrame = CFrame.new(targetPosition)
-    end)
-    
-    return true
-end
-
--- Teleport to position function
-local function teleportToPosition(positionData, isManual)
-    local humanoidRootPart = getHumanoidRootPart()
-    if humanoidRootPart then
-        -- Use safe teleport
-        local success = safeTeleport(positionData.pos, 0.8)
-        
-        if success then
-            -- Safe notification (anti-spam)
-            sendNotification("Sibuatan VIP", "Teleported to " .. positionData.name, 1.5)
-            
-            -- Auto respawn jika sampai puncak dan menggunakan auto mode
-            if positionData.isPuncak and not isManual then
-                wait(2)
-                sendNotification("Sibuatan VIP", "Reached summit! Respawning in 5 seconds...", 5)
-                wait(5) -- 5 second delay before respawn
-                -- Kill player untuk auto respawn
-                pcall(function()
-                    local character = getCharacter()
-                    if character and character:FindFirstChild("Humanoid") then
-                        character.Humanoid.Health = 0
-                    end
-                end)
-            end
-        end
-    end
-end
-
--- Auto teleport function with new system from script 2
-local function startAutoTeleport()
-    if autoTeleportConnection then
-        autoTeleportConnection:Disconnect()
-        autoTeleportConnection = nil
-    end
-    
-    -- Enable performance mode
-    enablePerformanceMode()
-    
-    local lastTeleportTime = 0
-    autoTeleportConnection = RunService.Heartbeat:Connect(function()
-        if isAutoTeleporting and tick() - lastTeleportTime >= autoTeleportDelay then
-            local currentPos = positions[currentPositionIndex]
-            teleportToPosition(currentPos, false)
-            
-            -- Check if reached puncak
-            if currentPos.isPuncak then
-                -- Handle loop system
-                _G.AutoTeleportData.sessionCount = _G.AutoTeleportData.sessionCount + 1
-                
-                if _G.AutoTeleportData.isAutoMode then
-                    -- Auto loop mode - rejoin
-                    _G.AutoTeleportData.shouldAutoStart = true
-                    sendNotification("Sibuatan VIP", "Session " .. _G.AutoTeleportData.sessionCount .. " completed! Rejoining in 3 seconds...", 3)
-                    
-                    wait(3)
-                    TeleportService:Teleport(game.PlaceId, player)
-                    return
-                else
-                    -- Manual mode - stop
-                    isAutoTeleporting = false
-                    if autoToggleButton then
-                        autoToggleButton.Text = "▶ Start Auto"
-                        autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-                    end
-                    disablePerformanceMode()
-                    stopAutoTeleport()
-                    return
-                end
-            end
-            
-            currentPositionIndex = currentPositionIndex + 1
-            if currentPositionIndex > #positions then
-                currentPositionIndex = 1
-            end
-            
-            lastTeleportTime = tick()
-        end
-    end)
-end
-
-local function stopAutoTeleport()
-    if autoTeleportConnection then
-        autoTeleportConnection:Disconnect()
-        autoTeleportConnection = nil
-    end
-    disablePerformanceMode()
-end
-
--- Auto start after rejoin
-local function checkAutoStart()
-    if _G.AutoTeleportData.shouldAutoStart then
-        _G.AutoTeleportData.shouldAutoStart = false
-        
-        sendNotification("Sibuatan VIP", "Auto resuming teleport in 3 seconds...", 3)
-        
-        wait(3)
-        
-        -- Ensure character ready
-        local humanoidRootPart = getHumanoidRootPart()
-        if not humanoidRootPart then
-            local char = player.CharacterAdded:Wait()
-            humanoidRootPart = char:WaitForChild("HumanoidRootPart")
-        end
-        
-        -- Auto start teleport
-        isAutoTeleporting = true
-        currentPositionIndex = 1
-        startAutoTeleport()
-        
-        if autoToggleButton then
-            autoToggleButton.Text = "⏸ Stop Auto (Safe Mode)"
-            autoToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
-        end
-    end
-end
-end
-
--- Variables
-local isAutoTeleporting = false
-local autoTeleportConnection = nil
-local currentPositionIndex = 1
-local autoTeleportDelay = 3 -- 3 seconds between teleports (updated from script 2)
-local autoToggleButton = nil
-local scrollFrame = nil
-local lastNotificationTime = 0
-local notificationCooldown = 3
-local hiddenParts = {}
-local originalTransparencies = {}
-local performanceMode = true
-
--- Koordinat teleport positions (updated from script 2)
-local positions = {
-    {pos = Vector3.new(-312, 158, -326), name = "Pos 1"},
-    {pos = Vector3.new(-727, 592, -124), name = "Pos 2"},
-    {pos = Vector3.new(-884, 996, -206), name = "Pos 3"},
-    {pos = Vector3.new(-1637, 996, 279), name = "Pos 4"},
-    {pos = Vector3.new(-1648, 998, 633), name = "Pos 5"},
-    {pos = Vector3.new(-1639, 1116, 2149), name = "Pos 6"},
-    {pos = Vector3.new(-520, 1452, 3278), name = "Pos 7"},
-    {pos = Vector3.new(-708, 1896, 2384), name = "Pos 8"},
-    {pos = Vector3.new(-863, 1944, 2070), name = "Pos 9"},
-    {pos = Vector3.new(-870, 2104, 1667), name = "Pos 10"},
-    {pos = Vector3.new(-904, 2344, 1444), name = "Pos 11"},
-    {pos = Vector3.new(-847, 2768, 1506), name = "Pos 12"},
-    {pos = Vector3.new(-612, 3288, 1917), name = "Pos 13"},
-    {pos = Vector3.new(-237, 3407, 2575), name = "Pos 14"},
-    {pos = Vector3.new(309, 3544, 3040), name = "Pos 15"},
-    {pos = Vector3.new(441, 3600, 3561), name = "Pos 16"},
-    {pos = Vector3.new(909, 3668, 4148), name = "Pos 17"},
-    {pos = Vector3.new(1423, 3908, 4994), name = "Pos 18"},
-    {pos = Vector3.new(1669, 4288, 5192), name = "Pos 19"},
-    {pos = Vector3.new(1722, 4472, 5171), name = "Pos 20"},
-    {pos = Vector3.new(1865, 4656, 5201), name = "Pos 21"},
-    {pos = Vector3.new(1903, 4964, 5156), name = "Pos 22"},
-    {pos = Vector3.new(2847, 5076, 5243), name = "Pos 23"},
-    {pos = Vector3.new(3459, 5244, 5120), name = "Pos 24"},
-    {pos = Vector3.new(4576, 5480, 5264), name = "Pos 25"},
-    {pos = Vector3.new(4636, 4951, 5239), name = "Pos 26"},
-    {pos = Vector3.new(4625, 4568, 5245), name = "Pos 27"},
-    {pos = Vector3.new(4880, 3988, 5184), name = "Pos 28"},
-    {pos = Vector3.new(5830, 3999, 5742), name = "Pos 29"},
-    {pos = Vector3.new(6629, 4225, 5577), name = "Pos 30"},
-    {pos = Vector3.new(7476, 4225, 5307), name = "Pos 31"},
-    {pos = Vector3.new(8211, 4332, 4894), name = "Pos 32"},
-    {pos = Vector3.new(8695, 4484, 4545), name = "Pos 33"},
-    {pos = Vector3.new(8786, 4540, 4345), name = "Pos 34"},
-    {pos = Vector3.new(9196, 5076, 2468), name = "Pos 35"},
-    {pos = Vector3.new(9189, 5324, 2461), name = "Pos 36"},
-    {pos = Vector3.new(9077, 5895, 2040), name = "Pos 37"},
-    {pos = Vector3.new(9188, 6220, 1988), name = "Pos 38"},
-    {pos = Vector3.new(9064, 6500, 1828), name = "Pos 39"},
-    {pos = Vector3.new(8691, 6532, 1291), name = "Pos 40"},
-    {pos = Vector3.new(8395, 6560, 1139), name = "Pos 41"},
-    {pos = Vector3.new(7994, 6610, 1019), name = "Pos 42"},
-    {pos = Vector3.new(7141, 6776, 377), name = "Pos 43"},
-    {pos = Vector3.new(6571, 6969, 253), name = "Pos 44"},
-    {pos = Vector3.new(6041, 6968, 253), name = "Pos 45"},
-    {pos = Vector3.new(4876, 7148, 680), name = "Pos 46"},
-    {pos = Vector3.new(5391, 8112, 2207), name = "Puncak", isPuncak = true}
-}
+end)
