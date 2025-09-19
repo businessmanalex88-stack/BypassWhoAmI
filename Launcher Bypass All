@@ -21,7 +21,7 @@ local Config = {
     WEBHOOK_URL = "https://discord.com/api/webhooks/1417987178990141522/wguemluRqMxaDNWQ1Ce5JnLM1gctyuDM26u7gu7A00AMdhz8Sb2htRQzSMqHMvIkdv3z",
     FALLBACK_KEYS = {
         ["Adminganteng"] = true,
-        ["Whoamidev"] = false,
+        ["Whoamidev"] = true,
         ["WhoAmIAdmin2025"] = true
     },
     -- Custom Key System - 100 Generated Keys dengan format WarpahVip_AJ827HDJA + random
