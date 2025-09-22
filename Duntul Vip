@@ -1,5 +1,5 @@
--- Duntul VIP Teleport Script v4 - Fixed Version
--- Compatible with Delta Executor Android
+-- Duntul Teleport Script v4 - Versi Diperbaiki
+-- Kompatibel dengan Delta Executor Android
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -7,67 +7,42 @@ local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
-local Workspace = game:GetService("Workspace")
-local Lighting = game:GetService("Lighting")
 
 local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
--- Function to get character safely
-local function getCharacter()
-    return player.Character
-end
-
-local function getHumanoidRootPart()
-    local char = getCharacter()
-    if char then
-        return char:FindFirstChild("HumanoidRootPart")
-    end
-    return nil
-end
-
--- Persistent Data Storage (using _G for cross-session data)
-if not _G.AutoTeleportData then
-    _G.AutoTeleportData = {
-        isAutoMode = false,
-        shouldAutoStart = false,
-        sessionCount = 0
-    }
-end
-
--- Variables
+-- Variabel
 local isAutoTeleporting = false
 local autoTeleportConnection = nil
 local currentPositionIndex = 1
 local autoToggleButton = nil
 local scrollFrame = nil
-local lastNotificationTime = 0
-local notificationCooldown = 3
-local hiddenParts = {}
-local originalTransparencies = {}
-local performanceMode = true
+local lastNotificationTime = 0 -- Notifikasi anti-spam
+local notificationCooldown = 3 -- detik antar notifikasi
 
--- New coordinates from the second script
+-- Koordinat posisi teleport dengan delay khusus untuk setiap CP (Updated coordinates)
 local positions = {
-    {pos = Vector3.new(868, 208, 132), name = "Checkpoint 1"},
-    {pos = Vector3.new(782, 340, -1), name = "Checkpoint 2"},
-    {pos = Vector3.new(412, 428, -39), name = "Checkpoint 3"},
-    {pos = Vector3.new(259, 612, -275), name = "Checkpoint 4"},
-    {pos = Vector3.new(270, 652, -453), name = "Checkpoint 5"},
-    {pos = Vector3.new(31, 688, -459), name = "Checkpoint 6"},
-    {pos = Vector3.new(-251, 684, -449), name = "Checkpoint 7"},
-    {pos = Vector3.new(-553, 724, -383), name = "Checkpoint 8"},
-    {pos = Vector3.new(-560, 785, -588), name = "Checkpoint 9"},
-    {pos = Vector3.new(-475, 904, -763), name = "Checkpoint 10"},
-    {pos = Vector3.new(-75, 893, -766), name = "Checkpoint 11"},
-    {pos = Vector3.new(338, 1069, -932), name = "Checkpoint 12"},
-    {pos = Vector3.new(434, 1285, -807), name = "Checkpoint 13"},
-    {pos = Vector3.new(671, 1665, -852), name = "Checkpoint 14"},
-    {pos = Vector3.new(631, 1877, -744), name = "Checkpoint 15"},
-    {pos = Vector3.new(960, 1881, -867), name = "Checkpoint 16"},
-    {pos = Vector3.new(988, 1954, -498), name = "Final Checkpoint", isPuncak = true}
+    {pos = Vector3.new(868, 208, 133), name = "Cp1", delay = 20},
+    {pos = Vector3.new(779, 341, 0), name = "Cp2", delay = 20},
+    {pos = Vector3.new(411, 429, -41), name = "Cp3", delay = 20},
+    {pos = Vector3.new(255, 612, -281), name = "Cp4", delay = 20},
+    {pos = Vector3.new(270, 652, -456), name = "Cp5", delay = 20},
+    {pos = Vector3.new(27, 688, -463), name = "Cp6", delay = 20},
+    {pos = Vector3.new(-252, 684, -452), name = "Cp7", delay = 20},
+    {pos = Vector3.new(-554, 724, -386), name = "Cp8", delay = 20},
+    {pos = Vector3.new(-560, 784, -588), name = "Cp9", delay = 20},
+    {pos = Vector3.new(-476, 905, -764), name = "Cp10", delay = 20},
+    {pos = Vector3.new(-75, 893, -766), name = "Cp11", delay = 20},
+    {pos = Vector3.new(339, 1069, -933), name = "Cp12", delay = 20},
+    {pos = Vector3.new(433, 1285, -807), name = "Cp13", delay = 20},
+    {pos = Vector3.new(672, 1665, -853), name = "Cp14", delay = 20},
+    {pos = Vector3.new(634, 1877, -741), name = "Cp15", delay = 20},
+    {pos = Vector3.new(960, 1880, -869), name = "Cp16", delay = 20},
+    {pos = Vector3.new(971, 1944, -535), name = "Summit", isPuncak = true, delay = 50}
 }
 
--- Anti-spam notification function
+-- Fungsi notifikasi anti-spam
 local function sendNotification(title, text, duration)
     local currentTime = tick()
     if currentTime - lastNotificationTime >= notificationCooldown then
@@ -82,617 +57,467 @@ local function sendNotification(title, text, duration)
     end
 end
 
--- Performance Optimization Functions
-local function enablePerformanceMode()
-    if not performanceMode then return end
-    
-    pcall(function()
-        -- Hide ALL map objects except player and checkpoints
-        for _, obj in pairs(Workspace:GetDescendants()) do
-            if obj:IsA("BasePart") and obj.Parent ~= getCharacter() then
-                local shouldKeep = false
-                local name = obj.Name:lower()
-                
-                -- Keep only essential objects (checkpoints, spawns, interactive objects)
-                if name:find("checkpoint") or name:find("spawn") or name:find("telepad") or 
-                   name:find("pad") or name:find("portal") or name:find("goal") or
-                   obj:FindFirstChild("TouchInterest") or obj:FindFirstChild("ClickDetector") then
-                    shouldKeep = true
-                end
-                
-                -- Keep player-related objects
-                if obj.Parent:IsA("Tool") or obj.Parent:IsA("Accessory") then
-                    shouldKeep = true
-                end
-                
-                -- Hide everything else (terrain, buildings, decorations, etc.)
-                if not shouldKeep then
-                    originalTransparencies[obj] = obj.Transparency
-                    obj.Transparency = 1
-                    obj.CanCollide = false
-                    obj.CanTouch = false
-                    if obj:IsA("MeshPart") then
-                        obj.RenderFidelity = Enum.RenderFidelity.Performance
-                    end
-                    table.insert(hiddenParts, obj)
-                end
-            elseif obj:IsA("Decal") or obj:IsA("Texture") or obj:IsA("SurfaceGui") then
-                -- Hide all textures and decals
-                if obj.Parent ~= getCharacter() then
-                    originalTransparencies[obj] = obj.Transparency
-                    obj.Transparency = 1
-                    table.insert(hiddenParts, obj)
-                end
-            elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or 
-                   obj:IsA("Beam") or obj:IsA("Trail") then
-                -- Disable all particle effects
-                obj.Enabled = false
-                table.insert(hiddenParts, obj)
-            end
-        end
-        
-        -- Hide terrain textures if possible
-        if Workspace.Terrain then
-            Workspace.Terrain.Decoration = false
-        end
-        
-        -- Set graphics quality to minimum
-        settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
-    end)
-end
-
-local function disablePerformanceMode()
-    if not performanceMode then return end
-    
-    -- Restore all hidden parts
-    for _, obj in pairs(hiddenParts) do
-        if obj and obj.Parent then
-            if originalTransparencies[obj] ~= nil then
-                obj.Transparency = originalTransparencies[obj]
-            end
-            if obj:IsA("BasePart") then
-                obj.CanCollide = true
-                obj.CanTouch = true
-                if obj:IsA("MeshPart") then
-                    obj.RenderFidelity = Enum.RenderFidelity.Automatic
-                end
-            elseif obj:IsA("ParticleEmitter") or obj:IsA("Smoke") or obj:IsA("Fire") or 
-                   obj:IsA("Beam") or obj:IsA("Trail") then
-                obj.Enabled = true
-            end
-        end
-    end
-    
-    -- Restore terrain
-    if Workspace.Terrain then
-        Workspace.Terrain.Decoration = true
-    end
-    
-    -- Clear arrays
-    hiddenParts = {}
-    originalTransparencies = {}
-    
-    -- Restore graphics quality
-    settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
-end
-
--- Simple teleport function (from second script system)
-local function basicTeleport(targetPosition)
-    local humanoidRootPart = getHumanoidRootPart()
-    if not humanoidRootPart then
+-- Fungsi teleport aman tanpa bypass anti-cheat kompleks
+local function safeTeleport(targetPosition, duration)
+    if not character or not character:FindFirstChild("HumanoidRootPart") then
         return false
     end
     
-    print("Teleporting to: " .. tostring(targetPosition))
+    duration = duration or 0.5
+    local humanoidRootPart = character.HumanoidRootPart
     
-    -- Simple CFrame teleport
-    humanoidRootPart.CFrame = CFrame.new(targetPosition)
+    -- Teleport aman sederhana menggunakan TweenService
+    local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = CFrame.new(targetPosition)})
     
-    print("Teleported to position: " .. tostring(humanoidRootPart.Position))
-    
+    tween:Play()
     return true
 end
 
--- Respawn function
-local function respawnPlayer()
-    local character = getCharacter()
-    if character and character:FindFirstChild("Humanoid") then
-        character.Humanoid.Health = 0
-        
-        -- Wait for respawn
-        local respawnTime = math.random(3, 5)
-        for i = respawnTime, 1, -1 do
-            if not isAutoTeleporting then return false end
-            wait(1)
-        end
-        
-        return true
-    end
-    return false
-end
-
--- Teleport to position function with simple timing
+-- Fungsi teleport
 local function teleportToPosition(positionData, isManual)
-    local humanoidRootPart = getHumanoidRootPart()
-    if humanoidRootPart then
-        -- Use simple teleport
-        local success = basicTeleport(positionData.pos)
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        -- Gunakan teleport aman
+        local success = safeTeleport(positionData.pos, 0.8)
         
         if success then
-            -- Safe notification (anti-spam)
-            sendNotification("Duntul VIP", "Teleported to " .. positionData.name, 1.5)
+            -- Notifikasi aman (anti-spam)
+            sendNotification("Duntul", "Teleport ke " .. positionData.name, 1.5)
             
-            -- Auto respawn if reached final checkpoint and using auto mode
+            -- Auto respawn jika sampai puncak dan menggunakan mode auto
             if positionData.isPuncak and not isManual then
-                wait(math.random(3, 5))
-                sendNotification("Duntul VIP", "Final checkpoint reached! Completed!", 5)
-                
-                -- Stop auto mode (no auto loop like second script)
-                isAutoTeleporting = false
-                if autoToggleButton then
-                    autoToggleButton.Text = "▶ Start Auto"
-                    autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-                end
-                disablePerformanceMode()
-                stopAutoTeleport()
+                wait(2)
+                sendNotification("Duntul", "Sudah sampai puncak! Respawning dalam 5 detik...", 5)
+                wait(5) -- Delay 5 detik sebelum respawn
+                -- Bunuh pemain untuk auto respawn
+                pcall(function()
+                    if character and character:FindFirstChild("Humanoid") then
+                        character.Humanoid.Health = 0
+                    end
+                end)
             end
         end
     end
 end
 
--- Auto teleport function with simple timing (4-5 seconds)
+-- Fungsi auto teleport dengan delay per CP
 local function startAutoTeleport()
     if autoTeleportConnection then
         autoTeleportConnection:Disconnect()
         autoTeleportConnection = nil
     end
     
-    -- Enable performance mode
-    enablePerformanceMode()
+    -- Buat thread terpisah untuk auto teleport
+    autoTeleportConnection = true
     
-    local lastTeleportTime = 0
-    autoTeleportConnection = RunService.Heartbeat:Connect(function()
-        if isAutoTeleporting then
-            -- Simple delay system: 4 seconds normal, 5 seconds for final checkpoint
-            local delay = 4
-            if currentPositionIndex == #positions then
-                delay = 5 -- 5 seconds for final checkpoint
+    coroutine.wrap(function()
+        while isAutoTeleporting and autoTeleportConnection do
+            local currentPos = positions[currentPositionIndex]
+            
+            if not currentPos then
+                currentPositionIndex = 1
+                currentPos = positions[currentPositionIndex]
             end
             
-            if tick() - lastTeleportTime >= delay then
-                local currentPos = positions[currentPositionIndex]
-                teleportToPosition(currentPos, false)
-                
-                -- Check if reached final checkpoint
-                if currentPos.isPuncak then
-                    return -- Stop here, no auto loop
-                end
-                
-                currentPositionIndex = currentPositionIndex + 1
-                if currentPositionIndex > #positions then
-                    currentPositionIndex = 1
-                end
-                
-                lastTeleportTime = tick()
-            end
-        end
-    end)
-end
-
-local function stopAutoTeleport()
-    if autoTeleportConnection then
-        autoTeleportConnection:Disconnect()
-        autoTeleportConnection = nil
-    end
-    disablePerformanceMode()
-end
-
--- Auto start after rejoin
-local function checkAutoStart()
-    if _G.AutoTeleportData.shouldAutoStart then
-        _G.AutoTeleportData.shouldAutoStart = false
-        
-        sendNotification("Duntul VIP", "Auto resuming teleport in 3 seconds...", 3)
-        
-        wait(3)
-        
-        -- Ensure character ready
-        local humanoidRootPart = getHumanoidRootPart()
-        if not humanoidRootPart then
-            local char = player.CharacterAdded:Wait()
-            humanoidRootPart = char:WaitForChild("HumanoidRootPart")
-        end
-        
-        -- Auto start teleport
-        isAutoTeleporting = true
-        currentPositionIndex = 1
-        startAutoTeleport()
-        
-        if autoToggleButton then
-            autoToggleButton.Text = "⏸ Stop Auto"
-            autoToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
-        end
-    end
-end
-
--- Create GUI with error handling
-local function createGUI()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "DuntulVipGui"
-    screenGui.ResetOnSpawn = false
-    
-    -- Try to parent to CoreGui, fallback to PlayerGui
-    local success = pcall(function()
-        screenGui.Parent = CoreGui
-    end)
-    
-    if not success then
-        screenGui.Parent = player:WaitForChild("PlayerGui")
-    end
-
-    -- Main Frame
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainFrame"
-    mainFrame.Parent = screenGui
-    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
-    mainFrame.Size = UDim2.new(0, 230, 0, 350)
-    mainFrame.Active = true
-    mainFrame.Draggable = true
-
-    -- Corner rounding
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = mainFrame
-
-    -- Drop shadow effect
-    local shadow = Instance.new("Frame")
-    shadow.Name = "Shadow"
-    shadow.Parent = screenGui
-    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.BackgroundTransparency = 0.8
-    shadow.BorderSizePixel = 0
-    shadow.Position = UDim2.new(0.05, 2, 0.25, 2)
-    shadow.Size = UDim2.new(0, 230, 0, 350)
-    shadow.ZIndex = mainFrame.ZIndex - 1
-
-    local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(0, 8)
-    shadowCorner.Parent = shadow
-
-    -- Title Bar
-    local titleBar = Instance.new("Frame")
-    titleBar.Name = "TitleBar"
-    titleBar.Parent = mainFrame
-    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-    titleBar.BorderSizePixel = 0
-    titleBar.Size = UDim2.new(1, 0, 0, 32)
-
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 8)
-    titleCorner.Parent = titleBar
-
-    -- Fix title bar bottom corners
-    local titleBarFix = Instance.new("Frame")
-    titleBarFix.Parent = titleBar
-    titleBarFix.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
-    titleBarFix.BorderSizePixel = 0
-    titleBarFix.Position = UDim2.new(0, 0, 0.5, 0)
-    titleBarFix.Size = UDim2.new(1, 0, 0.5, 0)
-
-    -- Title Label
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Name = "TitleLabel"
-    titleLabel.Parent = titleBar
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Position = UDim2.new(0, 10, 0, 0)
-    titleLabel.Size = UDim2.new(1, -90, 1, 0)
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.Text = "Duntul VIP [4-5s]"
-    titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-    titleLabel.TextSize = 11
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Minimize Button
-    local minimizeButton = Instance.new("TextButton")
-    minimizeButton.Name = "MinimizeButton"
-    minimizeButton.Parent = titleBar
-    minimizeButton.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
-    minimizeButton.BorderSizePixel = 0
-    minimizeButton.Position = UDim2.new(1, -58, 0, 4)
-    minimizeButton.Size = UDim2.new(0, 24, 0, 24)
-    minimizeButton.Font = Enum.Font.GothamBold
-    minimizeButton.Text = "—"
-    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    minimizeButton.TextSize = 12
-
-    local minimizeCorner = Instance.new("UICorner")
-    minimizeCorner.CornerRadius = UDim.new(0, 4)
-    minimizeCorner.Parent = minimizeButton
-
-    -- Close Button
-    local closeButton = Instance.new("TextButton")
-    closeButton.Name = "CloseButton"
-    closeButton.Parent = titleBar
-    closeButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
-    closeButton.BorderSizePixel = 0
-    closeButton.Position = UDim2.new(1, -32, 0, 4)
-    closeButton.Size = UDim2.new(0, 24, 0, 24)
-    closeButton.Font = Enum.Font.GothamBold
-    closeButton.Text = "×"
-    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeButton.TextSize = 14
-
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 4)
-    closeCorner.Parent = closeButton
-
-    -- Content Frame
-    local contentFrame = Instance.new("Frame")
-    contentFrame.Name = "ContentFrame"
-    contentFrame.Parent = mainFrame
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.Position = UDim2.new(0, 0, 0, 32)
-    contentFrame.Size = UDim2.new(1, 0, 1, -32)
-
-    -- Auto Teleport Control Frame
-    local autoFrame = Instance.new("Frame")
-    autoFrame.Name = "AutoFrame"
-    autoFrame.Parent = contentFrame
-    autoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-    autoFrame.BorderSizePixel = 0
-    autoFrame.Position = UDim2.new(0, 8, 0, 8)
-    autoFrame.Size = UDim2.new(1, -16, 0, 85)
-
-    local autoCorner = Instance.new("UICorner")
-    autoCorner.CornerRadius = UDim.new(0, 6)
-    autoCorner.Parent = autoFrame
-
-    -- Control Label
-    local controlLabel = Instance.new("TextLabel")
-    controlLabel.Name = "ControlLabel"
-    controlLabel.Parent = autoFrame
-    controlLabel.BackgroundTransparency = 1
-    controlLabel.Position = UDim2.new(0, 8, 0, 2)
-    controlLabel.Size = UDim2.new(1, -16, 0, 18)
-    controlLabel.Font = Enum.Font.GothamBold
-    controlLabel.Text = "Simple Mode [4-5s delays, No Loop]"
-    controlLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
-    controlLabel.TextSize = 8
-    controlLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Start/Stop Button
-    autoToggleButton = Instance.new("TextButton")
-    autoToggleButton.Name = "AutoToggleButton"
-    autoToggleButton.Parent = autoFrame
-    autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-    autoToggleButton.BorderSizePixel = 0
-    autoToggleButton.Position = UDim2.new(0, 8, 0, 22)
-    autoToggleButton.Size = UDim2.new(1, -16, 0, 18)
-    autoToggleButton.Font = Enum.Font.Gotham
-    autoToggleButton.Text = "▶ Start Auto"
-    autoToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    autoToggleButton.TextSize = 9
-
-    local autoButtonCorner = Instance.new("UICorner")
-    autoButtonCorner.CornerRadius = UDim.new(0, 4)
-    autoButtonCorner.Parent = autoToggleButton
-
-    -- Reset Button
-    local resetButton = Instance.new("TextButton")
-    resetButton.Name = "ResetButton"
-    resetButton.Parent = autoFrame
-    resetButton.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
-    resetButton.BorderSizePixel = 0
-    resetButton.Position = UDim2.new(0, 8, 0, 45)
-    resetButton.Size = UDim2.new(1, -16, 0, 18)
-    resetButton.Font = Enum.Font.Gotham
-    resetButton.Text = "🔄 RESET to Start"
-    resetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    resetButton.TextSize = 9
-
-    local resetButtonCorner = Instance.new("UICorner")
-    resetButtonCorner.CornerRadius = UDim.new(0, 4)
-    resetButtonCorner.Parent = resetButton
-
-    -- Session Label
-    local sessionLabel = Instance.new("TextLabel")
-    sessionLabel.Name = "SessionLabel"
-    sessionLabel.Parent = autoFrame
-    sessionLabel.BackgroundTransparency = 1
-    sessionLabel.Position = UDim2.new(0, 8, 0, 67)
-    sessionLabel.Size = UDim2.new(1, -16, 0, 15)
-    sessionLabel.Font = Enum.Font.Gotham
-    sessionLabel.Text = "Total: " .. #positions .. " checkpoints"
-    sessionLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    sessionLabel.TextSize = 8
-    sessionLabel.TextXAlignment = Enum.TextXAlignment.Left
-
-    -- Scroll Frame for positions
-    scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Name = "ScrollFrame"
-    scrollFrame.Parent = contentFrame
-    scrollFrame.BackgroundTransparency = 1
-    scrollFrame.BorderSizePixel = 0
-    scrollFrame.Position = UDim2.new(0, 8, 0, 98)
-    scrollFrame.Size = UDim2.new(1, -16, 1, -106)
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    scrollFrame.ScrollBarThickness = 3
-    scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
-
-    -- UI List Layout
-    local listLayout = Instance.new("UIListLayout")
-    listLayout.Parent = scrollFrame
-    listLayout.Padding = UDim.new(0, 4)
-    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-
-    -- Create position buttons
-    local buttonHeight = 25
-    local totalHeight = 0
-
-    for i, positionData in ipairs(positions) do
-        local button = Instance.new("TextButton")
-        button.Name = positionData.name
-        button.Parent = scrollFrame
-        
-        -- Special color for Final Checkpoint
-        if positionData.isPuncak then
-            button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
-        else
-            button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
-        end
-        
-        button.BorderSizePixel = 0
-        button.Size = UDim2.new(1, -6, 0, buttonHeight)
-        button.Font = Enum.Font.Gotham
-        button.Text = positionData.name
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 10
-        button.LayoutOrder = i
-        
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 5)
-        buttonCorner.Parent = button
-        
-        -- Hover effects with error handling
-        button.MouseEnter:Connect(function()
-            pcall(function()
-                if not isAutoTeleporting then
-                    if positionData.isPuncak then
-                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 165, 0)}):Play()
-                    else
-                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90, 150, 200)}):Play()
-                    end
-                end
-            end)
-        end)
-        
-        button.MouseLeave:Connect(function()
-            pcall(function()
-                if not isAutoTeleporting then
-                    if positionData.isPuncak then
-                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0)}):Play()
-                    else
-                        TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 130, 180)}):Play()
-                    end
-                end
-            end)
-        end)
-        
-        -- Click to teleport
-        button.MouseButton1Click:Connect(function()
-            pcall(function()
-                if not isAutoTeleporting then
-                    teleportToPosition(positionData, true)
-                    currentPositionIndex = i
-                    
-                    -- Button click animation
-                    local originalColor = positionData.isPuncak and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(70, 130, 180)
-                    local clickColor = positionData.isPuncak and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(50, 110, 160)
-                    
-                    TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = clickColor}):Play()
-                    wait(0.1)
-                    TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = originalColor}):Play()
-                end
-            end)
-        end)
-        
-        totalHeight = totalHeight + buttonHeight + 4
-    end
-
-    -- Update canvas size
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
-
-    -- Minimize/Restore functionality
-    local isMinimized = false
-    local originalSize = UDim2.new(0, 230, 0, 350)
-    local minimizedSize = UDim2.new(0, 230, 0, 32)
-
-    minimizeButton.MouseButton1Click:Connect(function()
-        pcall(function()
-            isMinimized = not isMinimized
+            -- Teleport ke posisi saat ini
+            teleportToPosition(currentPos, false)
             
-            if isMinimized then
-                -- Minimize
-                minimizeButton.Text = "+"
-                local minimizeTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = minimizedSize})
-                local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = minimizedSize})
-                minimizeTween:Play()
-                shadowTween:Play()
-                contentFrame.Visible = false
-            else
-                -- Restore
-                minimizeButton.Text = "—"
-                local restoreTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = originalSize})
-                local shadowTween = TweenService:Create(shadow, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = originalSize})
-                restoreTween:Play()
-                shadowTween:Play()
-                contentFrame.Visible = true
-            end
-        end)
-    end)
-
-    -- Auto toggle button functionality
-    autoToggleButton.MouseButton1Click:Connect(function()
-        pcall(function()
-            isAutoTeleporting = not isAutoTeleporting
+            -- Tunggu delay khusus untuk CP ini
+            wait(currentPos.delay or 2)
             
-            if isAutoTeleporting then
-                autoToggleButton.Text = "⏸ Stop Auto"
-                autoToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
-                startAutoTeleport()
-                
-                -- Disable individual buttons during auto mode
-                for _, button in pairs(scrollFrame:GetChildren()) do
-                    if button:IsA("TextButton") then
-                        button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-                    end
+            -- Hentikan auto teleport jika mencapai puncak
+            if currentPos.isPuncak then
+                isAutoTeleporting = false
+                if autoToggleButton then
+                    autoToggleButton.Text = "▶ Mulai Auto"
+                    autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
                 end
-            else
-                autoToggleButton.Text = "▶ Start Auto"
-                autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-                stopAutoTeleport()
-                
-                -- Re-enable individual buttons
-                for _, button in pairs(scrollFrame:GetChildren()) do
-                    if button:IsA("TextButton") then
-                        local positionData = positions[button.LayoutOrder]
-                        if positionData and positionData.isPuncak then
-                            button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
-                        else
-                            button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+                -- Aktifkan kembali tombol individual
+                if scrollFrame then
+                    for _, button in pairs(scrollFrame:GetChildren()) do
+                        if button:IsA("TextButton") then
+                            local positionData = positions[button.LayoutOrder]
+                            if positionData and positionData.isPuncak then
+                                button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+                            else
+                                button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+                            end
                         end
                     end
                 end
+                stopAutoTeleport()
+                return
+            end
+            
+            -- Lanjut ke CP berikutnya
+            currentPositionIndex = currentPositionIndex + 1
+            if currentPositionIndex > #positions then
+                currentPositionIndex = 1
+            end
+        end
+    end)()
+end
+
+local function stopAutoTeleport()
+    autoTeleportConnection = false
+end
+
+-- Buat GUI dengan penanganan error
+local function createGUI()
+    pcall(function()
+        -- Hapus GUI lama jika ada
+        if CoreGui:FindFirstChild("DuntulGui") then
+            CoreGui:FindFirstChild("DuntulGui"):Destroy()
+        end
+        
+        local playerGui = player:FindFirstChild("PlayerGui")
+        if playerGui and playerGui:FindFirstChild("DuntulGui") then
+            playerGui:FindFirstChild("DuntulGui"):Destroy()
+        end
+        
+        local screenGui = Instance.new("ScreenGui")
+        screenGui.Name = "DuntulGui"
+        screenGui.ResetOnSpawn = false
+        
+        -- Coba parent ke CoreGui, fallback ke PlayerGui
+        local success, err = pcall(function()
+            screenGui.Parent = CoreGui
+        end)
+        
+        if not success then
+            local success2, err2 = pcall(function()
+                screenGui.Parent = player:WaitForChild("PlayerGui")
+            end)
+            
+            if not success2 then
+                sendNotification("Error", "Gagal membuat GUI: " .. tostring(err2), 5)
+                return
+            end
+        end
+
+        -- Main Frame
+        local mainFrame = Instance.new("Frame")
+        mainFrame.Name = "MainFrame"
+        mainFrame.Parent = screenGui
+        mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+        mainFrame.BorderSizePixel = 0
+        mainFrame.Position = UDim2.new(0.05, 0, 0.25, 0)
+        mainFrame.Size = UDim2.new(0, 230, 0, 320)
+        mainFrame.Active = true
+        mainFrame.Draggable = true
+
+        -- Corner rounding
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 8)
+        corner.Parent = mainFrame
+
+        -- Title Bar
+        local titleBar = Instance.new("Frame")
+        titleBar.Name = "TitleBar"
+        titleBar.Parent = mainFrame
+        titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+        titleBar.BorderSizePixel = 0
+        titleBar.Size = UDim2.new(1, 0, 0, 32)
+
+        local titleCorner = Instance.new("UICorner")
+        titleCorner.CornerRadius = UDim.new(0, 8)
+        titleCorner.Parent = titleBar
+
+        -- Title Label
+        local titleLabel = Instance.new("TextLabel")
+        titleLabel.Name = "TitleLabel"
+        titleLabel.Parent = titleBar
+        titleLabel.BackgroundTransparency = 1
+        titleLabel.Position = UDim2.new(0, 10, 0, 0)
+        titleLabel.Size = UDim2.new(1, -90, 1, 0)
+        titleLabel.Font = Enum.Font.GothamBold
+        titleLabel.Text = "Duntul [AMAN]"
+        titleLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+        titleLabel.TextSize = 11
+        titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+        -- Minimize Button
+        local minimizeButton = Instance.new("TextButton")
+        minimizeButton.Name = "MinimizeButton"
+        minimizeButton.Parent = titleBar
+        minimizeButton.BackgroundColor3 = Color3.fromRGB(255, 193, 7)
+        minimizeButton.BorderSizePixel = 0
+        minimizeButton.Position = UDim2.new(1, -58, 0, 4)
+        minimizeButton.Size = UDim2.new(0, 24, 0, 24)
+        minimizeButton.Font = Enum.Font.GothamBold
+        minimizeButton.Text = "—"
+        minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        minimizeButton.TextSize = 12
+
+        local minimizeCorner = Instance.new("UICorner")
+        minimizeCorner.CornerRadius = UDim.new(0, 4)
+        minimizeCorner.Parent = minimizeButton
+
+        -- Close Button
+        local closeButton = Instance.new("TextButton")
+        closeButton.Name = "CloseButton"
+        closeButton.Parent = titleBar
+        closeButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+        closeButton.BorderSizePixel = 0
+        closeButton.Position = UDim2.new(1, -32, 0, 4)
+        closeButton.Size = UDim2.new(0, 24, 0, 24)
+        closeButton.Font = Enum.Font.GothamBold
+        closeButton.Text = "×"
+        closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        closeButton.TextSize = 14
+
+        local closeCorner = Instance.new("UICorner")
+        closeCorner.CornerRadius = UDim.new(0, 4)
+        closeCorner.Parent = closeButton
+
+        -- Content Frame
+        local contentFrame = Instance.new("Frame")
+        contentFrame.Name = "ContentFrame"
+        contentFrame.Parent = mainFrame
+        contentFrame.BackgroundTransparency = 1
+        contentFrame.Position = UDim2.new(0, 0, 0, 32)
+        contentFrame.Size = UDim2.new(1, 0, 1, -32)
+
+        -- Auto Teleport Control Frame
+        local autoFrame = Instance.new("Frame")
+        autoFrame.Name = "AutoFrame"
+        autoFrame.Parent = contentFrame
+        autoFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+        autoFrame.BorderSizePixel = 0
+        autoFrame.Position = UDim2.new(0, 8, 0, 8)
+        autoFrame.Size = UDim2.new(1, -16, 0, 45)
+
+        local autoCorner = Instance.new("UICorner")
+        autoCorner.CornerRadius = UDim.new(0, 6)
+        autoCorner.Parent = autoFrame
+
+        -- Control Label
+        local controlLabel = Instance.new("TextLabel")
+        controlLabel.Name = "ControlLabel"
+        controlLabel.Parent = autoFrame
+        controlLabel.BackgroundTransparency = 1
+        controlLabel.Position = UDim2.new(0, 8, 0, 2)
+        controlLabel.Size = UDim2.new(1, -16, 0, 18)
+        controlLabel.Font = Enum.Font.GothamBold
+        controlLabel.Text = "Kontrol Auto Teleport [MODE AMAN]"
+        controlLabel.TextColor3 = Color3.fromRGB(0, 255, 0)
+        controlLabel.TextSize = 9
+        controlLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+        -- Start/Stop Button
+        autoToggleButton = Instance.new("TextButton")
+        autoToggleButton.Name = "AutoToggleButton"
+        autoToggleButton.Parent = autoFrame
+        autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+        autoToggleButton.BorderSizePixel = 0
+        autoToggleButton.Position = UDim2.new(0, 8, 0, 22)
+        autoToggleButton.Size = UDim2.new(1, -16, 0, 18)
+        autoToggleButton.Font = Enum.Font.Gotham
+        autoToggleButton.Text = "▶ Mulai Auto (Mode Aman)"
+        autoToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        autoToggleButton.TextSize = 9
+
+        local autoButtonCorner = Instance.new("UICorner")
+        autoButtonCorner.CornerRadius = UDim.new(0, 4)
+        autoButtonCorner.Parent = autoToggleButton
+
+        -- Scroll Frame untuk posisi
+        scrollFrame = Instance.new("ScrollingFrame")
+        scrollFrame.Name = "ScrollFrame"
+        scrollFrame.Parent = contentFrame
+        scrollFrame.BackgroundTransparency = 1
+        scrollFrame.BorderSizePixel = 0
+        scrollFrame.Position = UDim2.new(0, 8, 0, 58)
+        scrollFrame.Size = UDim2.new(1, -16, 1, -66)
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+        scrollFrame.ScrollBarThickness = 3
+        scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 100)
+
+        -- UI List Layout
+        local listLayout = Instance.new("UIListLayout")
+        listLayout.Parent = scrollFrame
+        listLayout.Padding = UDim.new(0, 4)
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+        -- Buat tombol posisi
+        local buttonHeight = 25
+        local totalHeight = 0
+
+        for i, positionData in ipairs(positions) do
+            local button = Instance.new("TextButton")
+            button.Name = positionData.name
+            button.Parent = scrollFrame
+            
+            -- Warna khusus untuk Summit
+            if positionData.isPuncak then
+                button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+            else
+                button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+            end
+            
+            button.BorderSizePixel = 0
+            button.Size = UDim2.new(1, -6, 0, buttonHeight)
+            button.Font = Enum.Font.Gotham
+            button.Text = positionData.name .. " (" .. (positionData.delay or 2) .. "s)"
+            button.TextColor3 = Color3.fromRGB(255, 255, 255)
+            button.TextSize = 10
+            button.LayoutOrder = i
+            
+            local buttonCorner = Instance.new("UICorner")
+            buttonCorner.CornerRadius = UDim.new(0, 5)
+            buttonCorner.Parent = button
+            
+            -- Efek hover dengan penanganan error
+            button.MouseEnter:Connect(function()
+                pcall(function()
+                    if not isAutoTeleporting then
+                        if positionData.isPuncak then
+                            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 165, 0)}):Play()
+                        else
+                            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(90, 150, 200)}):Play()
+                        end
+                    end
+                end)
+            end)
+            
+            button.MouseLeave:Connect(function()
+                pcall(function()
+                    if not isAutoTeleporting then
+                        if positionData.isPuncak then
+                            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 140, 0)}):Play()
+                        else
+                            TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(70, 130, 180)}):Play()
+                        end
+                    end
+                end)
+            end)
+            
+            -- Klik untuk teleport
+            button.MouseButton1Click:Connect(function()
+                pcall(function()
+                    if not isAutoTeleporting then
+                        teleportToPosition(positionData, true)
+                        currentPositionIndex = i
+                        
+                        -- Animasi klik tombol
+                        local originalColor = positionData.isPuncak and Color3.fromRGB(255, 140, 0) or Color3.fromRGB(70, 130, 180)
+                        local clickColor = positionData.isPuncak and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(50, 110, 160)
+                        
+                        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = clickColor}):Play()
+                        wait(0.1)
+                        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = originalColor}):Play()
+                    end
+                end)
+            end)
+            
+            totalHeight = totalHeight + buttonHeight + 4
+        end
+
+        -- Update ukuran canvas
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, totalHeight)
+
+        -- Fungsi minimize/restore
+        local isMinimized = false
+        local originalSize = UDim2.new(0, 230, 0, 320)
+        local minimizedSize = UDim2.new(0, 230, 0, 32)
+
+        minimizeButton.MouseButton1Click:Connect(function()
+            pcall(function()
+                isMinimized = not isMinimized
+                
+                if isMinimized then
+                    -- Minimize
+                    minimizeButton.Text = "+"
+                    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = minimizedSize}):Play()
+                    contentFrame.Visible = false
+                else
+                    -- Restore
+                    minimizeButton.Text = "—"
+                    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = originalSize}):Play()
+                    contentFrame.Visible = true
+                end
+            end)
+        end)
+
+        -- Fungsi tombol toggle auto
+        autoToggleButton.MouseButton1Click:Connect(function()
+            pcall(function()
+                isAutoTeleporting = not isAutoTeleporting
+                
+                if isAutoTeleporting then
+                    autoToggleButton.Text = "⏸ Hentikan Auto"
+                    autoToggleButton.BackgroundColor3 = Color3.fromRGB(220, 53, 69)
+                    startAutoTeleport()
+                    
+                    -- Nonaktifkan tombol individual selama mode auto
+                    for _, button in pairs(scrollFrame:GetChildren()) do
+                        if button:IsA("TextButton") then
+                            button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+                        end
+                    end
+                else
+                    autoToggleButton.Text = "▶ Mulai Auto"
+                    autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
+                    stopAutoTeleport()
+                    
+                    -- Aktifkan kembali tombol individual
+                    for _, button in pairs(scrollFrame:GetChildren()) do
+                        if button:IsA("TextButton") then
+                            local positionData = positions[button.LayoutOrder]
+                            if positionData and positionData.isPuncak then
+                                button.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+                            else
+                                button.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+                            end
+                        end
+                    end
+                end
+            end)
+        end)
+
+        -- Fungsi tombol close
+        closeButton.MouseButton1Click:Connect(function()
+            pcall(function()
+                stopAutoTeleport()
+                screenGui:Destroy()
+            end)
+        end)
+
+        -- Animasi awal
+        mainFrame.Size = UDim2.new(0, 0, 0, 0)
+        local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {Size = UDim2.new(0, 230, 0, 320)})
+        openTween:Play()
+
+        -- Notifikasi sukses (hanya sekali)
+        wait(0.5)
+        sendNotification("Duntul", "Teleport aman diaktifkan! Auto respawn di puncak!", 4)
+
+        -- Cleanup saat dihancurkan
+        screenGui.AncestryChanged:Connect(function()
+            if not screenGui.Parent then
+                stopAutoTeleport()
             end
         end)
+        
+        return screenGui
     end)
+end
 
-    -- Reset button functionality
-    resetButton.MouseButton1Click:Connect(function()
-        pcall(function()
-            stopAutoTeleport()
-            isAutoTeleporting = false
-            currentPositionIndex = 1
-            
-            autoToggleButton.Text = "▶ Start Auto"
-            autoToggleButton.BackgroundColor3 = Color3.fromRGB(40, 167, 69)
-            
-            sendNotification("Duntul VIP", "Script reset! Ready to start from beginning.", 2)
-        end)
+-- Penanganan respawn karakter
+player.CharacterAdded:Connect(function(newCharacter)
+    pcall(function()
+        character = newCharacter
+        humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+        
+        -- Reset posisi auto teleport ke awal setelah respawn
+        currentPositionIndex = 1
+        
+        -- Tampilkan notifikasi respawn (anti-spam)
+        wait(2)
+        sendNotification("Duntul", "Respawned! Auto teleport akan restart dari Cp1", 3)
     end)
+end
 
-    -- Close button functionality
-    closeButton.MouseButton1Click:Connect(function()
-        pcall(function()
-            stopAutoTeleport()
-            _G.AutoTeleportData.isAutoMode = false
-            _G.AutoTeleportData.shouldAutoStart = false
-            screenGui:Destroy()
-        end)
-    end)
-
-    -- Initial animation
-    mainFrame.Size = UDim2.new(0, 0, 0, 0)
-    shadow.Size = UDim2.new(0, 0, 0,
+-- Inisialisasi script
+wait(2) -- Tunggu sebentar sebelum membuat GUI
+createGUI()
