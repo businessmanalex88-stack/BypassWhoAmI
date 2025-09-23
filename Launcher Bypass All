@@ -1,1052 +1,318 @@
--- =====================================================
--- WarpahVip Bypass - Professional Edition v2.0
--- Enhanced security and user experience with Webhook
--- =====================================================
+-- Script Lua untuk Delta Executor Android
+-- Update Sistem Key Notification - Fixed GUI Version
 
--- Services
-local Services = {
-    Players = game:GetService("Players"),
-    HttpService = game:GetService("HttpService"),
-    UserInputService = game:GetService("UserInputService"),
-    TweenService = game:GetService("TweenService"),
-    ReplicatedStorage = game:GetService("ReplicatedStorage"),
-    SoundService = game:GetService("SoundService")
-}
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
 
--- Configuration
-local Config = {
-    API_BASE = "https://whoami-key-api.vercel.app/api",
-    ADMIN_PASSWORD = "Whoamidev1819",
-    -- Discord Webhook URL
-    WEBHOOK_URL = "https://discord.com/api/webhooks/1417987178990141522/wguemluRqMxaDNWQ1Ce5JnLM1gctyuDM26u7gu7A00AMdhz8Sb2htRQzSMqHMvIkdv3z",
-    FALLBACK_KEYS = {
-        ["Adminganteng"] = true,
-        ["Whoamidev"] = false,
-        ["WhoAmIAdmin2025"] = false
-    },
-    -- Custom Key System - 100 Generated Keys dengan format WarpahVip_AJ827HDJA + random
-    CUSTOM_KEYS = {
-        ["WarpahVip_AJ827HDJA92K4L8"] = true,
-        ["WarpahVip_AJ827HDJA5X9P2M"] = true,
-        ["WarpahVip_AJ827HDJA7N6Q3R"] = true,
-        ["WarpahVip_AJ827HDJA4T8W1E"] = true,
-        ["WarpahVip_AJ827HDJA9Y5U7I"] = true,
-        ["WarpahVip_AJ827HDJA3O2A6S"] = true,
-        ["WarpahVip_AJ827HDJA8D4F9G"] = true,
-        ["WarpahVip_AJ827HDJA1H7J5K"] = true,
-        ["WarpahVip_AJ827HDJA6L3Z8X"] = true,
-        ["WarpahVip_AJ827HDJA2C9V4B"] = true,
-        ["WarpahVip_AJ827HDJA7N1M8Q"] = true,
-        ["WarpahVip_AJ827HDJA5W3R6T"] = true,
-        ["WarpahVip_AJ827HDJA9Y8U2I"] = true,
-        ["WarpahVip_AJ827HDJA4O7P5A"] = true,
-        ["WarpahVip_AJ827HDJA8S1D9F"] = true,
-        ["WarpahVip_AJ827HDJA3G6H4J"] = true,
-        ["WarpahVip_AJ827HDJA7K2L5Z"] = true,
-        ["WarpahVip_AJ827HDJA1X9C8V"] = true,
-        ["WarpahVip_AJ827HDJA6B4N7M"] = true,
-        ["WarpahVip_AJ827HDJA2Q3W6E"] = true,
-        ["WarpahVip_AJ827HDJA8R5T9Y"] = true,
-        ["WarpahVip_AJ827HDJA4U7I2O"] = true,
-        ["WarpahVip_AJ827HDJA9P1A6S"] = true,
-        ["WarpahVip_AJ827HDJA3D8F5G"] = true,
-        ["WarpahVip_AJ827HDJA7H4J9K"] = true,
-        ["WarpahVip_AJ827HDJA1L6Z3X"] = true,
-        ["WarpahVip_AJ827HDJA5C2V8B"] = true,
-        ["WarpahVip_AJ827HDJA6N9M1Q"] = true,
-        ["WarpahVip_AJ827HDJA2W4R7T"] = true,
-        ["WarpahVip_AJ827HDJA8Y3U6I"] = true,
-        ["WarpahVip_AJ827HDJA4O9P2A"] = true,
-        ["WarpahVip_AJ827HDJA9S6D1F"] = true,
-        ["WarpahVip_AJ827HDJA3G5H8J"] = true,
-        ["WarpahVip_AJ827HDJA7K4L2Z"] = true,
-        ["WarpahVip_AJ827HDJA1X6C9V"] = true,
-        ["WarpahVip_AJ827HDJA5B3N4M"] = true,
-        ["WarpahVip_AJ827HDJA2Q8W7E"] = true,
-        ["WarpahVip_AJ827HDJA6R1T5Y"] = true,
-        ["WarpahVip_AJ827HDJA4U9I8O"] = true,
-        ["WarpahVip_AJ827HDJA8P2A3S"] = true,
-        ["WarpahVip_AJ827HDJA3D7F6G"] = true,
-        ["WarpahVip_AJ827HDJA9H1J4K"] = true,
-        ["WarpahVip_AJ827HDJA7L5Z8X"] = true,
-        ["WarpahVip_AJ827HDJA1C6V2B"] = true,
-        ["WarpahVip_AJ827HDJA5N8M9Q"] = true,
-        ["WarpahVip_AJ827HDJA2W3R4T"] = true,
-        ["WarpahVip_AJ827HDJA6Y7U1I"] = true,
-        ["WarpahVip_AJ827HDJA4O5P8A"] = true,
-        ["WarpahVip_AJ827HDJA8S9D6F"] = true,
-        ["WarpahVip_AJ827HDJA3G2H7J"] = true,
-        ["WarpahVip_AJ827HDJA9K1L4Z"] = true,
-        ["WarpahVip_AJ827HDJA7X5C8V"] = true,
-        ["WarpahVip_AJ827HDJA1B2N6M"] = true,
-        ["WarpahVip_AJ827HDJA5Q9W3E"] = true,
-        ["WarpahVip_AJ827HDJA2R4T7Y"] = true,
-        ["WarpahVip_AJ827HDJA6U8I5O"] = true,
-        ["WarpahVip_AJ827HDJA4P1A9S"] = true,
-        ["WarpahVip_AJ827HDJA8D6F2G"] = true,
-        ["WarpahVip_AJ827HDJA3H9J7K"] = true,
-        ["WarpahVip_AJ827HDJA9L4Z1X"] = true,
-        ["WarpahVip_AJ827HDJA7C5V8B"] = true,
-        ["WarpahVip_AJ827HDJA1N2M6Q"] = true,
-        ["WarpahVip_AJ827HDJA5W8R3T"] = true,
-        ["WarpahVip_AJ827HDJA2Y4U9I"] = true,
-        ["WarpahVip_AJ827HDJA6O7P1A"] = true,
-        ["WarpahVip_AJ827HDJA4S5D8F"] = true,
-        ["WarpahVip_AJ827HDJA8G9H2J"] = true,
-        ["WarpahVip_AJ827HDJA3K6L7Z"] = true,
-        ["WarpahVip_AJ827HDJA9X1C4V"] = true,
-        ["WarpahVip_AJ827HDJA7B8N5M"] = true,
-        ["WarpahVip_AJ827HDJA1Q2W9E"] = true,
-        ["WarpahVip_AJ827HDJA5R6T3Y"] = true,
-        ["WarpahVip_AJ827HDJA2U4I8O"] = true,
-        ["WarpahVip_AJ827HDJA6P9A7S"] = true,
-        ["WarpahVip_AJ827HDJA4D1F5G"] = true,
-        ["WarpahVip_AJ827HDJA8H2J6K"] = true,
-        ["WarpahVip_AJ827HDJA3L9Z4X"] = true,
-        ["WarpahVip_AJ827HDJA9C7V1B"] = true,
-        ["WarpahVip_AJ827HDJA7N5M8Q"] = true,
-        ["WarpahVip_AJ827HDJA1W2R6T"] = true,
-        ["WarpahVip_AJ827HDJA5Y9U3I"] = true,
-        ["WarpahVip_AJ827HDJA2O4P7A"] = true,
-        ["WarpahVip_AJ827HDJA6S8D1F"] = true,
-        ["WarpahVip_AJ827HDJA4G5H9J"] = true,
-        ["WarpahVip_AJ827HDJA8K2L6Z"] = true,
-        ["WarpahVip_AJ827HDJA3X4C7V"] = true,
-        ["WarpahVip_AJ827HDJA9B1N8M"] = true,
-        ["WarpahVip_AJ827HDJA7Q5W2E"] = true,
-        ["WarpahVip_AJ827HDJA1R9T6Y"] = true,
-        ["WarpahVip_AJ827HDJA5U3I4O"] = true,
-        ["WarpahVip_AJ827HDJA2P8A9S"] = true,
-        ["WarpahVip_AJ827HDJA6D7F1G"] = true,
-        ["WarpahVip_AJ827HDJA4H6J5K"] = true,
-        ["WarpahVip_AJ827HDJA8L9Z2X"] = true,
-        ["WarpahVip_AJ827HDJA3C4V7B"] = true,
-        ["WarpahVip_AJ827HDJA9N8M1Q"] = true,
-        ["WarpahVip_AJ827HDJA7W5R9T"] = true,
-        ["WarpahVip_AJ827HDJA1Y2U6I"] = true,
-        ["WarpahVip_AJ827HDJA5O4P3A"] = true,
-        ["WarpahVip_AJ827HDJA2S9D7F"] = true,
-        ["WarpahVip_AJ827HDJA6G1H8J"] = true,
-        ["WarpahVip_AJ827HDJA4K5L9Z"] = true,
-        ["WarpahVip_AJ827HDJA8X6C2V"] = true,
-        ["WarpahVip_AJ827HDJA3B7N4M"] = true,
-        ["WarpahVip_AJ827HDJA9Q1W8E"] = true,
-        ["WarpahVip_AJ827HDJA7R2T5Y"] = true,
-        ["WarpahVip_AJ827HDJA1U6I9O"] = true,
-        ["WarpahVip_AJ827HDJA5P3A4S"] = true
-    },
-    MAIN_SCRIPT_URL = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Menu%20Cheats",
-    DISCORD_LINK = "https://discord.gg/e77s79ZJ",
-    LOOTLABS_LINK = "https://lootdest.org/s?Zvo1qoxp"
-}
-
--- Variables
-local player = Services.Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-local screenGui = nil
-local mainFrame = nil
-
--- Working Webhook Function with detailed device detection
-local function sendWebhook(keyUsed, keyType)
-    spawn(function()
-        -- Check HTTP availability first
-        local httpAvailable = false
-        pcall(function()
-            if Services.HttpService and Services.HttpService.HttpEnabled then
-                httpAvailable = true
-                print("✅ HttpService available and enabled")
-            else
-                print("⚠️ HttpService not enabled")
-            end
-        end)
-        
-        if not httpAvailable then
-            pcall(function()
-                -- Alternative HTTP access
-                Services.HttpService = game.HttpService or game:GetService("HttpService")
-                httpAvailable = true
-                print("✅ HttpService accessed via alternative method")
-            end)
-        end
-        
-        if not httpAvailable then
-            warn("❌ HTTP not available, cannot send webhook")
-            return false
-        end
-        
-        print("🔄 Trying to send webhook:", keyUsed)
-        
-        -- Safe value extraction
-        local playerName = "Unknown"
-        local currentTime = "00:00:00"
-        local deviceInfo = "Unknown Device"
-        local platformInfo = "Unknown Platform"
-        local userIP = "IP Detection Failed"
-        
-        pcall(function()
-            playerName = tostring(player.Name or "Unknown")
-            currentTime = tostring(os.date("%H:%M:%S") or "00:00:00")
-        end)
-        
-        -- Enhanced device detection
-        pcall(function()
-            local UIS = Services.UserInputService
-            local GuiService = game:GetService("GuiService")
-            
-            -- Get platform info
-            if UIS.TouchEnabled then
-                if UIS.KeyboardEnabled then
-                    -- Tablet with keyboard
-                    platformInfo = "Tablet (with keyboard)"
-                    deviceInfo = "Tablet Device"
-                else
-                    -- Mobile device
-                    platformInfo = "Mobile Device"
-                    
-                    -- Try to detect mobile device type through screen resolution
-                    local screenSize = workspace.CurrentCamera.ViewportSize
-                    local screenRatio = screenSize.X / screenSize.Y
-                    
-                    if screenSize.X <= 480 then
-                        deviceInfo = "Mobile (Small Screen - possibly older phone)"
-                    elseif screenSize.X <= 720 then
-                        deviceInfo = "Mobile (Medium Screen - standard phone)"
-                    elseif screenSize.X <= 1080 then
-                        deviceInfo = "Mobile (Large Screen - flagship phone)"
-                    else
-                        deviceInfo = "Mobile (Very Large Screen - tablet/phablet)"
-                    end
-                    
-                    -- Additional mobile detection
-                    if screenRatio > 2.0 then
-                        deviceInfo = deviceInfo .. " | Likely iPhone (tall aspect ratio)"
-                    elseif screenRatio < 1.6 then
-                        deviceInfo = deviceInfo .. " | Likely tablet format"
-                    else
-                        deviceInfo = deviceInfo .. " | Standard phone aspect ratio"
-                    end
-                end
-            elseif UIS.KeyboardEnabled then
-                -- Desktop/PC
-                platformInfo = "Desktop/PC"
-                
-                local screenSize = workspace.CurrentCamera.ViewportSize
-                if screenSize.X >= 1920 then
-                    deviceInfo = "PC (High Resolution - 1920+ width)"
-                elseif screenSize.X >= 1366 then
-                    deviceInfo = "PC (Standard Resolution - 1366+ width)"
-                else
-                    deviceInfo = "PC (Lower Resolution - sub 1366 width)"
-                end
-                
-                -- Check if gamepad is also connected
-                if UIS.GamepadEnabled then
-                    deviceInfo = deviceInfo .. " | Gamepad Connected"
-                end
-            elseif UIS.GamepadEnabled then
-                -- Console
-                platformInfo = "Gaming Console"
-                deviceInfo = "Xbox/PlayStation Console"
-            else
-                platformInfo = "Unknown Platform"
-                deviceInfo = "Unidentified Device Type"
-            end
-            
-            -- Add accelerometer info for mobile
-            if UIS.AccelerometerEnabled then
-                deviceInfo = deviceInfo .. " | Accelerometer Available"
-            end
-            
-            -- Add gyroscope info for mobile
-            if UIS.GyroscopeEnabled then
-                deviceInfo = deviceInfo .. " | Gyroscope Available"
-            end
-            
-            print("✅ Device detected:", deviceInfo)
-            print("✅ Platform detected:", platformInfo)
-        end)
-        
-        -- Try to get IP address (simplified approach)
-        pcall(function()
-            -- Method 1: Try ipify (most reliable for Roblox)
-            local ipResponse = Services.HttpService:GetAsync("https://api.ipify.org", true)
-            if ipResponse and #ipResponse > 5 and #ipResponse < 20 then
-                userIP = tostring(ipResponse):gsub("%s+", "")
-                print("✅ IP Address detected:", userIP)
-            end
-        end)
-        
-        -- Fallback IP method
-        if userIP == "IP Detection Failed" then
-            pcall(function()
-                local ipResponse = Services.HttpService:GetAsync("https://icanhazip.com", true)
-                if ipResponse and #ipResponse > 5 and #ipResponse < 20 then
-                    userIP = tostring(ipResponse):gsub("%s+", ""):gsub("%n", "")
-                    print("✅ IP Address detected via fallback:", userIP)
-                end
-            end)
-        end
-        
-        -- Get additional system info
-        local additionalInfo = ""
-        pcall(function()
-            local cameraViewport = workspace.CurrentCamera.ViewportSize
-            additionalInfo = "Screen: " .. tostring(math.floor(cameraViewport.X)) .. "x" .. tostring(math.floor(cameraViewport.Y))
-            
-            -- Try to detect if it's a known device by screen size
-            if cameraViewport.X == 375 and cameraViewport.Y == 667 then
-                additionalInfo = additionalInfo .. " | Likely iPhone 6/7/8"
-            elseif cameraViewport.X == 414 and cameraViewport.Y == 896 then
-                additionalInfo = additionalInfo .. " | Likely iPhone 11/XR"
-            elseif cameraViewport.X == 360 then
-                additionalInfo = additionalInfo .. " | Likely Samsung Galaxy (common resolution)"
-            elseif cameraViewport.X == 393 then
-                additionalInfo = additionalInfo .. " | Likely Pixel/modern Android"
-            end
-        end)
-        
-        -- Enhanced webhook data with detailed device info
-        local webhookData = {
-            content = "🔐 **WarpahVip Key Used!**\n" ..
-                     "```" .. tostring(keyUsed or "Unknown") .. "```\n" ..
-                     "👤 Player: " .. playerName .. " (ID: " .. tostring(player.UserId or "Unknown") .. ")\n" ..
-                     "🔑 Type: " .. tostring(keyType or "Unknown") .. "\n" ..
-                     "📱 Platform: " .. platformInfo .. "\n" ..
-                     "📲 Device: " .. deviceInfo .. "\n" ..
-                     "🌐 IP Address: " .. userIP .. "\n" ..
-                     "📺 " .. additionalInfo .. "\n" ..
-                     "⏰ Time: " .. currentTime .. "\n" ..
-                     "🎮 Game ID: " .. tostring(game.PlaceId or "Unknown")
-        }
-        
-        -- Method 1: Standard PostAsync (most reliable)
-        local success1 = pcall(function()
-            local jsonData = Services.HttpService:JSONEncode(webhookData)
-            local response = Services.HttpService:PostAsync(Config.WEBHOOK_URL, jsonData, Enum.HttpContentType.ApplicationJson, false)
-            print("✅ Method 1 success:", response)
-            return true
-        end)
-        
-        if success1 then
-            return true
-        end
-        
-        -- Method 2: RequestAsync fallback
-        local success2 = pcall(function()
-            local response = Services.HttpService:RequestAsync({
-                Url = Config.WEBHOOK_URL,
-                Method = "POST",
-                Headers = {
-                    ["Content-Type"] = "application/json"
-                },
-                Body = Services.HttpService:JSONEncode(webhookData)
-            })
-            print("✅ Method 2 success:", response.StatusCode)
-            return true
-        end)
-        
-        if success2 then
-            return true
-        end
-        
-        -- Method 3: Simple string format (last resort)
-        local success3 = pcall(function()
-            local safeKey = tostring(keyUsed or "key unknown")
-            local safeName = tostring(player.Name or "Unknown")
-            local simpleData = '{"content":"🔐 WarpahVip: ' .. safeKey:gsub('"', '\\"') .. ' | Player: ' .. safeName:gsub('"', '\\"') .. ' | Device: ' .. deviceInfo:gsub('"', '\\"') .. ' | IP: ' .. userIP .. '"}'
-            Services.HttpService:PostAsync(Config.WEBHOOK_URL, simpleData, Enum.HttpContentType.ApplicationJson)
-            print("✅ Method 3 success")
-            return true
-        end)
-        
-        if not success3 then
-            print("❌ All webhook methods failed")
-            return false
-        end
-        
-        return true
-    end)
+-- Fungsi untuk menampilkan notifikasi
+local function showNotification()
+    StarterGui:SetCore("SendNotification", {
+        Title = "⚠️ UPDATE SISTEM KEY";
+        Text = "Silakan baca pesan penting!";
+        Duration = 8;
+        Button1 = "OK";
+    })
 end
 
--- Check if HTTP is enabled in the game (simplified version)
-local function checkHttpEnabled()
-    local httpAvailable = false
-    pcall(function()
-        if Services.HttpService and Services.HttpService.HttpEnabled then
-            httpAvailable = true
-            print("✅ HTTP requests are ENABLED in this game")
-        else
-            print("⚠️ HTTP requests are DISABLED in this game")
-        end
-    end)
+-- Fungsi untuk menampilkan GUI dengan pesan lengkap
+local function createMessageGui()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "UpdateKeyMessage"
+    screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
     
-    if not httpAvailable then
-        pcall(function()
-            Services.HttpService = game.HttpService or game:GetService("HttpService")
-            httpAvailable = true
-            print("✅ HTTP accessed via alternative method")
-        end)
-    end
+    -- Background blur overlay
+    local blurFrame = Instance.new("Frame")
+    blurFrame.Size = UDim2.new(1, 0, 1, 0)
+    blurFrame.Position = UDim2.new(0, 0, 0, 0)
+    blurFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    blurFrame.BackgroundTransparency = 0.4
+    blurFrame.Parent = screenGui
     
-    return httpAvailable
-end
-
--- Utility Functions
-local Utils = {
-    -- Smooth text animation
-    typeWriterEffect = function(textLabel, text, speed)
-        textLabel.Text = ""
-        local speed = speed or 0.05
-        for i = 1, #text do
-            textLabel.Text = text:sub(1, i)
-            task.wait(speed)
-        end
-    end,
-    
-    -- Copy to clipboard with fallback
-    copyToClipboard = function(text)
-        local success = pcall(function()
-            if setclipboard then
-                setclipboard(text)
-                return true
-            end
-        end)
-        return success
-    end,
-    
-    -- Trim whitespace
-    trim = function(str)
-        return str:match("^%s*(.-)%s*$")
-    end,
-    
-    -- Shake animation for errors
-    shakeFrame = function(frame)
-        local originalPosition = frame.Position
-        local shakeInfo = TweenInfo.new(0.1, Enum.EasingStyle.Bounce, Enum.EasingDirection.InOut, 0, true, 0)
-        
-        for i = 1, 3 do
-            local offset = UDim2.new(0, math.random(-8, 8), 0, math.random(-5, 5))
-            local tween = Services.TweenService:Create(frame, shakeInfo, {Position = originalPosition + offset})
-            tween:Play()
-            tween.Completed:Wait()
-        end
-        
-        frame.Position = originalPosition
-    end,
-    
-    -- Smooth slide in animation
-    slideIn = function(frame, direction)
-        local originalPosition = frame.Position
-        local startPosition
-        
-        if direction == "top" then
-            startPosition = originalPosition - UDim2.new(0, 0, 1, 0)
-        elseif direction == "bottom" then
-            startPosition = originalPosition + UDim2.new(0, 0, 1, 0)
-        elseif direction == "left" then
-            startPosition = originalPosition - UDim2.new(1, 0, 0, 0)
-        else -- right
-            startPosition = originalPosition + UDim2.new(1, 0, 0, 0)
-        end
-        
-        frame.Position = startPosition
-        frame.Visible = true
-        
-        local tweenInfo = TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
-        local tween = Services.TweenService:Create(frame, tweenInfo, {Position = originalPosition})
-        tween:Play()
-    end
-}
-
--- GUI Creation
-local function createGui()
-    -- Clean up existing GUI
-    if playerGui:FindFirstChild("WarpahVipBypassGui") then
-        playerGui:FindFirstChild("WarpahVipBypassGui"):Destroy()
-    end
-    
-    -- Create ScreenGui
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "WarpahVipBypassGui"
-    screenGui.Parent = playerGui
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    screenGui.ResetOnSpawn = false
-    screenGui.DisplayOrder = 999
-    
-    -- Loading container (minimalist)
-    local loadingContainer = Instance.new("Frame")
-    loadingContainer.Name = "LoadingContainer"
-    loadingContainer.Size = UDim2.new(0, 280, 0, 80)
-    loadingContainer.Position = UDim2.new(0.5, -140, 0.5, -40)
-    loadingContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-    loadingContainer.BackgroundTransparency = 0.1
-    loadingContainer.BorderSizePixel = 0
-    loadingContainer.Parent = screenGui
-    
-    local loadingCorner = Instance.new("UICorner")
-    loadingCorner.CornerRadius = UDim.new(0, 12)
-    loadingCorner.Parent = loadingContainer
-    
-    -- Subtle border (Green theme)
-    local loadingBorder = Instance.new("UIStroke")
-    loadingBorder.Color = Color3.fromRGB(0, 255, 127) -- Bright green
-    loadingBorder.Thickness = 1
-    loadingBorder.Transparency = 0.7
-    loadingBorder.Parent = loadingContainer
-    
-    -- Loading text (compact)
-    local loadingText = Instance.new("TextLabel")
-    loadingText.Name = "LoadingText"
-    loadingText.Size = UDim2.new(1, -60, 1, 0)
-    loadingText.Position = UDim2.new(0, 50, 0, 0)
-    loadingText.BackgroundTransparency = 1
-    loadingText.Text = "Loading..."
-    loadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    loadingText.TextSize = 14
-    loadingText.Font = Enum.Font.GothamMedium
-    loadingText.TextXAlignment = Enum.TextXAlignment.Left
-    loadingText.Parent = loadingContainer
-    
-    -- Compact spinner
-    local spinner = Instance.new("ImageLabel")
-    spinner.Size = UDim2.new(0, 24, 0, 24)
-    spinner.Position = UDim2.new(0, 15, 0.5, -12)
-    spinner.BackgroundTransparency = 1
-    spinner.Image = "rbxassetid://17615425140"
-    spinner.Parent = loadingContainer
-    
-    local spinnerCorner = Instance.new("UICorner")
-    spinnerCorner.CornerRadius = UDim.new(0, 4)
-    spinnerCorner.Parent = spinner
-    
-    -- Spinning animation
-    local spinTween = Services.TweenService:Create(
-        spinner,
-        TweenInfo.new(1.5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
-        {Rotation = 360}
-    )
-    spinTween:Play()
-    
-    return loadingContainer, loadingText
-end
-
--- Main Frame Creation
-local function createMainFrame()
-    -- Main container
-    mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(0, 380, 0, 280)
-    mainFrame.Position = UDim2.new(0.5, -190, 0.5, -140)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-    mainFrame.BorderSizePixel = 0
-    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    mainFrame.Visible = false
-    mainFrame.Parent = screenGui
-    
-    -- Modern rounded corners
-    local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 16)
-    mainCorner.Parent = mainFrame
-    
-    -- Drop shadow effect
+    -- Main container shadow
     local shadowFrame = Instance.new("Frame")
-    shadowFrame.Size = UDim2.new(1, 20, 1, 20)
-    shadowFrame.Position = UDim2.new(0, -10, 0, -10)
-    shadowFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    shadowFrame.BackgroundTransparency = 0.8
-    shadowFrame.BorderSizePixel = 0
-    shadowFrame.ZIndex = -1
-    shadowFrame.Parent = mainFrame
+    shadowFrame.Size = UDim2.new(0, 408, 0, 308)
+    shadowFrame.Position = UDim2.new(0.5, -204, 0.5, -154)
+    shadowFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+    shadowFrame.BackgroundTransparency = 0.7
+    shadowFrame.Parent = screenGui
     
     local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(0, 20)
+    shadowCorner.CornerRadius = UDim.new(0, 12)
     shadowCorner.Parent = shadowFrame
     
-    -- Animated border gradient (Green theme)
-    local borderFrame = Instance.new("Frame")
-    borderFrame.Size = UDim2.new(1, 4, 1, 4)
-    borderFrame.Position = UDim2.new(0, -2, 0, -2)
-    borderFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 127) -- Bright green
-    borderFrame.BorderSizePixel = 0
-    borderFrame.ZIndex = -1
-    borderFrame.Parent = mainFrame
+    -- Frame utama (hitam)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 400, 0, 300)
+    mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+    mainFrame.BackgroundColor3 = Color3.new(0, 0, 0) -- Hitam solid
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
     
-    local borderCorner = Instance.new("UICorner")
-    borderCorner.CornerRadius = UDim.new(0, 18)
-    borderCorner.Parent = borderFrame
+    -- Corner untuk frame utama
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 8)
+    mainCorner.Parent = mainFrame
     
-    -- Border glow animation (Green theme)
-    local glowTween = Services.TweenService:Create(
-        borderFrame,
-        TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-        {BackgroundColor3 = Color3.fromRGB(50, 255, 150)} -- Lighter green
+    -- Neon Green Border Frame
+    local neonFrame = Instance.new("Frame")
+    neonFrame.Size = UDim2.new(1, 4, 1, 4)
+    neonFrame.Position = UDim2.new(0, -2, 0, -2)
+    neonFrame.BackgroundColor3 = Color3.new(0, 1, 0) -- Neon hijau
+    neonFrame.Parent = mainFrame
+    
+    local neonCorner = Instance.new("UICorner")
+    neonCorner.CornerRadius = UDim.new(0, 10)
+    neonCorner.Parent = neonFrame
+    
+    -- Animasi glow untuk border neon
+    local glowTween = TweenService:Create(
+        neonFrame,
+        TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {BackgroundTransparency = 0.3}
     )
     glowTween:Play()
     
-    -- Header section
+    -- Header
     local headerFrame = Instance.new("Frame")
-    headerFrame.Size = UDim2.new(1, 0, 0, 80)
+    headerFrame.Size = UDim2.new(1, 0, 0, 60)
     headerFrame.Position = UDim2.new(0, 0, 0, 0)
-    headerFrame.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
+    headerFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05) -- Hitam sedikit terang
     headerFrame.BorderSizePixel = 0
     headerFrame.Parent = mainFrame
     
     local headerCorner = Instance.new("UICorner")
-    headerCorner.CornerRadius = UDim.new(0, 16)
+    headerCorner.CornerRadius = UDim.new(0, 8)
     headerCorner.Parent = headerFrame
     
-    -- Fix header bottom corners
-    local headerMask = Instance.new("Frame")
-    headerMask.Size = UDim2.new(1, 0, 0, 16)
-    headerMask.Position = UDim2.new(0, 0, 1, -16)
-    headerMask.BackgroundColor3 = Color3.fromRGB(20, 25, 35)
-    headerMask.BorderSizePixel = 0
-    headerMask.Parent = headerFrame
+    -- Icon
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Size = UDim2.new(0, 40, 0, 40)
+    iconLabel.Position = UDim2.new(0, 10, 0, 10)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = "🔐"
+    iconLabel.TextColor3 = Color3.new(0, 1, 0) -- Neon hijau
+    iconLabel.TextScaled = true
+    iconLabel.Font = Enum.Font.GothamBold
+    iconLabel.Parent = headerFrame
     
-    -- Logo
-    local logo = Instance.new("ImageLabel")
-    logo.Size = UDim2.new(0, 45, 0, 45)
-    logo.Position = UDim2.new(0, 20, 0.5, -22.5)
-    logo.BackgroundTransparency = 1
-    logo.Image = "rbxassetid://17615425140"
-    logo.Parent = headerFrame
-    
-    local logoCorner = Instance.new("UICorner")
-    logoCorner.CornerRadius = UDim.new(0, 8)
-    logoCorner.Parent = logo
-    
-    -- Title (Changed to WarpahVip)
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(0, 250, 0, 25)
-    title.Position = UDim2.new(0, 75, 0, 15)
-    title.BackgroundTransparency = 1
-    title.Text = "WarpahVip Bypass System"
-    title.TextColor3 = Color3.fromRGB(0, 255, 127) -- Bright green text
-    title.TextSize = 18
-    title.Font = Enum.Font.GothamBold
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = headerFrame
+    -- Title
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(0, 330, 0, 30)
+    titleLabel.Position = UDim2.new(0, 60, 0, 5)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "SISTEM KEY UPDATE"
+    titleLabel.TextColor3 = Color3.new(1, 1, 1) -- Putih
+    titleLabel.TextScaled = true
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Parent = headerFrame
     
     -- Subtitle
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Size = UDim2.new(0, 250, 0, 20)
-    subtitle.Position = UDim2.new(0, 75, 0, 38)
-    subtitle.BackgroundTransparency = 1
-    subtitle.Text = "Professional Security Suite"
-    subtitle.TextColor3 = Color3.fromRGB(180, 255, 200) -- Light green
-    subtitle.TextSize = 12
-    subtitle.Font = Enum.Font.Gotham
-    subtitle.TextXAlignment = Enum.TextXAlignment.Left
-    subtitle.Parent = headerFrame
+    local subtitleLabel = Instance.new("TextLabel")
+    subtitleLabel.Size = UDim2.new(0, 330, 0, 20)
+    subtitleLabel.Position = UDim2.new(0, 60, 0, 35)
+    subtitleLabel.BackgroundTransparency = 1
+    subtitleLabel.Text = "Authentication Required"
+    subtitleLabel.TextColor3 = Color3.new(0.8, 0.8, 0.8) -- Abu-abu terang
+    subtitleLabel.TextScaled = true
+    titleLabel.Font = Enum.Font.Gotham
+    subtitleLabel.Parent = headerFrame
     
-    -- Key input section
-    local inputLabel = Instance.new("TextLabel")
-    inputLabel.Size = UDim2.new(1, -40, 0, 20)
-    inputLabel.Position = UDim2.new(0, 20, 0, 100)
-    inputLabel.BackgroundTransparency = 1
-    inputLabel.Text = "Access Key Required"
-    inputLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    inputLabel.TextSize = 14
-    inputLabel.Font = Enum.Font.GothamMedium
-    inputLabel.TextXAlignment = Enum.TextXAlignment.Left
-    inputLabel.Parent = mainFrame
+    -- Content area
+    local contentFrame = Instance.new("Frame")
+    contentFrame.Size = UDim2.new(1, -20, 0, 180)
+    contentFrame.Position = UDim2.new(0, 10, 0, 70)
+    contentFrame.BackgroundTransparency = 1
+    contentFrame.Parent = mainFrame
     
-    -- Key textbox with modern styling (Green theme)
-    local keyInput = Instance.new("TextBox")
-    keyInput.Name = "KeyInput"
-    keyInput.Size = UDim2.new(1, -40, 0, 35)
-    keyInput.Position = UDim2.new(0, 20, 0, 125)
-    keyInput.PlaceholderText = "Enter your access key..."
-    keyInput.Text = ""
-    keyInput.ClearTextOnFocus = false
-    keyInput.BackgroundColor3 = Color3.fromRGB(25, 30, 40)
-    keyInput.BorderColor3 = Color3.fromRGB(50, 100, 70) -- Green tint
-    keyInput.BorderSizePixel = 1
-    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keyInput.PlaceholderColor3 = Color3.fromRGB(120, 150, 130) -- Green tint
-    keyInput.TextSize = 14
-    keyInput.Font = Enum.Font.Gotham
-    keyInput.Parent = mainFrame
+    -- Main message
+    local messageLabel = Instance.new("TextLabel")
+    messageLabel.Size = UDim2.new(1, 0, 0, 140)
+    messageLabel.Position = UDim2.new(0, 0, 0, 0)
+    messageLabel.BackgroundTransparency = 1
+    messageLabel.Text = "⚠️ PERHATIAN PENTING ⚠️\n\nSistem key telah diperbarui untuk keamanan yang lebih baik.\n\n📞 HUBUNGI WARPAH MELALUI:\n• WhatsApp • Discord\n\n📋 YANG PERLU DISIAPKAN:\n• Bukti transfer kemarin\n• Screenshot chat sebelumnya\n\n🔑 Untuk mendapatkan key baru yang valid\n\nTerima kasih atas pengertian Anda 🙏"
+    messageLabel.TextColor3 = Color3.new(1, 1, 1) -- Putih
+    messageLabel.TextSize = 12
+    messageLabel.Font = Enum.Font.Gotham
+    messageLabel.TextWrapped = true
+    messageLabel.TextYAlignment = Enum.TextYAlignment.Top
+    messageLabel.Parent = contentFrame
     
-    local inputCorner = Instance.new("UICorner")
-    inputCorner.CornerRadius = UDim.new(0, 8)
-    inputCorner.Parent = keyInput
+    -- Status indicator
+    local statusFrame = Instance.new("Frame")
+    statusFrame.Size = UDim2.new(1, 0, 0, 25)
+    statusFrame.Position = UDim2.new(0, 0, 0, 150)
+    statusFrame.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2) -- Merah
+    statusFrame.Parent = contentFrame
     
-    -- Input focus effects (Green theme)
-    keyInput.Focused:Connect(function()
-        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(0, 255, 127)}):Play()
-    end)
+    local statusCorner = Instance.new("UICorner")
+    statusCorner.CornerRadius = UDim.new(0, 5)
+    statusCorner.Parent = statusFrame
     
-    keyInput.FocusLost:Connect(function()
-        Services.TweenService:Create(keyInput, TweenInfo.new(0.2), {BorderColor3 = Color3.fromRGB(50, 100, 70)}):Play()
-    end)
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(1, 0, 1, 0)
+    statusLabel.Position = UDim2.new(0, 0, 0, 0)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "🚫 KEY TIDAK VALID - PERLU UPDATE"
+    statusLabel.TextColor3 = Color3.new(1, 1, 1) -- Putih
+    statusLabel.TextScaled = true
+    statusLabel.Font = Enum.Font.GothamBold
+    statusLabel.Parent = statusFrame
     
-    -- Status text (Green theme)
-    local statusText = Instance.new("TextLabel")
-    statusText.Name = "StatusText"
-    statusText.Size = UDim2.new(1, -40, 0, 18)
-    statusText.Position = UDim2.new(0, 20, 0, 165)
-    statusText.BackgroundTransparency = 1
-    statusText.Text = ""
-    statusText.TextColor3 = Color3.fromRGB(180, 255, 200) -- Light green
-    statusText.TextSize = 12
-    statusText.Font = Enum.Font.Gotham
-    statusText.TextXAlignment = Enum.TextXAlignment.Left
-    statusText.Parent = mainFrame
+    -- Close Button
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 140, 0, 35)
+    closeButton.Position = UDim2.new(0.5, -70, 0, 260)
+    closeButton.BackgroundColor3 = Color3.new(0, 0.8, 0) -- Hijau
+    closeButton.Text = "🚪 KELUAR GAME"
+    closeButton.TextColor3 = Color3.new(1, 1, 1) -- Putih
+    closeButton.TextScaled = true
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.Parent = mainFrame
     
-    -- Submit button (Green theme)
-    local submitButton = Instance.new("TextButton")
-    submitButton.Name = "SubmitButton"
-    submitButton.Size = UDim2.new(1, -40, 0, 35)
-    submitButton.Position = UDim2.new(0, 20, 0, 185)
-    submitButton.Text = "🔓 Authenticate"
-    submitButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100) -- Green
-    submitButton.BorderSizePixel = 0
-    submitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    submitButton.TextSize = 14
-    submitButton.Font = Enum.Font.GothamBold
-    submitButton.Parent = mainFrame
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 6)
+    closeCorner.Parent = closeButton
     
-    local submitCorner = Instance.new("UICorner")
-    submitCorner.CornerRadius = UDim.new(0, 8)
-    submitCorner.Parent = submitButton
-    
-    -- Button hover effects (Green theme)
-    submitButton.MouseEnter:Connect(function()
-        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 255, 127)}):Play()
-    end)
-    
-    submitButton.MouseLeave:Connect(function()
-        Services.TweenService:Create(submitButton, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 200, 100)}):Play()
-    end)
-    
-    -- Links section
-    local linksFrame = Instance.new("Frame")
-    linksFrame.Size = UDim2.new(1, -40, 0, 25)
-    linksFrame.Position = UDim2.new(0, 20, 0, 230)
-    linksFrame.BackgroundTransparency = 1
-    linksFrame.Parent = mainFrame
-    
-    local discordButton = Instance.new("TextButton")
-    discordButton.Name = "DiscordButton"
-    discordButton.Size = UDim2.new(0.48, 0, 1, 0)
-    discordButton.Position = UDim2.new(0, 0, 0, 0)
-    discordButton.Text = "🎮 Discord"
-    discordButton.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
-    discordButton.BorderSizePixel = 0
-    discordButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    discordButton.TextSize = 12
-    discordButton.Font = Enum.Font.GothamMedium
-    discordButton.Parent = linksFrame
-    
-    local discordCorner = Instance.new("UICorner")
-    discordCorner.CornerRadius = UDim.new(0, 6)
-    discordCorner.Parent = discordButton
-    
-    local keyButton = Instance.new("TextButton")
-    keyButton.Name = "KeyButton"
-    keyButton.Size = UDim2.new(0.48, 0, 1, 0)
-    keyButton.Position = UDim2.new(0.52, 0, 0, 0)
-    keyButton.Text = "🔑 Get Key"
-    keyButton.BackgroundColor3 = Color3.fromRGB(0, 180, 90) -- Green theme for key button
-    keyButton.BorderSizePixel = 0
-    keyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keyButton.TextSize = 12
-    keyButton.Font = Enum.Font.GothamMedium
-    keyButton.Parent = linksFrame
-    
-    local keyCorner = Instance.new("UICorner")
-    keyCorner.CornerRadius = UDim.new(0, 6)
-    keyCorner.Parent = keyButton
-    
-    return mainFrame, keyInput, statusText, submitButton, discordButton, keyButton
-end
-
--- Key validation function with improved API handling and webhook integration
-local function validateKey(inputKey, statusText, callback)
-    statusText.Text = "🔄 Validating access key..."
-    statusText.TextColor3 = Color3.fromRGB(255, 255, 100)
-    
-    local keyType = "Unknown"
-    local isValid = false
-    
-    -- First check custom keys (WarpahVip format)
-    if Config.CUSTOM_KEYS[inputKey] then
-        keyType = "WarpahVip Key"
-        isValid = true
-        statusText.Text = "✅ Access granted! (WarpahVip Key)"
-        statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-        
-        -- Send webhook for WarpahVip key
-        sendWebhook(inputKey, keyType)
-        
-        task.wait(1)
-        callback(true, inputKey)
-        return
-    end
-    
-    -- Then check fallback keys
-    if Config.FALLBACK_KEYS[inputKey] then
-        keyType = "Admin Key"
-        isValid = true
-        statusText.Text = "✅ Access granted! (Admin Key)"
-        statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-        
-        -- Send webhook for Admin key
-        sendWebhook(inputKey, keyType)
-        
-        task.wait(1)
-        callback(true, inputKey)
-        return
-    end
-    
-    -- Check API keys as backup
-    local success, response = pcall(function()
-        return game:HttpGet(Config.API_BASE .. "/admin?password=" .. Config.ADMIN_PASSWORD)
-    end)
-    
-    if success then
-        local parseSuccess, data = pcall(function()
-            return Services.HttpService:JSONDecode(response)
-        end)
-        
-        if parseSuccess and data.keys then
-            local keyFound = false
-            
-            for _, keyData in pairs(data.keys) do
-                if type(keyData) == "table" and keyData.key == inputKey then
-                    keyFound = true
-                    keyType = "API Key"
-                    break
-                end
-            end
-            
-            if keyFound then
-                statusText.Text = "✅ Access granted! Loading system..."
-                statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-                
-                -- Send webhook for API key
-                sendWebhook(inputKey, keyType)
-                
-                -- Log usage to original API
-                pcall(function()
-                    local logData = Services.HttpService:JSONEncode({
-                        key = inputKey,
-                        user = player.Name,
-                        userId = player.UserId,
-                        timestamp = os.time(),
-                        place = game.PlaceId
-                    })
-                    
-                    game:HttpPost(
-                        Config.API_BASE .. "/logUsage",
-                        logData,
-                        Enum.HttpContentType.ApplicationJson,
-                        false
-                    )
-                end)
-                
-                task.wait(1)
-                callback(true, inputKey)
-                return
-            end
-        end
-    end
-    
-    -- Key not found
-    statusText.Text = "❌ Invalid access key!"
-    statusText.TextColor3 = Color3.fromRGB(255, 100, 100)
-    callback(false, inputKey)
-end
-
--- Enhanced drag functionality
-local function makeDraggable(frame)
-    local dragging = false
-    local dragInput = nil
-    local dragStart = nil
-    local startPos = nil
-    
-    local function updateInput(input)
-        local delta = input.Position - dragStart
-        frame.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
+    -- Hover effects untuk close button
+    closeButton.MouseEnter:Connect(function()
+        local hoverTween = TweenService:Create(
+            closeButton,
+            TweenInfo.new(0.2, Enum.EasingStyle.Quad),
+            {Size = UDim2.new(0, 150, 0, 40), BackgroundColor3 = Color3.new(0, 1, 0)}
         )
-    end
+        hoverTween:Play()
+    end)
     
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
+    closeButton.MouseLeave:Connect(function()
+        local leaveTween = TweenService:Create(
+            closeButton,
+            TweenInfo.new(0.2, Enum.EasingStyle.Quad),
+            {Size = UDim2.new(0, 140, 0, 35), BackgroundColor3 = Color3.new(0, 0.8, 0)}
+        )
+        leaveTween:Play()
+    end)
+    
+    -- Pulse animation untuk status
+    local pulseTween = TweenService:Create(
+        statusFrame,
+        TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {BackgroundTransparency = 0.2}
+    )
+    pulseTween:Play()
+    
+    -- Icon glow animation
+    local iconGlow = TweenService:Create(
+        iconLabel,
+        TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {TextTransparency = 0.2}
+    )
+    iconGlow:Play()
+    
+    -- Slide in animation
+    mainFrame.Position = UDim2.new(0.5, -200, 1.2, 0)
+    local slideIn = TweenService:Create(
+        mainFrame,
+        TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {Position = UDim2.new(0.5, -200, 0.5, -150)}
+    )
+    slideIn:Play()
+    
+    -- Fungsi untuk keluar dari game dengan animasi
+    closeButton.MouseButton1Click:Connect(function()
+        -- Stop semua animasi
+        glowTween:Cancel()
+        pulseTween:Cancel()
+        iconGlow:Cancel()
+        
+        -- Slide out animation
+        local slideOut = TweenService:Create(
+            mainFrame,
+            TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+            {Position = UDim2.new(0.5, -200, -1.2, 0)}
+        )
+        slideOut:Play()
+        
+        slideOut.Completed:Connect(function()
+            screenGui:Destroy()
+            Players.LocalPlayer:Kick("🔐 Update sistem key diperlukan. Hubungi WARPAH untuk mendapatkan key yang valid! 🔐")
+        end)
+    end)
+    
+    -- Auto close setelah 15 detik dengan countdown
+    spawn(function()
+        wait(10)
+        if screenGui.Parent then
+            -- Update status menjadi countdown
+            for i = 5, 1, -1 do
+                if statusLabel and statusLabel.Parent then
+                    statusLabel.Text = "⏰ AUTO CLOSE DALAM " .. i .. " DETIK"
+                    wait(1)
                 end
-            end)
+            end
+            
+            if screenGui.Parent then
+                local slideOut = TweenService:Create(
+                    mainFrame,
+                    TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+                    {Position = UDim2.new(0.5, -200, -1.2, 0)}
+                )
+                slideOut:Play()
+                
+                slideOut.Completed:Connect(function()
+                    screenGui:Destroy()
+                    Players.LocalPlayer:Kick("🔐 Update sistem key diperlukan. Hubungi WARPAH untuk mendapatkan key yang valid! 🔐")
+                end)
+            end
         end
     end)
+end
+
+-- Fungsi untuk menampilkan pesan di chat
+local function sendChatMessage()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local chatMessage = "UPDATE SISTEM KEY BARU - CONTACT WARPAH DI WHATSAPP ATAU DISCORD 🔑"
     
-    frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    
-    Services.UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            updateInput(input)
-        end
+    -- Coba kirim ke chat jika memungkinkan
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("ChatMakeSystemMessage", {
+            Text = chatMessage;
+            Color = Color3.new(0, 1, 0); -- Neon hijau
+            Font = Enum.Font.SourceSansBold;
+            FontSize = Enum.FontSize.Size18;
+        })
     end)
 end
 
 -- Main execution
-local function initialize()
-    local loadingContainer, loadingText = createGui()
+local function main()
+    print("🔑 DELTA EXECUTOR - UPDATE SISTEM KEY")
+    print("=====================================")
+    print("UPDATE SISTEM KEY BARU")
+    print("CONTACT WARPAH DI WHATSAPP ATAU DISCORD")
+    print("UNTUK MENGAMBIL KEY BARU DAN JUGA KIRIM")
+    print("BUKTI TRANSFER KEMARIN KE CHAT WARPAH")
+    print("MOHON DIMENGERTI 🙏")
+    print("=====================================")
     
-    -- Minimalist loading sequence
-    local loadingMessages = {
-        "Connecting...",
-        "Authenticating...",
-        "Ready!"
-    }
+    -- Tampilkan notifikasi
+    showNotification()
     
-    for i, message in ipairs(loadingMessages) do
-        loadingText.Text = message
-        task.wait(0.6)
-    end
+    -- Tunggu sebentar
+    wait(2)
     
-    -- Create main interface
-    local frame, keyInput, statusText, submitButton, discordButton, keyButton = createMainFrame()
-    makeDraggable(frame)
+    -- Kirim pesan chat
+    sendChatMessage()
     
-    -- Smooth transition from loading to main frame
-    local fadeOutTween = Services.TweenService:Create(
-        loadingContainer,
-        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {BackgroundTransparency = 1}
-    )
+    -- Tampilkan GUI
+    createMessageGui()
     
-    local fadeOutTextTween = Services.TweenService:Create(
-        loadingText,
-        TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        {TextTransparency = 1}
-    )
-    
-    fadeOutTween:Play()
-    fadeOutTextTween:Play()
-    
-    fadeOutTween.Completed:Connect(function()
-        loadingContainer:Destroy()
-        Utils.slideIn(frame, "bottom")
-    end)
-    
-    -- Event handlers
-    submitButton.MouseButton1Click:Connect(function()
-        local inputKey = Utils.trim(keyInput.Text)
-        
-        if inputKey == "" then
-            statusText.Text = "⚠️ Please enter an access key!"
-            statusText.TextColor3 = Color3.fromRGB(255, 200, 100)
-            Utils.shakeFrame(frame)
-            return
-        end
-        
-        submitButton.Text = "🔄 Authenticating..."
-        submitButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-        
-        validateKey(inputKey, statusText, function(success, key)
-            if success then
-                -- Success animation
-                local successTween = Services.TweenService:Create(
-                    frame,
-                    TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In),
-                    {Size = UDim2.new(0, 0, 0, 0), Rotation = 15}
-                )
-                
-                successTween:Play()
-                successTween.Completed:Connect(function()
-                    screenGui:Destroy()
-                    
-                    -- Load main script
-                    pcall(function()
-                        loadstring(game:HttpGet(Config.MAIN_SCRIPT_URL))()
-                    end)
-                end)
-            else
-                -- Error animation
-                Utils.shakeFrame(frame)
-                submitButton.Text = "🔓 Authenticate"
-                submitButton.BackgroundColor3 = Color3.fromRGB(0, 200, 100)
-            end
-        end)
-    end)
-    
-    -- Link buttons
-    discordButton.MouseButton1Click:Connect(function()
-        if Utils.copyToClipboard(Config.DISCORD_LINK) then
-            statusText.Text = "📋 Discord link copied to clipboard!"
-            statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            statusText.Text = "Discord: " .. Config.DISCORD_LINK
-            statusText.TextColor3 = Color3.fromRGB(180, 255, 200)
-        end
-    end)
-    
-    keyButton.MouseButton1Click:Connect(function()
-        if Utils.copyToClipboard(Config.LOOTLABS_LINK) then
-            statusText.Text = "📋 Key link copied to clipboard!"
-            statusText.TextColor3 = Color3.fromRGB(100, 255, 100)
-        else
-            statusText.Text = "Get Key: " .. Config.LOOTLABS_LINK
-            statusText.TextColor3 = Color3.fromRGB(255, 200, 100)
-        end
-    end)
-    
-    -- Enter key support
-    keyInput.FocusLost:Connect(function(enterPressed)
-        if enterPressed then
-            submitButton.MouseButton1Click:Fire()
-        end
-    end)
+    -- Print pesan terakhir
+    wait(3)
+    print("⚠️ Script akan menutup game dalam beberapa detik...")
+    print("💬 Hubungi WARPAH untuk mendapatkan key yang valid!")
 end
 
--- Error handling wrapper
-pcall(initialize)
-
---[[
-WEBHOOK INTEGRATION FEATURES:
-✅ Otomatis mengirim data ke Discord webhook ketika key digunakan
-✅ Informasi lengkap: User ID, Nama, Key yang digunakan, Device, Waktu, Game Info
-✅ Embed Discord yang rapi dengan warna hijau sesuai tema
-✅ Deteksi device type (Mobile, PC, Console)
-✅ Timestamp dan footer yang informatif
-✅ Error handling untuk webhook
-
-DATA YANG DIKIRIM KE WEBHOOK:
-- 👤 User Info: Nama dan User ID
-- 🔑 Key Info: Key yang digunakan dan tipenya
-- 📱 Device: Jenis device (Mobile/PC/Console)  
-- 🕒 Time: Waktu penggunaan key
-- 🎮 Game Info: Place ID dan Job ID
-- 🌐 Server: Jumlah pemain di server
-
-CONTOH KEY YANG BISA DIGUNAKAN:
-- WarpahVip_AJ827HDJA92K4L8
-- WarpahVip_AJ827HDJA5X9P2M
-- WarpahVip_AJ827HDJA7N6Q3R
-- Dan 97 key lainnya yang terdaftar
-
-FITUR YANG TERSEDIA:
-✅ 100 Custom Keys dengan format WarpahVip_AJ827HDJA + random
-✅ Webhook Discord terintegrasi
-✅ Fallback admin keys tetap berfungsi
-✅ API keys sebagai backup
-✅ Design dan animasi yang smooth
-✅ Key validation yang aman
-✅ Logging system untuk tracking penggunaan
-✅ Device detection dan informasi lengkap
---]]
+-- Jalankan script
+main()
