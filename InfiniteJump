@@ -18,7 +18,7 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
 local Config = {
-    JumpHeight = 50,
+    JumpHeight = 16,
     InfiniteJumpEnabled = true,
     AirSpeedMultiplier = 2.5,
     NormalWalkSpeed = 16,
