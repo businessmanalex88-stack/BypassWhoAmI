@@ -1,3 +1,9 @@
+-- First load the loading screen
+loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Loadingscreen"))()
+
+-- Wait for loading screen to finish (adjust timing as needed)
+wait(3) -- You can adjust this delay based on how long the loading screen takes
+
 --[[ LUA UI SCRIPT: WarpahVip GUI Cheat Menu - Enhanced Fixed Version (with WarpahMorph) ]]
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
@@ -588,6 +594,18 @@ local function showWarpahMorphMenu()
     backBtn.Visible = false
 end
 
+-- NEW: No Clip menu - FIXED: Now directly loads script
+local function showNoClipMenu()
+    clearContent()
+    currentMenu = "main" -- Stay in main menu
+    
+    -- Directly load the No Clip Bypass script
+    print("👻 Loading No Clip...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/No%20clip%20bypass"))()
+    
+    backBtn.Visible = false
+end
+
 -- NEW: Teleport menu - FIXED: Now directly loads script
 local function showTeleportMenu()
     clearContent()
@@ -621,6 +639,7 @@ local function showCheats()
         { label = "🎭 Hide Name Visual", callback = showHideNameMenu },
         { label = "👁️ Spectate Player", callback = showSpectatePlayerMenu },
         { label = "🦋 WarpahMorph", callback = showWarpahMorphMenu },
+        { label = "👻 No Clip", callback = showNoClipMenu }, -- NEW: Added No Clip
         { label = "🚀 Teleport", callback = showTeleportMenu }, -- NEW: Added Teleport
     }
 
@@ -875,8 +894,9 @@ print("  - 👤 TP to Player now loads TptoPlayer script")
 print("  - 🎭 Hide Name Visual now directly loads HideNameVisual script")
 print("  - 👁️ Spectate Player now directly loads SpectateWarpah script")
 print("  - 🦋 WarpahMorph now directly loads WarpahMorph script")
-print("  - 🚀 Teleport now directly loads WarpahTeleport script") -- NEW FEATURE
-print("  - 🦘 Infinite Jump now directly loads InfiniteJump script") -- NEW FEATURE
+print("  - 👻 No Clip now directly loads No Clip Bypass script") -- NEW FEATURE
+print("  - 🚀 Teleport now directly loads WarpahTeleport script")
+print("  - 🦘 Infinite Jump now directly loads InfiniteJump script")
 print("  - 🏃 Speed Run now has submenu with Speed Hack V1 & V2")
 print("  - ❌ Aimbot menu removed completely")
 print("  - 🛡️ Enhanced error handling and memory management")
