@@ -1,4 +1,4 @@
--- Warpah Summits - Professional Design (Fixed)
+-- Warpah Summits - Professional Design (Updated)
 -- Clean, Elegant UI for Delta Executor
 
 local Players = game:GetService("Players")
@@ -278,8 +278,8 @@ buttonGradient.Parent = autoSummitBtn
 -- Summit Selection Frame
 local summitFrame = Instance.new("Frame")
 summitFrame.Name = "SummitFrame"
-summitFrame.Size = UDim2.new(0, 300, 0, 420)
-summitFrame.Position = UDim2.new(0.5, -150, 0.5, -210)
+summitFrame.Size = UDim2.new(0, 300, 0, 450)
+summitFrame.Position = UDim2.new(0.5, -150, 0.5, -225)
 summitFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
 summitFrame.BorderSizePixel = 0
 summitFrame.Visible = false
@@ -363,21 +363,22 @@ listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Padding = UDim.new(0, 3)
 listLayout.Parent = scrollFrame
 
--- Mountain data with UPDATED URLs
+-- Mountain data with ALL UPDATED URLs
 local mountains = {
     {name = "Mt.Atin", icon = "⛰️", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/AtinVip"},
     {name = "Mt.Akhirat", icon = "💀", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/AkhiratVip"},
     {name = "Mt.Arunika", icon = "🌋", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/ArunikaVip"},
-    {name = "Mt.Bandahara", icon = "💰", url = nil},
+    {name = "Mt.Bandahara", icon = "💰", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BandaharaVip"},
     {name = "Mt.CKPTW", icon = "⚡", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/CKPTWVIP"},
     {name = "Mt.Daun", icon = "🍃", url = nil},
     {name = "Mt.Duntul", icon = "🗻", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Duntul%20Vip"},
     {name = "Mt.Hanami", icon = "🌸", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/HanamiVip"},
-    {name = "Mt.Kahung", icon = "⛰️", url = nil},
+    {name = "Mt.Kahung", icon = "⛰️", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/KahungVip"},
+    {name = "Mt.Lembayana", icon = "🏔️", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Lembayanavip"},
     {name = "Mt.Sumala", icon = "🏞️", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/SumalaVip"},
     {name = "Mt.Sibuatan", icon = "🌊", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Sibuatan%20Vip"},
     {name = "Mt.Yahaha", icon = "😂", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/YahahaVip"},
-    {name = "Mt.Yahayuk", icon = "🎭", url = nil}
+    {name = "Mt.Yahayuk", icon = "🎭", url = "https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/YahayukVip"}
 }
 
 -- Loading animation function with disclaimer
@@ -618,3 +619,4 @@ end)
 print("✨ Warpah Summits - Professional Edition loaded!")
 print("🎨 Clean, elegant design ready for use!")
 print("🔗 All mountain scripts ready!")
+print("🆕 Mt.Lembayana added!")
