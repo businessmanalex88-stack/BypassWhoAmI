@@ -1,0 +1,614 @@
+-- WarpahVip Professional Loading Screen
+-- Enhanced Particles Version - More Beautiful & Eye-Comfortable
+-- Compatible with Delta Executor Android
+
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+
+-- Create main GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "WarpahVipPro"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = game.CoreGui
+
+-- Transparent Main Frame (No background - game visible)
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(1, 0, 1, 0)
+mainFrame.Position = UDim2.new(0, 0, 0, 0)
+mainFrame.BackgroundTransparency = 1
+mainFrame.BorderSizePixel = 0
+mainFrame.ZIndex = 1
+mainFrame.Parent = screenGui
+
+-- Professional Outer Container Frame (Neon Border Structure)
+local outerContainer = Instance.new("Frame")
+outerContainer.Name = "OuterContainer"
+outerContainer.Size = UDim2.new(0, 470, 0, 240)
+outerContainer.Position = UDim2.new(0.5, -235, 0.5, -120)
+outerContainer.BackgroundTransparency = 1
+outerContainer.BorderSizePixel = 0
+outerContainer.ZIndex = 4
+outerContainer.ClipsDescendants = true -- Important: Clips content to container
+outerContainer.Parent = mainFrame
+
+-- Structured Neon Border (Outside container)
+local neonBorder = Instance.new("UIStroke")
+neonBorder.Color = Color3.fromRGB(0, 255, 150)
+neonBorder.Thickness = 3
+neonBorder.Transparency = 0.3
+neonBorder.Parent = outerContainer
+
+local outerCorner = Instance.new("UICorner")
+outerCorner.CornerRadius = UDim.new(0, 25)
+outerCorner.Parent = outerContainer
+
+-- BLACK BACKGROUND - Only Inside Container
+local blackBackground = Instance.new("Frame")
+blackBackground.Name = "BlackBackground"
+blackBackground.Size = UDim2.new(1, -6, 1, -6)
+blackBackground.Position = UDim2.new(0, 3, 0, 3)
+blackBackground.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+blackBackground.BackgroundTransparency = 0.1 -- Slightly more opaque
+blackBackground.BorderSizePixel = 0
+blackBackground.ZIndex = 5
+blackBackground.Parent = outerContainer
+
+local blackCorner = Instance.new("UICorner")
+blackCorner.CornerRadius = UDim.new(0, 22)
+blackCorner.Parent = blackBackground
+
+-- ENHANCED STARFIELD - More Beautiful & Eye-Comfortable
+local starField = Instance.new("Frame")
+starField.Size = UDim2.new(1, 0, 1, 0)
+starField.BackgroundTransparency = 1
+starField.ZIndex = 6
+starField.Parent = blackBackground
+
+-- Create Enhanced Stars ONLY Inside Container
+for i = 1, 35 do -- Increased count for richer background
+    local star = Instance.new("Frame")
+    local size = math.random(1, 3) -- Varied sizes
+    star.Size = UDim2.new(0, size, 0, size)
+    star.Position = UDim2.new(math.random(3, 97) / 100, 0, math.random(3, 97) / 100, 0)
+    
+    -- Softer, more comfortable star colors
+    local starColors = {
+        Color3.fromRGB(200, 230, 255), -- Soft blue-white
+        Color3.fromRGB(255, 240, 200), -- Warm white
+        Color3.fromRGB(220, 255, 220), -- Soft green-white
+        Color3.fromRGB(255, 220, 240), -- Soft pink-white
+        Color3.fromRGB(240, 255, 200)  -- Soft yellow-white
+    }
+    star.BackgroundColor3 = starColors[math.random(1, #starColors)]
+    star.BorderSizePixel = 0
+    star.ZIndex = 7
+    star.Parent = starField
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = star
+    
+    -- Enhanced twinkling with varying speeds
+    local twinkleSpeed = math.random(2, 8)
+    local minTransparency = math.random(3, 6) / 10
+    local maxTransparency = math.random(7, 9) / 10
+    
+    local twinkle = TweenService:Create(star, 
+        TweenInfo.new(twinkleSpeed, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {BackgroundTransparency = maxTransparency}
+    )
+    twinkle:Play()
+    
+    -- Initial transparency for softer appearance
+    star.BackgroundTransparency = minTransparency
+end
+
+-- ENHANCED PARTICLE SYSTEM - Multiple Layers & Effects
+local particleField = Instance.new("Frame")
+particleField.Size = UDim2.new(1, 0, 1, 0)
+particleField.BackgroundTransparency = 1
+particleField.ZIndex = 6
+particleField.Parent = blackBackground
+
+-- Layer 1: Main Green Particles (Larger, Slower)
+for i = 1, 6 do
+    local particle = Instance.new("Frame")
+    particle.Size = UDim2.new(0, math.random(3, 5), 0, math.random(3, 5))
+    particle.Position = UDim2.new(math.random(10, 90) / 100, 0, math.random(10, 90) / 100, 0)
+    particle.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+    particle.BorderSizePixel = 0
+    particle.ZIndex = 7
+    particle.Parent = particleField
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = particle
+    
+    -- Smooth orbital-like movement
+    local centerX = math.random(20, 80) / 100
+    local centerY = math.random(20, 80) / 100
+    local radius = math.random(10, 25) / 100
+    local speed = math.random(15, 25)
+    
+    spawn(function()
+        local angle = math.random(0, 360)
+        while particle.Parent do
+            angle = angle + 1
+            local x = centerX + math.cos(math.rad(angle)) * radius
+            local y = centerY + math.sin(math.rad(angle)) * radius
+            
+            -- Ensure particles stay within bounds
+            x = math.clamp(x, 0.05, 0.95)
+            y = math.clamp(y, 0.05, 0.95)
+            
+            particle.Position = UDim2.new(x, 0, y, 0)
+            wait(0.03)
+        end
+    end)
+    
+    -- Gentle pulsing glow
+    local glow = TweenService:Create(particle,
+        TweenInfo.new(math.random(3, 6), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {BackgroundTransparency = math.random(4, 7) / 10}
+    )
+    glow:Play()
+end
+
+-- Layer 2: Small Cyan Accent Particles
+for i = 1, 8 do
+    local particle = Instance.new("Frame")
+    particle.Size = UDim2.new(0, math.random(1, 2), 0, math.random(1, 2))
+    particle.Position = UDim2.new(math.random(15, 85) / 100, 0, math.random(15, 85) / 100, 0)
+    particle.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+    particle.BorderSizePixel = 0
+    particle.ZIndex = 7
+    particle.Parent = particleField
+    particle.BackgroundTransparency = 0.3
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = particle
+    
+    -- Fast linear movement with wrapping
+    spawn(function()
+        local speedX = (math.random(-2, 2)) / 100
+        local speedY = (math.random(-2, 2)) / 100
+        while particle.Parent do
+            local currentX = particle.Position.X.Scale + speedX
+            local currentY = particle.Position.Y.Scale + speedY
+            
+            -- Wrap around edges
+            if currentX > 0.95 then currentX = 0.05 end
+            if currentX < 0.05 then currentX = 0.95 end
+            if currentY > 0.95 then currentY = 0.05 end
+            if currentY < 0.05 then currentY = 0.95 end
+            
+            particle.Position = UDim2.new(currentX, 0, currentY, 0)
+            wait(0.05)
+        end
+    end)
+    
+    -- Rapid flickering
+    local flicker = TweenService:Create(particle,
+        TweenInfo.new(math.random(1, 2), Enum.EasingStyle.Quad, Enum.EasingDirection.InOut, -1, true),
+        {BackgroundTransparency = math.random(6, 9) / 10}
+    )
+    flicker:Play()
+end
+
+-- Layer 3: Floating Light Orbs (Soft & Comfortable)
+for i = 1, 4 do
+    local orb = Instance.new("Frame")
+    orb.Size = UDim2.new(0, math.random(6, 10), 0, math.random(6, 10))
+    orb.Position = UDim2.new(math.random(20, 80) / 100, 0, math.random(20, 80) / 100, 0)
+    
+    -- Soft gradient colors
+    local orbColors = {
+        Color3.fromRGB(100, 255, 200),
+        Color3.fromRGB(150, 255, 150),
+        Color3.fromRGB(50, 255, 180)
+    }
+    orb.BackgroundColor3 = orbColors[math.random(1, #orbColors)]
+    orb.BorderSizePixel = 0
+    orb.ZIndex = 6
+    orb.BackgroundTransparency = 0.6
+    orb.Parent = particleField
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = orb
+    
+    -- Add soft gradient
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, orb.BackgroundColor3)
+    }
+    gradient.Parent = orb
+    
+    -- Very slow, dreamy movement
+    local dreamFloat = TweenService:Create(orb, 
+        TweenInfo.new(math.random(20, 35), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {Position = UDim2.new(math.random(20, 80) / 100, 0, math.random(20, 80) / 100, 0)}
+    )
+    dreamFloat:Play()
+    
+    -- Gentle breathing effect
+    local breathe = TweenService:Create(orb,
+        TweenInfo.new(math.random(8, 12), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+        {Size = UDim2.new(0, orb.Size.X.Offset + 3, 0, orb.Size.Y.Offset + 3), BackgroundTransparency = 0.8}
+    )
+    breathe:Play()
+end
+
+-- Layer 4: Sparkling Micro Particles
+for i = 1, 15 do
+    local spark = Instance.new("Frame")
+    spark.Size = UDim2.new(0, 1, 0, 1)
+    spark.Position = UDim2.new(math.random(10, 90) / 100, 0, math.random(10, 90) / 100, 0)
+    spark.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    spark.BorderSizePixel = 0
+    spark.ZIndex = 8
+    spark.BackgroundTransparency = 0.2
+    spark.Parent = particleField
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = spark
+    
+    -- Random sparkle effect
+    spawn(function()
+        while spark.Parent do
+            -- Random appear/disappear
+            if math.random(1, 100) <= 5 then -- 5% chance each frame
+                local sparkle = TweenService:Create(spark,
+                    TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                    {Size = UDim2.new(0, 3, 0, 3), BackgroundTransparency = 0}
+                )
+                sparkle:Play()
+                
+                sparkle.Completed:Connect(function()
+                    local fade = TweenService:Create(spark,
+                        TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+                        {Size = UDim2.new(0, 1, 0, 1), BackgroundTransparency = 0.8}
+                    )
+                    fade:Play()
+                end)
+            end
+            wait(0.1)
+        end
+    end)
+end
+
+-- Professional Main Container (Content Layer)
+local mainContainer = Instance.new("Frame")
+mainContainer.Name = "MainContainer"
+mainContainer.Size = UDim2.new(1, 0, 1, 0)
+mainContainer.Position = UDim2.new(0, 0, 0, 0)
+mainContainer.BackgroundTransparency = 1
+mainContainer.BorderSizePixel = 0
+mainContainer.ZIndex = 8
+mainContainer.Parent = blackBackground
+
+-- Container Gradient Overlay (Subtle)
+local gradientOverlay = Instance.new("Frame")
+gradientOverlay.Size = UDim2.new(1, 0, 1, 0)
+gradientOverlay.BackgroundTransparency = 1
+gradientOverlay.ZIndex = 8
+gradientOverlay.Parent = mainContainer
+
+local containerGradient = Instance.new("UIGradient")
+containerGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(5, 20, 35)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 10, 25)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(5, 15, 30))
+}
+containerGradient.Rotation = 135
+containerGradient.Transparency = NumberSequence.new{
+    NumberSequenceKeypoint.new(0, 0.85),
+    NumberSequenceKeypoint.new(0.5, 0.9),
+    NumberSequenceKeypoint.new(1, 0.87)
+}
+containerGradient.Parent = gradientOverlay
+
+-- Inner Border for Structure
+local innerStroke = Instance.new("UIStroke")
+innerStroke.Color = Color3.fromRGB(0, 255, 150)
+innerStroke.Thickness = 1
+innerStroke.Transparency = 0.7
+innerStroke.Parent = mainContainer
+
+local innerCorner = Instance.new("UICorner")
+innerCorner.CornerRadius = UDim.new(0, 22)
+innerCorner.Parent = mainContainer
+
+-- Compact Lightning Logo
+local logoFrame = Instance.new("Frame")
+logoFrame.Name = "LogoFrame"
+logoFrame.Size = UDim2.new(0, 55, 0, 55)
+logoFrame.Position = UDim2.new(0.5, -27.5, 0.1, 0)
+logoFrame.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+logoFrame.BorderSizePixel = 0
+logoFrame.ZIndex = 10
+logoFrame.Parent = mainContainer
+
+local logoCorner = Instance.new("UICorner")
+logoCorner.CornerRadius = UDim.new(0, 18)
+logoCorner.Parent = logoFrame
+
+-- Logo Gradient
+local logoGradient = Instance.new("UIGradient")
+logoGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 150)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(50, 255, 200)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 200, 100))
+}
+logoGradient.Rotation = 45
+logoGradient.Parent = logoFrame
+
+-- Logo Glow
+local logoStroke = Instance.new("UIStroke")
+logoStroke.Color = Color3.fromRGB(0, 255, 150)
+logoStroke.Thickness = 3
+logoStroke.Transparency = 0.4
+logoStroke.Parent = logoFrame
+
+-- Lightning Symbol
+local logoText = Instance.new("TextLabel")
+logoText.Size = UDim2.new(1, 0, 1, 0)
+logoText.BackgroundTransparency = 1
+logoText.Text = "⚡"
+logoText.TextColor3 = Color3.fromRGB(0, 0, 0)
+logoText.TextScaled = true
+logoText.Font = Enum.Font.GothamBold
+logoText.ZIndex = 11
+logoText.Parent = logoFrame
+
+-- Main Title
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name = "TitleLabel"
+titleLabel.Size = UDim2.new(1, -40, 0, 40)
+titleLabel.Position = UDim2.new(0, 20, 0.38, 0)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Text = "WarpahVip Exploit"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextScaled = true
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.ZIndex = 10
+titleLabel.Parent = mainContainer
+
+-- Title Glow
+local titleStroke = Instance.new("UIStroke")
+titleStroke.Color = Color3.fromRGB(0, 255, 150)
+titleStroke.Thickness = 2
+titleStroke.Transparency = 0.3
+titleStroke.Parent = titleLabel
+
+-- Subtitle
+local subtitleLabel = Instance.new("TextLabel")
+subtitleLabel.Name = "SubtitleLabel"
+subtitleLabel.Size = UDim2.new(1, -40, 0, 32)
+subtitleLabel.Position = UDim2.new(0, 20, 0.56, 0)
+subtitleLabel.BackgroundTransparency = 1
+subtitleLabel.Text = "Hello wellcomeback WarpahVip Exploit\nDo you ready?"
+subtitleLabel.TextColor3 = Color3.fromRGB(180, 255, 180)
+subtitleLabel.TextScaled = true
+subtitleLabel.Font = Enum.Font.Gotham
+subtitleLabel.ZIndex = 10
+subtitleLabel.Parent = mainContainer
+
+-- Status Text
+local statusText = Instance.new("TextLabel")
+statusText.Size = UDim2.new(0.7, 0, 0, 20)
+statusText.Position = UDim2.new(0, 20, 0.73, 0)
+statusText.BackgroundTransparency = 1
+statusText.Text = "Initializing..."
+statusText.TextColor3 = Color3.fromRGB(120, 255, 120)
+statusText.TextScaled = true
+statusText.Font = Enum.Font.Gotham
+statusText.TextXAlignment = Enum.TextXAlignment.Left
+statusText.ZIndex = 10
+statusText.Parent = mainContainer
+
+-- Progress Percentage
+local progressLabel = Instance.new("TextLabel")
+progressLabel.Size = UDim2.new(0.25, 0, 0, 20)
+progressLabel.Position = UDim2.new(0.75, 0, 0.73, 0)
+progressLabel.BackgroundTransparency = 1
+progressLabel.Text = "0%"
+progressLabel.TextColor3 = Color3.fromRGB(0, 255, 150)
+progressLabel.TextScaled = true
+progressLabel.Font = Enum.Font.GothamBold
+progressLabel.TextXAlignment = Enum.TextXAlignment.Right
+progressLabel.ZIndex = 10
+progressLabel.Parent = mainContainer
+
+-- Modern Loading Bar Container
+local loadingContainer = Instance.new("Frame")
+loadingContainer.Size = UDim2.new(1, -40, 0, 8)
+loadingContainer.Position = UDim2.new(0, 20, 0.83, 0)
+loadingContainer.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+loadingContainer.BorderSizePixel = 0
+loadingContainer.ZIndex = 10
+loadingContainer.Parent = mainContainer
+
+local loadingCorner = Instance.new("UICorner")
+loadingCorner.CornerRadius = UDim.new(0, 4)
+loadingCorner.Parent = loadingContainer
+
+-- Loading Container Border
+local loadingStroke = Instance.new("UIStroke")
+loadingStroke.Color = Color3.fromRGB(0, 255, 150)
+loadingStroke.Thickness = 1
+loadingStroke.Transparency = 0.6
+loadingStroke.Parent = loadingContainer
+
+-- Loading Progress Fill
+local loadingFill = Instance.new("Frame")
+loadingFill.Size = UDim2.new(0, 0, 1, 0)
+loadingFill.BackgroundColor3 = Color3.fromRGB(0, 255, 150)
+loadingFill.BorderSizePixel = 0
+loadingFill.ZIndex = 11
+loadingFill.Parent = loadingContainer
+
+local fillCorner = Instance.new("UICorner")
+fillCorner.CornerRadius = UDim.new(0, 4)
+fillCorner.Parent = loadingFill
+
+-- Loading Fill Gradient
+local fillGradient = Instance.new("UIGradient")
+fillGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 255, 150)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(80, 255, 180)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 200, 100))
+}
+fillGradient.Parent = loadingFill
+
+-- SYNCHRONIZED PROFESSIONAL ANIMATIONS --
+
+-- Outer Container Entrance Animation
+outerContainer.Position = UDim2.new(0.5, -235, 1.5, 0)
+outerContainer.Size = UDim2.new(0, 0, 0, 0)
+local outerEnter = TweenService:Create(outerContainer,
+    TweenInfo.new(1.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+    {Position = UDim2.new(0.5, -235, 0.5, -120), Size = UDim2.new(0, 470, 0, 240)}
+)
+
+-- Black Background synchronized entrance
+blackBackground.BackgroundTransparency = 1
+local backgroundEnter = TweenService:Create(blackBackground,
+    TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 0.4),
+    {BackgroundTransparency = 0.1}
+)
+
+-- Logo Professional Animation
+logoFrame.Size = UDim2.new(0, 0, 0, 0)
+local logoEnter = TweenService:Create(logoFrame,
+    TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, false, 0.8),
+    {Size = UDim2.new(0, 55, 0, 55)}
+)
+
+-- Text Elements Entrance (Sequential)
+titleLabel.TextTransparency = 1
+local titleEnter = TweenService:Create(titleLabel,
+    TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 1.2),
+    {TextTransparency = 0}
+)
+
+subtitleLabel.TextTransparency = 1
+local subtitleEnter = TweenService:Create(subtitleLabel,
+    TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 1.6),
+    {TextTransparency = 0}
+)
+
+statusText.TextTransparency = 1
+local statusEnter = TweenService:Create(statusText,
+    TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 2.0),
+    {TextTransparency = 0}
+)
+
+progressLabel.TextTransparency = 1
+local progressEnter = TweenService:Create(progressLabel,
+    TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 2.2),
+    {TextTransparency = 0}
+)
+
+-- Synchronized Professional Glow Animations
+local neonGlow = TweenService:Create(neonBorder,
+    TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+    {Thickness = 5, Transparency = 0.1}
+)
+
+local logoGlow = TweenService:Create(logoStroke,
+    TweenInfo.new(2.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+    {Thickness = 5, Transparency = 0.2}
+)
+
+local titleGlow = TweenService:Create(titleStroke,
+    TweenInfo.new(3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+    {Thickness = 4, Transparency = 0.1}
+)
+
+-- Start All Synchronized Animations
+outerEnter:Play()
+backgroundEnter:Play()
+logoEnter:Play()
+titleEnter:Play()
+subtitleEnter:Play()
+statusEnter:Play()
+progressEnter:Play()
+neonGlow:Play()
+logoGlow:Play()
+titleGlow:Play()
+
+-- Enhanced Loading Messages
+local loadingMessages = {
+    "Initializing...",
+    "Bypassing security...",
+    "Loading modules...",
+    "Bypassing anticheat...",
+    "Connecting servers...",
+    "Bypassing detection...",
+    "Finalizing injection...",
+    "Ready!"
+}
+
+-- Synchronized Loading System
+local progress = 0
+local messageIndex = 1
+
+local function updateProgress()
+    progress = progress + math.random(3, 6)
+    if progress > 100 then progress = 100 end
+    
+    -- Smooth synchronized progress bar
+    local progressTween = TweenService:Create(loadingFill,
+        TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+        {Size = UDim2.new(progress / 100, 0, 1, 0)}
+    )
+    progressTween:Play()
+    
+    -- Update synchronized status
+    progressLabel.Text = progress .. "%"
+    
+    if messageIndex <= #loadingMessages then
+        statusText.Text = loadingMessages[messageIndex]
+        if progress >= (messageIndex * 100 / #loadingMessages) then
+            messageIndex = messageIndex + 1
+        end
+    end
+    
+    -- Complete loading
+    if progress >= 100 then
+        wait(1.2)
+        statusText.Text = "WarpahVip Ready!"
+        
+        -- Synchronized exit animations
+        local exitTween = TweenService:Create(outerContainer,
+            TweenInfo.new(1.2, Enum.EasingStyle.Back, Enum.EasingDirection.In),
+            {Position = UDim2.new(0.5, -235, -1.5, 0), Size = UDim2.new(0, 0, 0, 0)}
+        )
+        
+        exitTween:Play()
+        
+        exitTween.Completed:Connect(function()
+            screenGui:Destroy()
+            print("⚡ WarpahVip Exploit loaded successfully!")
+            -- Your main exploit code here
+        end)
+        
+        return
+    end
+end
+
+-- Run Synchronized Loading
+spawn(function()
+    wait(2.8) -- Wait for entrance animations to complete
+    while progress < 100 do
+        updateProgress()
+        wait(math.random(120, 280) / 1000)
+    end
+end)
