@@ -1,0 +1,869 @@
+-- Warpah RTX Graphics Enhancement Script for Delta Executor
+-- Professional weather & lighting system with RTX-style realistic graphics
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Forward declarations
+local clearWeatherEffects, createRainEffect, createSnowEffect
+
+-- Clear weather effects
+clearWeatherEffects = function()
+    local rainFolder = workspace:FindFirstChild("WarpahRain")
+    if rainFolder then rainFolder:Destroy() end
+    
+    local snowFolder = workspace:FindFirstChild("WarpahSnow")
+    if snowFolder then snowFolder:Destroy() end
+end
+
+-- Rain Particle System - FIXED
+createRainEffect = function()
+    local rainFolder = workspace:FindFirstChild("WarpahRain")
+    if rainFolder then rainFolder:Destroy() end
+    
+    rainFolder = Instance.new("Folder")
+    rainFolder.Name = "WarpahRain"
+    rainFolder.Parent = workspace
+    
+    for i = 1, 50 do
+        local rainDrop = Instance.new("Part")
+        rainDrop.Name = "RainDrop" .. i
+        rainDrop.Size = Vector3.new(0.1, 2, 0.1)
+        rainDrop.Material = Enum.Material.ForceField
+        rainDrop.BrickColor = BrickColor.new("Light blue")
+        rainDrop.Transparency = 0.3
+        rainDrop.CanCollide = false
+        rainDrop.Anchored = true
+        rainDrop.Parent = rainFolder
+        
+        -- Position rain randomly in sky
+        rainDrop.Position = Vector3.new(
+            math.random(-200, 200),
+            math.random(100, 200),
+            math.random(-200, 200)
+        )
+        
+        -- Rain falling animation - FIXED
+        spawn(function()
+            while rainDrop.Parent and rainFolder.Parent do
+                rainDrop.Position = rainDrop.Position - Vector3.new(0, 2, 0)
+                if rainDrop.Position.Y < -10 then
+                    rainDrop.Position = Vector3.new(
+                        math.random(-200, 200),
+                        math.random(100, 200),
+                        math.random(-200, 200)
+                    )
+                end
+                wait(0.1)
+            end
+        end)
+    end
+end
+
+-- Snow Particle System - FIXED
+createSnowEffect = function()
+    local snowFolder = workspace:FindFirstChild("WarpahSnow")
+    if snowFolder then snowFolder:Destroy() end
+    
+    snowFolder = Instance.new("Folder")
+    snowFolder.Name = "WarpahSnow"
+    snowFolder.Parent = workspace
+    
+    for i = 1, 80 do
+        local snowFlake = Instance.new("Part")
+        snowFlake.Name = "SnowFlake" .. i
+        snowFlake.Size = Vector3.new(0.3, 0.3, 0.3)
+        snowFlake.Shape = Enum.PartType.Ball
+        snowFlake.Material = Enum.Material.Neon
+        snowFlake.BrickColor = BrickColor.new("Institutional white")
+        snowFlake.Transparency = 0.2
+        snowFlake.CanCollide = false
+        snowFlake.Anchored = true
+        snowFlake.Parent = snowFolder
+        
+        -- Position snow randomly in sky
+        snowFlake.Position = Vector3.new(
+            math.random(-150, 150),
+            math.random(80, 150),
+            math.random(-150, 150)
+        )
+        
+        -- Snow falling animation with drift - FIXED
+        spawn(function()
+            local driftX = math.random(-1, 1) * 0.5
+            local driftZ = math.random(-1, 1) * 0.5
+            while snowFlake.Parent and snowFolder.Parent do
+                snowFlake.Position = snowFlake.Position + Vector3.new(driftX, -0.8, driftZ)
+                if snowFlake.Position.Y < -5 then
+                    snowFlake.Position = Vector3.new(
+                        math.random(-150, 150),
+                        math.random(80, 150),
+                        math.random(-150, 150)
+                    )
+                    driftX = math.random(-1, 1) * 0.5
+                    driftZ = math.random(-1, 1) * 0.5
+                end
+                wait(0.15)
+            end
+        end)
+    end
+end
+
+-- Enhanced weather presets with working skyboxes and RTX effects
+local weatherPresets = {
+    {
+        name = "🌙 Moonlight",
+        color = Color3.new(0.2, 0.3, 0.8),
+        settings = function()
+            Lighting.TimeOfDay = "23:00:00"
+            Lighting.Brightness = 0.3
+            Lighting.Ambient = Color3.new(0.1, 0.15, 0.4)
+            Lighting.OutdoorAmbient = Color3.new(0.05, 0.1, 0.3)
+            Lighting.FogColor = Color3.new(0.1, 0.1, 0.3)
+            Lighting.FogEnd = 1000
+            Lighting.FogStart = 0
+            
+            -- Clear existing sky
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 3000
+            sky.SunAngularSize = 0
+            sky.MoonAngularSize = 15
+            sky.CelestialBodiesShown = true
+            sky.SkyboxBk = "rbxassetid://8139676647"
+            sky.SkyboxDn = "rbxassetid://8139676988"
+            sky.SkyboxFt = "rbxassetid://8139677111"
+            sky.SkyboxLf = "rbxassetid://8139677359"
+            sky.SkyboxRt = "rbxassetid://8139677253"
+            sky.SkyboxUp = "rbxassetid://8139677437"
+        end
+    },
+    {
+        name = "🌅 Sunrise", 
+        color = Color3.new(1, 0.7, 0.3),
+        settings = function()
+            Lighting.TimeOfDay = "06:30:00"
+            Lighting.Brightness = 2
+            Lighting.Ambient = Color3.new(0.8, 0.5, 0.3)
+            Lighting.OutdoorAmbient = Color3.new(1, 0.7, 0.4)
+            Lighting.FogColor = Color3.new(1, 0.8, 0.6)
+            Lighting.FogEnd = 5000
+            Lighting.FogStart = 0
+            
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 0
+            sky.SunAngularSize = 25
+            sky.CelestialBodiesShown = true
+            sky.SkyboxBk = "rbxassetid://150939022"
+            sky.SkyboxDn = "rbxassetid://150939038"
+            sky.SkyboxFt = "rbxassetid://150939047"
+            sky.SkyboxLf = "rbxassetid://150939056"
+            sky.SkyboxRt = "rbxassetid://150939063"
+            sky.SkyboxUp = "rbxassetid://150939082"
+        end
+    },
+    {
+        name = "🌇 Sunset",
+        color = Color3.new(1, 0.4, 0.2),
+        settings = function()
+            Lighting.TimeOfDay = "18:30:00"
+            Lighting.Brightness = 1.5
+            Lighting.Ambient = Color3.new(0.9, 0.4, 0.2)
+            Lighting.OutdoorAmbient = Color3.new(1, 0.5, 0.3)
+            Lighting.FogColor = Color3.new(1, 0.6, 0.4)
+            Lighting.FogEnd = 3000
+            Lighting.FogStart = 0
+            
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 100
+            sky.SunAngularSize = 30
+            sky.CelestialBodiesShown = true
+            sky.SkyboxBk = "rbxassetid://323493360"
+            sky.SkyboxDn = "rbxassetid://323493429"
+            sky.SkyboxFt = "rbxassetid://323493571"
+            sky.SkyboxLf = "rbxassetid://323493688"
+            sky.SkyboxRt = "rbxassetid://323493752"
+            sky.SkyboxUp = "rbxassetid://323493871"
+        end
+    },
+    {
+        name = "⛈️ Storm",
+        color = Color3.new(0.3, 0.3, 0.4),
+        settings = function()
+            clearWeatherEffects()
+            -- FIXED: Storm should be cloudy afternoon, not dark
+            Lighting.TimeOfDay = "14:00:00"  -- Afternoon instead of dark
+            Lighting.Brightness = 1.0  -- Brighter for cloudy day
+            Lighting.Ambient = Color3.new(0.4, 0.4, 0.5)  -- Lighter ambient
+            Lighting.OutdoorAmbient = Color3.new(0.5, 0.5, 0.6)  -- Lighter outdoor
+            Lighting.FogColor = Color3.new(0.6, 0.6, 0.7)  -- Lighter fog for clouds
+            Lighting.FogEnd = 800  -- Closer fog for storm effect
+            Lighting.FogStart = 100
+            
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 0
+            sky.SunAngularSize = 5  -- Small sun through clouds
+            sky.CelestialBodiesShown = false
+            -- FIXED: Better storm skybox IDs for cloudy sky
+            sky.SkyboxBk = "rbxassetid://570557620"
+            sky.SkyboxDn = "rbxassetid://570557669"
+            sky.SkyboxFt = "rbxassetid://570557718"
+            sky.SkyboxLf = "rbxassetid://570557786"
+            sky.SkyboxRt = "rbxassetid://570557848"
+            sky.SkyboxUp = "rbxassetid://570557895"
+            
+            -- FIXED: Create rain effect
+            wait(0.5)  -- Small delay before starting rain
+            createRainEffect()
+        end
+    },
+    {
+        name = "☀️ Clear Day",
+        color = Color3.new(0.5, 0.7, 1),
+        settings = function()
+            Lighting.TimeOfDay = "12:00:00"
+            Lighting.Brightness = 2.5
+            Lighting.Ambient = Color3.new(0.7, 0.7, 0.8)
+            Lighting.OutdoorAmbient = Color3.new(0.8, 0.8, 0.9)
+            Lighting.FogColor = Color3.new(0.8, 0.9, 1)
+            Lighting.FogEnd = 10000
+            Lighting.FogStart = 0
+            
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 0
+            sky.SunAngularSize = 21
+            sky.CelestialBodiesShown = true
+            sky.SkyboxBk = "rbxassetid://271042516"
+            sky.SkyboxDn = "rbxassetid://271077243"
+            sky.SkyboxFt = "rbxassetid://271042556"
+            sky.SkyboxLf = "rbxassetid://271042310"
+            sky.SkyboxRt = "rbxassetid://271042467"
+            sky.SkyboxUp = "rbxassetid://271077958"
+        end
+    },
+    {
+        name = "🌊 Ocean Blue",
+        color = Color3.new(0.2, 0.6, 1),
+        settings = function()
+            Lighting.TimeOfDay = "14:00:00"
+            Lighting.Brightness = 2.2
+            Lighting.Ambient = Color3.new(0.4, 0.6, 0.8)
+            Lighting.OutdoorAmbient = Color3.new(0.5, 0.7, 0.9)
+            Lighting.FogColor = Color3.new(0.6, 0.8, 1)
+            Lighting.FogEnd = 8000
+            Lighting.FogStart = 0
+            
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 0
+            sky.SunAngularSize = 20
+            sky.CelestialBodiesShown = true
+            sky.SkyboxBk = "rbxassetid://153695414"
+            sky.SkyboxDn = "rbxassetid://153695352"
+            sky.SkyboxFt = "rbxassetid://153695457"
+            sky.SkyboxLf = "rbxassetid://153695518"
+            sky.SkyboxRt = "rbxassetid://153695549"
+            sky.SkyboxUp = "rbxassetid://153695581"
+        end
+    },
+    {
+        name = "🌲 Forest",
+        color = Color3.new(0.2, 0.7, 0.3),
+        settings = function()
+            Lighting.TimeOfDay = "10:00:00"
+            Lighting.Brightness = 2.0
+            Lighting.Ambient = Color3.new(0.4, 0.6, 0.2)
+            Lighting.OutdoorAmbient = Color3.new(0.5, 0.8, 0.4)
+            Lighting.FogColor = Color3.new(0.6, 0.8, 0.5)
+            Lighting.FogEnd = 6000
+            Lighting.FogStart = 0
+            
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 0
+            sky.SunAngularSize = 18
+            sky.CelestialBodiesShown = true
+            sky.SkyboxBk = "rbxassetid://323493360"
+            sky.SkyboxDn = "rbxassetid://323493429"
+            sky.SkyboxFt = "rbxassetid://323493571"
+            sky.SkyboxLf = "rbxassetid://323493688"
+            sky.SkyboxRt = "rbxassetid://323493752"
+            sky.SkyboxUp = "rbxassetid://323493871"
+        end
+    },
+    {
+        name = "🔥 Volcanic",
+        color = Color3.new(1, 0.2, 0.1),
+        settings = function()
+            Lighting.TimeOfDay = "16:00:00"
+            Lighting.Brightness = 1.8
+            Lighting.Ambient = Color3.new(0.8, 0.3, 0.2)
+            Lighting.OutdoorAmbient = Color3.new(1, 0.4, 0.3)
+            Lighting.FogColor = Color3.new(0.9, 0.4, 0.2)
+            Lighting.FogEnd = 2000
+            Lighting.FogStart = 100
+            
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 0
+            sky.SunAngularSize = 25
+            sky.CelestialBodiesShown = true
+            sky.SkyboxBk = "rbxassetid://570557620"
+            sky.SkyboxDn = "rbxassetid://570557669"
+            sky.SkyboxFt = "rbxassetid://570557718"
+            sky.SkyboxLf = "rbxassetid://570557786"
+            sky.SkyboxRt = "rbxassetid://570557848"
+            sky.SkyboxUp = "rbxassetid://570557895"
+        end
+    },
+    {
+        name = "❄️ Winter",
+        color = Color3.new(0.7, 0.9, 1),
+        settings = function()
+            clearWeatherEffects()
+            Lighting.TimeOfDay = "11:00:00"
+            Lighting.Brightness = 3.5
+            Lighting.Ambient = Color3.new(0.9, 0.95, 1)
+            Lighting.OutdoorAmbient = Color3.new(0.95, 0.98, 1)
+            Lighting.FogColor = Color3.new(0.95, 0.98, 1)
+            Lighting.FogEnd = 20000
+            Lighting.FogStart = 100
+            
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 0
+            sky.SunAngularSize = 12
+            sky.CelestialBodiesShown = true
+            sky.SkyboxBk = "rbxassetid://8139676647"
+            sky.SkyboxDn = "rbxassetid://8139676988"
+            sky.SkyboxFt = "rbxassetid://8139677111"
+            sky.SkyboxLf = "rbxassetid://8139677359"
+            sky.SkyboxRt = "rbxassetid://8139677253"
+            sky.SkyboxUp = "rbxassetid://8139677437"
+            
+            -- FIXED: Create snow effect
+            wait(0.5)  -- Small delay before starting snow
+            createSnowEffect()
+        end
+    },
+    {
+        name = "🌌 Nebula",
+        color = Color3.new(0.8, 0.4, 1),
+        settings = function()
+            Lighting.TimeOfDay = "22:00:00"
+            Lighting.Brightness = 0.5
+            Lighting.Ambient = Color3.new(0.4, 0.2, 0.6)
+            Lighting.OutdoorAmbient = Color3.new(0.6, 0.3, 0.8)
+            Lighting.FogColor = Color3.new(0.5, 0.3, 0.7)
+            Lighting.FogEnd = 8000
+            Lighting.FogStart = 0
+            
+            if Lighting:FindFirstChild("Sky") then
+                Lighting.Sky:Destroy()
+            end
+            
+            local sky = Instance.new("Sky")
+            sky.Parent = Lighting
+            sky.Name = "Sky"
+            sky.StarCount = 5000
+            sky.SunAngularSize = 0
+            sky.MoonAngularSize = 20
+            sky.CelestialBodiesShown = true
+            sky.SkyboxBk = "rbxassetid://159454299"
+            sky.SkyboxDn = "rbxassetid://159454296"
+            sky.SkyboxFt = "rbxassetid://159454293"
+            sky.SkyboxLf = "rbxassetid://159454286"
+            sky.SkyboxRt = "rbxassetid://159454300"
+            sky.SkyboxUp = "rbxassetid://159454288"
+        end
+    }
+}
+
+-- RTX Graphics Enhancement Function
+local function applyRTXEffects()
+    -- Enable advanced lighting technology for RTX-like rendering
+    Lighting.Technology = Enum.Technology.ShadowMap
+    Lighting.GlobalShadows = true
+    
+    -- Enhanced atmosphere for RTX feel
+    local atmosphere = Lighting:FindFirstChild("Atmosphere") or Instance.new("Atmosphere")
+    atmosphere.Parent = Lighting
+    atmosphere.Density = 0.4
+    atmosphere.Offset = 0.3
+    atmosphere.Color = Color3.new(0.8, 0.8, 0.9)
+    atmosphere.Decay = Color3.new(0.4, 0.5, 0.75)
+    atmosphere.Glare = 0.3
+    atmosphere.Haze = 2.2
+    
+    -- RTX-style post-processing effects
+    local bloom = Lighting:FindFirstChild("BloomEffect") or Instance.new("BloomEffect")
+    bloom.Parent = Lighting
+    bloom.Intensity = 0.8
+    bloom.Size = 56
+    bloom.Threshold = 0.6
+    
+    local colorCorrect = Lighting:FindFirstChild("ColorCorrectionEffect") or Instance.new("ColorCorrectionEffect")
+    colorCorrect.Parent = Lighting
+    colorCorrect.Saturation = 0.3
+    colorCorrect.Contrast = 0.15
+    colorCorrect.Brightness = 0.08
+    colorCorrect.TintColor = Color3.new(1.05, 1.02, 1.0)
+    
+    local sunRays = Lighting:FindFirstChild("SunRaysEffect") or Instance.new("SunRaysEffect")
+    sunRays.Parent = Lighting
+    sunRays.Intensity = 0.4
+    sunRays.Spread = 0.6
+    
+    -- Depth of Field for cinematic RTX effect
+    local depthOfField = Lighting:FindFirstChild("DepthOfFieldEffect") or Instance.new("DepthOfFieldEffect")
+    depthOfField.Parent = Lighting
+    depthOfField.FarIntensity = 0.15
+    depthOfField.FocusDistance = 60
+    depthOfField.InFocusRadius = 25
+    depthOfField.NearIntensity = 0.25
+end
+
+-- RTX Texture Enhancement for realistic graphics
+local function enhancePartsWithRTX()
+    spawn(function()
+        -- Enhanced material properties for RTX-like appearance
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("BasePart") then
+                -- Apply realistic materials and properties
+                if obj.Material == Enum.Material.Plastic then
+                    obj.Material = Enum.Material.SmoothPlastic
+                elseif obj.Material == Enum.Material.Concrete then
+                    obj.Material = Enum.Material.Concrete
+                elseif obj.Material == Enum.Material.Brick then
+                    obj.Material = Enum.Material.Brick
+                end
+                
+                -- Enhanced reflectance for metallic surfaces
+                if obj.Material == Enum.Material.Metal or obj.Material == Enum.Material.CorrodedMetal then
+                    obj.Reflectance = math.min(obj.Reflectance + 0.3, 0.8)
+                end
+                
+                -- Add realistic surface appearance
+                local surfaceGui = obj:FindFirstChild("RTXSurface")
+                if not surfaceGui then
+                    -- Enhanced surface properties for RTX look
+                    if obj.Material == Enum.Material.Wood then
+                        obj.BrickColor = BrickColor.new("Dark orange")
+                    elseif obj.Material == Enum.Material.Sand then
+                        obj.BrickColor = BrickColor.new("Bright yellow")
+                    end
+                end
+            elseif obj:IsA("Texture") or obj:IsA("Decal") then
+                -- Enhance texture transparency and color for realism
+                obj.Transparency = math.max(obj.Transparency - 0.1, 0)
+                if obj.Color3 then
+                    obj.Color3 = Color3.new(
+                        math.min(obj.Color3.R * 1.1, 1),
+                        math.min(obj.Color3.G * 1.1, 1),
+                        math.min(obj.Color3.B * 1.1, 1)
+                    )
+                end
+            end
+        end
+    end)
+end
+
+-- Create main GUI with elegant design
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "WarpahRTXGUI"
+screenGui.Parent = playerGui
+screenGui.ResetOnSpawn = false
+
+-- Main container with glassmorphism effect
+local mainFrame = Instance.new("Frame")
+mainFrame.Name = "MainFrame"
+mainFrame.Size = UDim2.new(0, 280, 0, 400)
+mainFrame.Position = UDim2.new(0, 20, 0, 80)
+mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+mainFrame.BackgroundTransparency = 0.3
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+
+-- Rounded corners
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 16)
+mainCorner.Parent = mainFrame
+
+-- Glass effect stroke
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.new(1, 1, 1)
+stroke.Transparency = 0.8
+stroke.Thickness = 1
+stroke.Parent = mainFrame
+
+-- Header section
+local header = Instance.new("Frame")
+header.Name = "Header"
+header.Size = UDim2.new(1, 0, 0, 50)
+header.Position = UDim2.new(0, 0, 0, 0)
+header.BackgroundColor3 = Color3.new(1, 1, 1)
+header.BackgroundTransparency = 0.9
+header.BorderSizePixel = 0
+header.Parent = mainFrame
+
+local headerCorner = Instance.new("UICorner")
+headerCorner.CornerRadius = UDim.new(0, 16)
+headerCorner.Parent = header
+
+-- Title with gradient
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -100, 1, 0)
+title.Position = UDim2.new(0, 15, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🎮 WARPAH RTX"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 16
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = header
+
+-- Minimize button
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Name = "MinimizeBtn"
+minimizeBtn.Size = UDim2.new(0, 30, 0, 30)
+minimizeBtn.Position = UDim2.new(1, -75, 0, 10)
+minimizeBtn.BackgroundColor3 = Color3.new(1, 0.8, 0.2)
+minimizeBtn.BackgroundTransparency = 0.2
+minimizeBtn.BorderSizePixel = 0
+minimizeBtn.Text = "−"
+minimizeBtn.TextColor3 = Color3.new(1, 1, 1)
+minimizeBtn.TextSize = 18
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.Parent = header
+
+local minimizeBtnCorner = Instance.new("UICorner")
+minimizeBtnCorner.CornerRadius = UDim.new(0, 15)
+minimizeBtnCorner.Parent = minimizeBtn
+
+-- Close button
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "CloseBtn"
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -40, 0, 10)
+closeBtn.BackgroundColor3 = Color3.new(1, 0.3, 0.3)
+closeBtn.BackgroundTransparency = 0.2
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "×"
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.TextSize = 18
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.Parent = header
+
+local closeBtnCorner = Instance.new("UICorner")
+closeBtnCorner.CornerRadius = UDim.new(0, 15)
+closeBtnCorner.Parent = closeBtn
+
+-- Content area
+local content = Instance.new("ScrollingFrame")
+content.Name = "Content"
+content.Size = UDim2.new(1, -20, 1, -65)
+content.Position = UDim2.new(0, 10, 0, 55)
+content.BackgroundTransparency = 1
+content.BorderSizePixel = 0
+content.ScrollBarThickness = 4
+content.ScrollBarImageColor3 = Color3.new(1, 1, 1)
+content.ScrollBarImageTransparency = 0.7
+content.Parent = mainFrame
+
+-- Notification system
+local function showNotification(text)
+    spawn(function()
+        local notif = Instance.new("Frame")
+        notif.Size = UDim2.new(0, 220, 0, 35)
+        notif.Position = UDim2.new(1, 10, 0, 100)
+        notif.BackgroundColor3 = Color3.new(0.2, 0.8, 0.4)
+        notif.BackgroundTransparency = 0.1
+        notif.BorderSizePixel = 0
+        notif.Parent = screenGui
+        
+        local notifCorner = Instance.new("UICorner")
+        notifCorner.CornerRadius = UDim.new(0, 10)
+        notifCorner.Parent = notif
+        
+        local notifText = Instance.new("TextLabel")
+        notifText.Size = UDim2.new(1, -20, 1, 0)
+        notifText.Position = UDim2.new(0, 10, 0, 0)
+        notifText.BackgroundTransparency = 1
+        notifText.Text = "✓ " .. text
+        notifText.TextColor3 = Color3.new(1, 1, 1)
+        notifText.TextSize = 12
+        notifText.Font = Enum.Font.GothamSemibold
+        notifText.TextXAlignment = Enum.TextXAlignment.Left
+        notifText.Parent = notif
+        
+        -- Animate in
+        notif:TweenPosition(UDim2.new(1, -230, 0, 100), "Out", "Quart", 0.3, true)
+        
+        wait(2.5)
+        
+        -- Animate out
+        notif:TweenPosition(UDim2.new(1, 10, 0, 100), "In", "Quart", 0.3, true)
+        wait(0.3)
+        notif:Destroy()
+    end)
+end
+
+-- Create weather buttons
+local function createWeatherButton(preset, index)
+    local btn = Instance.new("TextButton")
+    btn.Name = "WeatherBtn" .. index
+    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Position = UDim2.new(0, 5, 0, (index - 1) * 45)
+    btn.BackgroundColor3 = preset.color
+    btn.BackgroundTransparency = 0.7
+    btn.BorderSizePixel = 0
+    btn.Text = ""
+    btn.Parent = content
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 10)
+    btnCorner.Parent = btn
+    
+    local btnStroke = Instance.new("UIStroke")
+    btnStroke.Color = preset.color
+    btnStroke.Transparency = 0.5
+    btnStroke.Thickness = 1
+    btnStroke.Parent = btn
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -20, 1, 0)
+    label.Position = UDim2.new(0, 15, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = preset.name
+    label.TextColor3 = Color3.new(1, 1, 1)
+    label.TextSize = 14
+    label.Font = Enum.Font.GothamSemibold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = btn
+    
+    -- Button animations and functionality
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+            BackgroundTransparency = 0.4,
+            Size = UDim2.new(1, -5, 0, 40)
+        }):Play()
+        TweenService:Create(btnStroke, TweenInfo.new(0.2), {
+            Transparency = 0.2
+        }):Play()
+    end)
+    
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+            BackgroundTransparency = 0.7,
+            Size = UDim2.new(1, -10, 0, 40)
+        }):Play()
+        TweenService:Create(btnStroke, TweenInfo.new(0.2), {
+            Transparency = 0.5
+        }):Play()
+    end)
+    
+    btn.MouseButton1Click:Connect(function()
+        -- Click animation
+        TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Quart), {
+            BackgroundTransparency = 0.1
+        }):Play()
+        
+        wait(0.1)
+        
+        TweenService:Create(btn, TweenInfo.new(0.2, Enum.EasingStyle.Quart), {
+            BackgroundTransparency = 0.7
+        }):Play()
+        
+        -- Apply weather settings
+        spawn(function()
+            pcall(function()
+                -- Clear existing effects
+                for _, child in pairs(Lighting:GetChildren()) do
+                    if child:IsA("BloomEffect") or child:IsA("ColorCorrectionEffect") or 
+                       child:IsA("SunRaysEffect") or child:IsA("Atmosphere") or 
+                       child:IsA("DepthOfFieldEffect") then
+                        child:Destroy()
+                    end
+                end
+                
+                -- Apply preset
+                preset.settings()
+                
+                -- Apply RTX enhancements
+                applyRTXEffects()
+                
+                -- Enhance all parts with RTX textures
+                enhancePartsWithRTX()
+                
+                -- Show success notification
+                showNotification(preset.name .. " Applied with RTX!")
+            end)
+        end)
+    end)
+end
+
+-- Clear all weather effects when other presets are applied
+for i, preset in ipairs(weatherPresets) do
+    if preset.name ~= "⛈️ Storm" and preset.name ~= "❄️ Winter" then
+        local originalSettings = preset.settings
+        preset.settings = function()
+            clearWeatherEffects()
+            originalSettings()
+        end
+    end
+end
+
+-- Create all buttons
+for i, preset in ipairs(weatherPresets) do
+    createWeatherButton(preset, i)
+end
+
+content.CanvasSize = UDim2.new(0, 0, 0, #weatherPresets * 45 + 10)
+
+-- Minimize functionality
+local isMinimized = false
+minimizeBtn.MouseButton1Click:Connect(function()
+    isMinimized = not isMinimized
+    
+    if isMinimized then
+        TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
+            Size = UDim2.new(0, 280, 0, 50)
+        }):Play()
+        minimizeBtn.Text = "+"
+        content.Visible = false
+    else
+        TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {
+            Size = UDim2.new(0, 280, 0, 400)
+        }):Play()
+        minimizeBtn.Text = "−"
+        content.Visible = true
+    end
+end)
+
+-- Close functionality
+closeBtn.MouseButton1Click:Connect(function()
+    -- Clean up weather effects when closing
+    clearWeatherEffects()
+    
+    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0, 150, 0, 200)
+    }):Play()
+    
+    wait(0.3)
+    screenGui:Destroy()
+end)
+
+-- Professional dragging system
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+        
+        TweenService:Create(mainFrame, TweenInfo.new(0.1), {
+            BackgroundTransparency = 0.1
+        }):Play()
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        mainFrame.Position = newPos
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+        
+        TweenService:Create(mainFrame, TweenInfo.new(0.2), {
+            BackgroundTransparency = 0.3
+        }):Play()
+    end
+end)
+
+-- Entrance animation
+mainFrame.Size = UDim2.new(0, 0, 0, 0)
+mainFrame.Position = UDim2.new(0, 150, 0, 200)
+
+TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+    Size = UDim2.new(0, 280, 0, 400),
+    Position = UDim2.new(0, 20, 0, 80)
+}):Play()
+
+-- Apply initial RTX effects
+spawn(function()
+    wait(0.2)
+    applyRTXEffects()
+end)
+
+-- Show welcome
+wait(0.6)
+showNotification("Warpah RTX System Loaded!")
+
+print("🎮 Warpah RTX Graphics System Initialized")
+print("⚡ Professional RTX weather control ready")
+print("🌟 Enhanced realistic graphics enabled")
