@@ -1,0 +1,635 @@
+-- Warpah Carry | Professional Gaming Interface
+-- Advanced player detection across entire map
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+
+local LocalPlayer = Players.LocalPlayer
+
+-- Color Palette
+local MAIN_NEON = Color3.fromRGB(57, 255, 20)
+local SECONDARY_NEON = Color3.fromRGB(0, 255, 150)
+local BG_DARK = Color3.fromRGB(12, 12, 18)
+local BG_DARKER = Color3.fromRGB(8, 8, 14)
+local BG_ACCENT = Color3.fromRGB(18, 22, 28)
+local TEXT_PRIMARY = Color3.fromRGB(240, 255, 240)
+local TEXT_SECONDARY = Color3.fromRGB(180, 200, 180)
+
+-- Variables
+local GUI = {}
+local isMinimized, isDragging = false, false
+local dragStart, startPos = nil, nil
+local currentTarget, attachConnection = nil, nil
+local selectedPlayer = nil
+local playerData = {}
+
+-- Utility Functions
+local function createNeonBorder(parent, color, thickness)
+    local border = Instance.new("Frame")
+    border.Name = "NeonBorder"
+    border.Parent = parent
+    border.BackgroundColor3 = color or MAIN_NEON
+    border.BorderSizePixel = 0
+    border.Position = UDim2.new(0, -(thickness or 1), 0, -(thickness or 1))
+    border.Size = UDim2.new(1, (thickness or 1) * 2, 1, (thickness or 1) * 2)
+    border.ZIndex = parent.ZIndex - 1
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = border
+    
+    -- Animate glow
+    spawn(function()
+        while border.Parent do
+            local tween1 = TweenService:Create(border, TweenInfo.new(1.5, Enum.EasingStyle.Sine), {BackgroundTransparency = 0.3})
+            local tween2 = TweenService:Create(border, TweenInfo.new(1.5, Enum.EasingStyle.Sine), {BackgroundTransparency = 0.8})
+            tween1:Play()
+            tween1.Completed:Wait()
+            tween2:Play()
+            tween2.Completed:Wait()
+        end
+    end)
+    
+    return border
+end
+
+local function getPlayerDistance(player)
+    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
+        return math.huge
+    end
+    
+    local localRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not localRoot then return math.huge end
+    
+    return (player.Character.HumanoidRootPart.Position - localRoot.Position).Magnitude
+end
+
+local function getPlayerHealth(player)
+    if not player.Character or not player.Character:FindFirstChild("Humanoid") then
+        return 0, 100
+    end
+    return player.Character.Humanoid.Health, player.Character.Humanoid.MaxHealth
+end
+
+-- GUI Creation
+local function createInterface()
+    -- Main Container
+    GUI.ScreenGui = Instance.new("ScreenGui")
+    GUI.ScreenGui.Name = "WarpahCarryPro"
+    GUI.ScreenGui.Parent = CoreGui
+    GUI.ScreenGui.ResetOnSpawn = false
+    GUI.ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    -- Main Frame
+    GUI.MainFrame = Instance.new("Frame")
+    GUI.MainFrame.Parent = GUI.ScreenGui
+    GUI.MainFrame.BackgroundColor3 = BG_DARK
+    GUI.MainFrame.BorderSizePixel = 0
+    GUI.MainFrame.Position = UDim2.new(0, 30, 0, 80)
+    GUI.MainFrame.Size = UDim2.new(0, 260, 0, 340)
+    GUI.MainFrame.ClipsDescendants = true
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 6)
+    mainCorner.Parent = GUI.MainFrame
+    
+    createNeonBorder(GUI.MainFrame, MAIN_NEON, 1)
+    
+    -- Header
+    GUI.Header = Instance.new("Frame")
+    GUI.Header.Parent = GUI.MainFrame
+    GUI.Header.BackgroundColor3 = BG_DARKER
+    GUI.Header.BorderSizePixel = 0
+    GUI.Header.Size = UDim2.new(1, 0, 0, 32)
+    
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 6)
+    headerCorner.Parent = GUI.Header
+    
+    local headerFix = Instance.new("Frame")
+    headerFix.Parent = GUI.Header
+    headerFix.BackgroundColor3 = BG_DARKER
+    headerFix.BorderSizePixel = 0
+    headerFix.Position = UDim2.new(0, 0, 0.6, 0)
+    headerFix.Size = UDim2.new(1, 0, 0.4, 0)
+    
+    -- Title
+    GUI.Title = Instance.new("TextLabel")
+    GUI.Title.Parent = GUI.Header
+    GUI.Title.BackgroundTransparency = 1
+    GUI.Title.Position = UDim2.new(0, 8, 0, 0)
+    GUI.Title.Size = UDim2.new(1, -50, 1, 0)
+    GUI.Title.Font = Enum.Font.Code
+    GUI.Title.Text = "⚡ WARPAH CARRY"
+    GUI.Title.TextColor3 = MAIN_NEON
+    GUI.Title.TextSize = 12
+    GUI.Title.TextXAlignment = Enum.TextXAlignment.Left
+    GUI.Title.TextStrokeTransparency = 0.6
+    GUI.Title.TextStrokeColor3 = Color3.fromRGB(20, 80, 10)
+    
+    -- Control Buttons
+    GUI.MinimizeBtn = Instance.new("TextButton")
+    GUI.MinimizeBtn.Parent = GUI.Header
+    GUI.MinimizeBtn.BackgroundColor3 = BG_ACCENT
+    GUI.MinimizeBtn.BorderSizePixel = 0
+    GUI.MinimizeBtn.Position = UDim2.new(1, -40, 0, 4)
+    GUI.MinimizeBtn.Size = UDim2.new(0, 16, 0, 16)
+    GUI.MinimizeBtn.Font = Enum.Font.Code
+    GUI.MinimizeBtn.Text = "−"
+    GUI.MinimizeBtn.TextColor3 = Color3.fromRGB(255, 180, 0)
+    GUI.MinimizeBtn.TextSize = 10
+    
+    local minCorner = Instance.new("UICorner")
+    minCorner.CornerRadius = UDim.new(0, 3)
+    minCorner.Parent = GUI.MinimizeBtn
+    
+    GUI.CloseBtn = Instance.new("TextButton")
+    GUI.CloseBtn.Parent = GUI.Header
+    GUI.CloseBtn.BackgroundColor3 = BG_ACCENT
+    GUI.CloseBtn.BorderSizePixel = 0
+    GUI.CloseBtn.Position = UDim2.new(1, -20, 0, 4)
+    GUI.CloseBtn.Size = UDim2.new(0, 16, 0, 16)
+    GUI.CloseBtn.Font = Enum.Font.Code
+    GUI.CloseBtn.Text = "×"
+    GUI.CloseBtn.TextColor3 = Color3.fromRGB(255, 60, 60)
+    GUI.CloseBtn.TextSize = 10
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 3)
+    closeCorner.Parent = GUI.CloseBtn
+    
+    -- Status Display
+    GUI.StatusBar = Instance.new("Frame")
+    GUI.StatusBar.Parent = GUI.MainFrame
+    GUI.StatusBar.BackgroundColor3 = BG_ACCENT
+    GUI.StatusBar.BorderSizePixel = 0
+    GUI.StatusBar.Position = UDim2.new(0, 6, 0, 38)
+    GUI.StatusBar.Size = UDim2.new(1, -12, 0, 22)
+    
+    local statusCorner = Instance.new("UICorner")
+    statusCorner.CornerRadius = UDim.new(0, 4)
+    statusCorner.Parent = GUI.StatusBar
+    
+    GUI.StatusText = Instance.new("TextLabel")
+    GUI.StatusText.Parent = GUI.StatusBar
+    GUI.StatusText.BackgroundTransparency = 1
+    GUI.StatusText.Position = UDim2.new(0, 6, 0, 0)
+    GUI.StatusText.Size = UDim2.new(1, -12, 1, 0)
+    GUI.StatusText.Font = Enum.Font.Code
+    GUI.StatusText.Text = "● IDLE | No target selected"
+    GUI.StatusText.TextColor3 = TEXT_SECONDARY
+    GUI.StatusText.TextSize = 9
+    GUI.StatusText.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Player Count
+    GUI.PlayerCount = Instance.new("TextLabel")
+    GUI.PlayerCount.Parent = GUI.MainFrame
+    GUI.PlayerCount.BackgroundTransparency = 1
+    GUI.PlayerCount.Position = UDim2.new(0, 8, 0, 65)
+    GUI.PlayerCount.Size = UDim2.new(0.6, 0, 0, 18)
+    GUI.PlayerCount.Font = Enum.Font.Code
+    GUI.PlayerCount.Text = "PLAYERS: 0"
+    GUI.PlayerCount.TextColor3 = TEXT_PRIMARY
+    GUI.PlayerCount.TextSize = 8
+    GUI.PlayerCount.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Refresh Button
+    GUI.RefreshBtn = Instance.new("TextButton")
+    GUI.RefreshBtn.Parent = GUI.MainFrame
+    GUI.RefreshBtn.BackgroundColor3 = BG_ACCENT
+    GUI.RefreshBtn.BorderSizePixel = 0
+    GUI.RefreshBtn.Position = UDim2.new(1, -50, 0, 66)
+    GUI.RefreshBtn.Size = UDim2.new(0, 42, 0, 16)
+    GUI.RefreshBtn.Font = Enum.Font.Code
+    GUI.RefreshBtn.Text = "🔄 SCAN"
+    GUI.RefreshBtn.TextColor3 = SECONDARY_NEON
+    GUI.RefreshBtn.TextSize = 8
+    
+    local refreshCorner = Instance.new("UICorner")
+    refreshCorner.CornerRadius = UDim.new(0, 3)
+    refreshCorner.Parent = GUI.RefreshBtn
+    
+    -- Player List Container
+    GUI.ListContainer = Instance.new("Frame")
+    GUI.ListContainer.Parent = GUI.MainFrame
+    GUI.ListContainer.BackgroundColor3 = BG_ACCENT
+    GUI.ListContainer.BorderSizePixel = 0
+    GUI.ListContainer.Position = UDim2.new(0, 6, 0, 88)
+    GUI.ListContainer.Size = UDim2.new(1, -12, 0, 200)
+    
+    local listCorner = Instance.new("UICorner")
+    listCorner.CornerRadius = UDim.new(0, 4)
+    listCorner.Parent = GUI.ListContainer
+    
+    createNeonBorder(GUI.ListContainer, SECONDARY_NEON, 1)
+    
+    -- Scrollable List
+    GUI.PlayerList = Instance.new("ScrollingFrame")
+    GUI.PlayerList.Parent = GUI.ListContainer
+    GUI.PlayerList.BackgroundTransparency = 1
+    GUI.PlayerList.BorderSizePixel = 0
+    GUI.PlayerList.Position = UDim2.new(0, 3, 0, 3)
+    GUI.PlayerList.Size = UDim2.new(1, -6, 1, -6)
+    GUI.PlayerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    GUI.PlayerList.ScrollBarThickness = 3
+    GUI.PlayerList.ScrollBarImageColor3 = MAIN_NEON
+    GUI.PlayerList.ScrollBarImageTransparency = 0.3
+    
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Parent = GUI.PlayerList
+    listLayout.Padding = UDim.new(0, 2)
+    listLayout.SortOrder = Enum.SortOrder.Name
+    
+    -- Action Buttons
+    GUI.ActionFrame = Instance.new("Frame")
+    GUI.ActionFrame.Parent = GUI.MainFrame
+    GUI.ActionFrame.BackgroundTransparency = 1
+    GUI.ActionFrame.Position = UDim2.new(0, 6, 0, 294)
+    GUI.ActionFrame.Size = UDim2.new(1, -12, 0, 40)
+    
+    GUI.AttachBtn = Instance.new("TextButton")
+    GUI.AttachBtn.Parent = GUI.ActionFrame
+    GUI.AttachBtn.BackgroundColor3 = BG_DARKER
+    GUI.AttachBtn.BorderSizePixel = 0
+    GUI.AttachBtn.Position = UDim2.new(0, 0, 0, 0)
+    GUI.AttachBtn.Size = UDim2.new(0.48, 0, 0, 18)
+    GUI.AttachBtn.Font = Enum.Font.Code
+    GUI.AttachBtn.Text = "🔗 ATTACH"
+    GUI.AttachBtn.TextColor3 = MAIN_NEON
+    GUI.AttachBtn.TextSize = 9
+    
+    local attachCorner = Instance.new("UICorner")
+    attachCorner.CornerRadius = UDim.new(0, 3)
+    attachCorner.Parent = GUI.AttachBtn
+    
+    GUI.DetachBtn = Instance.new("TextButton")
+    GUI.DetachBtn.Parent = GUI.ActionFrame
+    GUI.DetachBtn.BackgroundColor3 = BG_DARKER
+    GUI.DetachBtn.BorderSizePixel = 0
+    GUI.DetachBtn.Position = UDim2.new(0.52, 0, 0, 0)
+    GUI.DetachBtn.Size = UDim2.new(0.48, 0, 0, 18)
+    GUI.DetachBtn.Font = Enum.Font.Code
+    GUI.DetachBtn.Text = "🔓 DETACH"
+    GUI.DetachBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    GUI.DetachBtn.TextSize = 9
+    
+    local detachCorner = Instance.new("UICorner")
+    detachCorner.CornerRadius = UDim.new(0, 3)
+    detachCorner.Parent = GUI.DetachBtn
+    
+    -- Speed Control
+    GUI.SpeedFrame = Instance.new("Frame")
+    GUI.SpeedFrame.Parent = GUI.ActionFrame
+    GUI.SpeedFrame.BackgroundColor3 = BG_DARKER
+    GUI.SpeedFrame.BorderSizePixel = 0
+    GUI.SpeedFrame.Position = UDim2.new(0, 0, 0, 22)
+    GUI.SpeedFrame.Size = UDim2.new(1, 0, 0, 16)
+    
+    local speedCorner = Instance.new("UICorner")
+    speedCorner.CornerRadius = UDim.new(0, 3)
+    speedCorner.Parent = GUI.SpeedFrame
+    
+    GUI.SpeedLabel = Instance.new("TextLabel")
+    GUI.SpeedLabel.Parent = GUI.SpeedFrame
+    GUI.SpeedLabel.BackgroundTransparency = 1
+    GUI.SpeedLabel.Position = UDim2.new(0, 4, 0, 0)
+    GUI.SpeedLabel.Size = UDim2.new(0.4, 0, 1, 0)
+    GUI.SpeedLabel.Font = Enum.Font.Code
+    GUI.SpeedLabel.Text = "SYNC: 100%"
+    GUI.SpeedLabel.TextColor3 = TEXT_SECONDARY
+    GUI.SpeedLabel.TextSize = 8
+    GUI.SpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+end
+
+-- Player Card Creation
+local function createPlayerCard(player)
+    local distance = getPlayerDistance(player)
+    local health, maxHealth = getPlayerHealth(player)
+    local healthPercent = math.floor((health / maxHealth) * 100)
+    
+    local card = Instance.new("Frame")
+    card.Name = player.Name
+    card.Parent = GUI.PlayerList
+    card.BackgroundColor3 = BG_DARKER
+    card.BorderSizePixel = 0
+    card.Size = UDim2.new(1, 0, 0, 36)
+    
+    local cardCorner = Instance.new("UICorner")
+    cardCorner.CornerRadius = UDim.new(0, 3)
+    cardCorner.Parent = card
+    
+    -- Player Info
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Parent = card
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Position = UDim2.new(0, 6, 0, 2)
+    nameLabel.Size = UDim2.new(1, -40, 0, 14)
+    nameLabel.Font = Enum.Font.Code
+    nameLabel.Text = "👤 " .. player.DisplayName
+    nameLabel.TextColor3 = TEXT_PRIMARY
+    nameLabel.TextSize = 9
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+    
+    -- Distance Info
+    local distanceLabel = Instance.new("TextLabel")
+    distanceLabel.Parent = card
+    distanceLabel.BackgroundTransparency = 1
+    distanceLabel.Position = UDim2.new(0, 6, 0, 16)
+    distanceLabel.Size = UDim2.new(0.6, 0, 0, 12)
+    distanceLabel.Font = Enum.Font.Code
+    distanceLabel.TextColor3 = TEXT_SECONDARY
+    distanceLabel.TextSize = 7
+    distanceLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    if distance == math.huge then
+        distanceLabel.Text = "📍 Unknown"
+    elseif distance > 1000 then
+        distanceLabel.Text = string.format("📍 %.1fkm", distance/1000)
+    else
+        distanceLabel.Text = string.format("📍 %dm", math.floor(distance))
+    end
+    
+    -- Health Bar
+    local healthBG = Instance.new("Frame")
+    healthBG.Parent = card
+    healthBG.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    healthBG.BorderSizePixel = 0
+    healthBG.Position = UDim2.new(0.65, 0, 0, 18)
+    healthBG.Size = UDim2.new(0.32, 0, 0, 8)
+    
+    local healthCorner = Instance.new("UICorner")
+    healthCorner.CornerRadius = UDim.new(0, 2)
+    healthCorner.Parent = healthBG
+    
+    local healthBar = Instance.new("Frame")
+    healthBar.Parent = healthBG
+    healthBar.BackgroundColor3 = healthPercent > 70 and Color3.fromRGB(0, 255, 100) or 
+                                 healthPercent > 30 and Color3.fromRGB(255, 200, 0) or 
+                                 Color3.fromRGB(255, 60, 60)
+    healthBar.BorderSizePixel = 0
+    healthBar.Size = UDim2.new(healthPercent/100, 0, 1, 0)
+    
+    local healthBarCorner = Instance.new("UICorner")
+    healthBarCorner.CornerRadius = UDim.new(0, 2)
+    healthBarCorner.Parent = healthBar
+    
+    -- Select Button
+    local selectBtn = Instance.new("TextButton")
+    selectBtn.Parent = card
+    selectBtn.BackgroundTransparency = 1
+    selectBtn.Size = UDim2.new(1, 0, 1, 0)
+    selectBtn.Text = ""
+    
+    -- Card Selection Logic
+    selectBtn.MouseButton1Click:Connect(function()
+        -- Reset all cards
+        for _, child in pairs(GUI.PlayerList:GetChildren()) do
+            if child:IsA("Frame") and child.Name ~= "UIListLayout" then
+                child.BackgroundColor3 = BG_DARKER
+                local border = child:FindFirstChild("SelectBorder")
+                if border then border:Destroy() end
+            end
+        end
+        
+        -- Highlight selected
+        card.BackgroundColor3 = Color3.fromRGB(15, 30, 15)
+        createNeonBorder(card, MAIN_NEON, 1).Name = "SelectBorder"
+        selectedPlayer = player
+        
+        -- Update status
+        GUI.StatusText.Text = "● SELECTED | " .. player.DisplayName
+        GUI.StatusText.TextColor3 = Color3.fromRGB(255, 200, 0)
+    end)
+    
+    -- Hover effects
+    selectBtn.MouseEnter:Connect(function()
+        if selectedPlayer ~= player then
+            card.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+        end
+    end)
+    
+    selectBtn.MouseLeave:Connect(function()
+        if selectedPlayer ~= player then
+            card.BackgroundColor3 = BG_DARKER
+        end
+    end)
+    
+    return card
+end
+
+-- Player List Management
+local function updatePlayerList()
+    -- Clear existing cards
+    for _, child in pairs(GUI.PlayerList:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    local playerCount = 0
+    playerData = {}
+    
+    -- Scan all players across the map
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            playerCount = playerCount + 1
+            playerData[player] = {
+                distance = getPlayerDistance(player),
+                health = getPlayerHealth(player),
+                lastSeen = tick()
+            }
+            createPlayerCard(player)
+        end
+    end
+    
+    -- Update canvas and counter
+    GUI.PlayerList.CanvasSize = UDim2.new(0, 0, 0, playerCount * 38)
+    GUI.PlayerCount.Text = "PLAYERS: " .. playerCount
+    
+    -- Validate selection
+    if selectedPlayer and not selectedPlayer.Parent then
+        selectedPlayer = nil
+        GUI.StatusText.Text = "● IDLE | No target selected"
+        GUI.StatusText.TextColor3 = TEXT_SECONDARY
+    end
+end
+
+-- Advanced Attachment System
+local function attachToTarget(target)
+    if not target or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    
+    local localChar = LocalPlayer.Character
+    if not localChar or not localChar:FindFirstChild("HumanoidRootPart") then
+        return false
+    end
+    
+    -- Cleanup previous attachment
+    if attachConnection then
+        attachConnection:Disconnect()
+    end
+    
+    if localChar.HumanoidRootPart:FindFirstChild("CarryWeld") then
+        localChar.HumanoidRootPart.CarryWeld:Destroy()
+    end
+    
+    currentTarget = target
+    
+    attachConnection = RunService.Heartbeat:Connect(function()
+        if not currentTarget or not currentTarget.Character or not currentTarget.Character:FindFirstChild("HumanoidRootPart") then
+            detachFromTarget()
+            return
+        end
+        
+        local targetRoot = currentTarget.Character.HumanoidRootPart
+        local playerRoot = localChar.HumanoidRootPart
+        
+        if not playerRoot then
+            detachFromTarget()
+            return
+        end
+        
+        -- Calculate behind position
+        local targetCFrame = targetRoot.CFrame
+        local behindOffset = -targetCFrame.LookVector * 2.2
+        local upOffset = Vector3.new(0, 0.3, 0)
+        local finalPosition = targetRoot.Position + behindOffset + upOffset
+        
+        -- Smooth positioning
+        playerRoot.CFrame = CFrame.lookAt(finalPosition, targetRoot.Position)
+        
+        -- Velocity sync for smoothness
+        if playerRoot:FindFirstChild("BodyVelocity") then
+            playerRoot.BodyVelocity:Destroy()
+        end
+        
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.MaxForce = Vector3.new(5000, 5000, 5000)
+        bodyVel.Velocity = targetRoot.AssemblyLinearVelocity
+        bodyVel.Parent = playerRoot
+        
+        -- Update status
+        local distance = getPlayerDistance(currentTarget)
+        local distText = distance > 1000 and string.format("%.1fkm", distance/1000) or string.format("%dm", math.floor(distance))
+        GUI.StatusText.Text = "● CARRYING | " .. currentTarget.DisplayName .. " (" .. distText .. ")"
+        GUI.StatusText.TextColor3 = MAIN_NEON
+    end)
+    
+    return true
+end
+
+local function detachFromTarget()
+    if attachConnection then
+        attachConnection:Disconnect()
+        attachConnection = nil
+    end
+    
+    local localChar = LocalPlayer.Character
+    if localChar and localChar:FindFirstChild("HumanoidRootPart") then
+        local playerRoot = localChar.HumanoidRootPart
+        if playerRoot:FindFirstChild("BodyVelocity") then
+            playerRoot.BodyVelocity:Destroy()
+        end
+        if playerRoot:FindFirstChild("CarryWeld") then
+            playerRoot.CarryWeld:Destroy()
+        end
+    end
+    
+    currentTarget = nil
+    GUI.StatusText.Text = "● IDLE | Ready for next target"
+    GUI.StatusText.TextColor3 = TEXT_SECONDARY
+end
+
+-- Interface Controls
+local function setupControls()
+    -- Dragging
+    GUI.Header.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            dragStart = input.Position
+            startPos = GUI.MainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    isDragging = false
+                end
+            end)
+        end
+    end)
+    
+    GUI.Header.InputChanged:Connect(function(input)
+        if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            GUI.MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    -- Buttons
+    GUI.CloseBtn.MouseButton1Click:Connect(function()
+        detachFromTarget()
+        GUI.ScreenGui:Destroy()
+    end)
+    
+    GUI.MinimizeBtn.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        local targetSize = isMinimized and UDim2.new(0, 260, 0, 32) or UDim2.new(0, 260, 0, 340)
+        TweenService:Create(GUI.MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = targetSize}):Play()
+        GUI.MinimizeBtn.Text = isMinimized and "+" or "−"
+    end)
+    
+    GUI.AttachBtn.MouseButton1Click:Connect(function()
+        if selectedPlayer and attachToTarget(selectedPlayer) then
+            TweenService:Create(GUI.AttachBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 60, 20)}):Play()
+            wait(0.2)
+            TweenService:Create(GUI.AttachBtn, TweenInfo.new(0.2), {BackgroundColor3 = BG_DARKER}):Play()
+        end
+    end)
+    
+    GUI.DetachBtn.MouseButton1Click:Connect(function()
+        detachFromTarget()
+        -- Reset selection visuals
+        for _, child in pairs(GUI.PlayerList:GetChildren()) do
+            if child:IsA("Frame") then
+                child.BackgroundColor3 = BG_DARKER
+                local border = child:FindFirstChild("SelectBorder")
+                if border then border:Destroy() end
+            end
+        end
+        selectedPlayer = nil
+    end)
+    
+    GUI.RefreshBtn.MouseButton1Click:Connect(function()
+        updatePlayerList()
+        TweenService:Create(GUI.RefreshBtn, TweenInfo.new(0.5), {Rotation = GUI.RefreshBtn.Rotation + 360}):Play()
+    end)
+end
+
+-- Initialize System
+createInterface()
+setupControls()
+updatePlayerList()
+
+-- Background Services
+spawn(function()
+    while GUI.ScreenGui.Parent do
+        wait(3)
+        if not isMinimized then
+            updatePlayerList()
+        end
+    end
+end)
+
+-- Event Handlers
+Players.PlayerAdded:Connect(function() wait(1); updatePlayerList() end)
+Players.PlayerRemoving:Connect(function() wait(1); updatePlayerList() end)
+LocalPlayer.CharacterAdded:Connect(function() wait(2); if currentTarget then detachFromTarget() end end)
+
+print("⚡ WARPAH CARRY initialized")
+print("🎯 Advanced player detection active")
+print("🔗 Professional gaming interface loaded")
