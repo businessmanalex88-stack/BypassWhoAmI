@@ -1,0 +1,499 @@
+-- Warpah VIP Booster Script
+-- Compatible with Delta Executor Android
+-- Professional Small GUI Design
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- FPS Booster Configuration
+local FPSBooster = {
+    Enabled = false,
+    RemovedObjects = {},
+    OriginalObjects = {},
+    Settings = {
+        RemoveTrees = true,
+        RemoveGrass = true,
+        RemoveRocks = true,
+        RemoveParticles = true,
+        RemoveDecals = true,
+        RemoveTextures = true,
+        ReduceLighting = true,
+        DisableShadows = true,
+        LowQualityMode = true
+    }
+}
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "WarpahVIPBooster"
+ScreenGui.Parent = CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- Main Frame (Compact Professional Design)
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 220, 0, 280)
+MainFrame.Position = UDim2.new(0.5, -110, 0.5, -140)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Parent = ScreenGui
+
+-- Shadow Effect
+local Shadow = Instance.new("Frame")
+Shadow.Name = "Shadow"
+Shadow.Size = UDim2.new(1, 8, 1, 8)
+Shadow.Position = UDim2.new(0, -4, 0, -4)
+Shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.BackgroundTransparency = 0.8
+Shadow.BorderSizePixel = 0
+Shadow.ZIndex = -1
+Shadow.Parent = MainFrame
+
+local ShadowCorner = Instance.new("UICorner")
+ShadowCorner.CornerRadius = UDim.new(0, 8)
+ShadowCorner.Parent = Shadow
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 6)
+MainCorner.Parent = MainFrame
+
+-- Title Bar
+local TitleBar = Instance.new("Frame")
+TitleBar.Name = "TitleBar"
+TitleBar.Size = UDim2.new(1, 0, 0, 28)
+TitleBar.Position = UDim2.new(0, 0, 0, 0)
+TitleBar.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 6)
+TitleCorner.Parent = TitleBar
+
+-- Fix corner for title bar bottom
+local TitleFix = Instance.new("Frame")
+TitleFix.Size = UDim2.new(1, 0, 0, 6)
+TitleFix.Position = UDim2.new(0, 0, 1, -6)
+TitleFix.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+TitleFix.BorderSizePixel = 0
+TitleFix.Parent = TitleBar
+
+-- Title Text
+local TitleText = Instance.new("TextLabel")
+TitleText.Name = "TitleText"
+TitleText.Size = UDim2.new(1, -60, 1, 0)
+TitleText.Position = UDim2.new(0, 8, 0, 0)
+TitleText.BackgroundTransparency = 1
+TitleText.Text = "Warpah VIP Booster"
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 11
+TitleText.Font = Enum.Font.GothamBold
+TitleText.TextXAlignment = Enum.TextXAlignment.Left
+TitleText.Parent = TitleBar
+
+-- Minimize Button
+local MinimizeButton = Instance.new("TextButton")
+MinimizeButton.Name = "MinimizeButton"
+MinimizeButton.Size = UDim2.new(0, 20, 0, 20)
+MinimizeButton.Position = UDim2.new(1, -44, 0, 4)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(0, 220, 100)
+MinimizeButton.BorderSizePixel = 0
+MinimizeButton.Text = "−"
+MinimizeButton.TextColor3 = Color3.fromRGB(0, 0, 0)
+MinimizeButton.TextSize = 14
+MinimizeButton.Font = Enum.Font.GothamBold
+MinimizeButton.Parent = TitleBar
+
+local MinimizeCorner = Instance.new("UICorner")
+MinimizeCorner.CornerRadius = UDim.new(0, 3)
+MinimizeCorner.Parent = MinimizeButton
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Name = "CloseButton"
+CloseButton.Size = UDim2.new(0, 20, 0, 20)
+CloseButton.Position = UDim2.new(1, -22, 0, 4)
+CloseButton.BackgroundColor3 = Color3.fromRGB(255, 20, 60)
+CloseButton.BorderSizePixel = 0
+CloseButton.Text = "×"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.TextSize = 12
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 3)
+CloseCorner.Parent = CloseButton
+
+-- Content Frame
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Name = "ContentFrame"
+ContentFrame.Size = UDim2.new(1, 0, 1, -28)
+ContentFrame.Position = UDim2.new(0, 0, 0, 28)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Parent = MainFrame
+
+-- Main Toggle Button
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Name = "ToggleButton"
+ToggleButton.Size = UDim2.new(1, -16, 0, 32)
+ToggleButton.Position = UDim2.new(0, 8, 0, 8)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 20, 60)
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Text = "BOOSTER: OFF"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.TextSize = 10
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.Parent = ContentFrame
+
+local ToggleCorner = Instance.new("UICorner")
+ToggleCorner.CornerRadius = UDim.new(0, 4)
+ToggleCorner.Parent = ToggleButton
+
+-- FPS Counter Frame
+local FPSFrame = Instance.new("Frame")
+FPSFrame.Name = "FPSFrame"
+FPSFrame.Size = UDim2.new(1, -16, 0, 24)
+FPSFrame.Position = UDim2.new(0, 8, 0, 48)
+FPSFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+FPSFrame.BorderSizePixel = 0
+FPSFrame.Parent = ContentFrame
+
+local FPSCorner = Instance.new("UICorner")
+FPSCorner.CornerRadius = UDim.new(0, 4)
+FPSCorner.Parent = FPSFrame
+
+local FPSLabel = Instance.new("TextLabel")
+FPSLabel.Name = "FPSLabel"
+FPSLabel.Size = UDim2.new(1, -8, 1, 0)
+FPSLabel.Position = UDim2.new(0, 4, 0, 0)
+FPSLabel.BackgroundTransparency = 1
+FPSLabel.Text = "FPS: 60"
+FPSLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+FPSLabel.TextSize = 9
+FPSLabel.Font = Enum.Font.Gotham
+FPSLabel.TextXAlignment = Enum.TextXAlignment.Left
+FPSLabel.Parent = FPSFrame
+
+-- Settings Container
+local SettingsContainer = Instance.new("ScrollingFrame")
+SettingsContainer.Name = "SettingsContainer"
+SettingsContainer.Size = UDim2.new(1, -16, 0, 168)
+SettingsContainer.Position = UDim2.new(0, 8, 0, 80)
+SettingsContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+SettingsContainer.BorderSizePixel = 0
+SettingsContainer.CanvasSize = UDim2.new(0, 0, 0, 200)
+SettingsContainer.ScrollBarThickness = 3
+SettingsContainer.ScrollBarImageColor3 = Color3.fromRGB(0, 255, 127)
+SettingsContainer.Parent = ContentFrame
+
+local SettingsCorner = Instance.new("UICorner")
+SettingsCorner.CornerRadius = UDim.new(0, 4)
+SettingsCorner.Parent = SettingsContainer
+
+-- Settings Layout
+local SettingsLayout = Instance.new("UIListLayout")
+SettingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SettingsLayout.Padding = UDim.new(0, 2)
+SettingsLayout.Parent = SettingsContainer
+
+local SettingsPadding = Instance.new("UIPadding")
+SettingsPadding.PaddingTop = UDim.new(0, 4)
+SettingsPadding.PaddingBottom = UDim.new(0, 4)
+SettingsPadding.PaddingLeft = UDim.new(0, 6)
+SettingsPadding.PaddingRight = UDim.new(0, 6)
+SettingsPadding.Parent = SettingsContainer
+
+-- Function to create compact setting toggles
+local function CreateSettingToggle(name, setting, layoutOrder)
+    local ToggleFrame = Instance.new("Frame")
+    ToggleFrame.Name = name .. "Toggle"
+    ToggleFrame.Size = UDim2.new(1, 0, 0, 22)
+    ToggleFrame.BackgroundTransparency = 1
+    ToggleFrame.LayoutOrder = layoutOrder
+    ToggleFrame.Parent = SettingsContainer
+    
+    local Label = Instance.new("TextLabel")
+    Label.Size = UDim2.new(1, -50, 1, 0)
+    Label.Position = UDim2.new(0, 0, 0, 0)
+    Label.BackgroundTransparency = 1
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(200, 200, 200)
+    Label.TextSize = 8
+    Label.Font = Enum.Font.Gotham
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+    Label.Parent = ToggleFrame
+    
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(0, 40, 0, 18)
+    Button.Position = UDim2.new(1, -40, 0, 2)
+    Button.BackgroundColor3 = FPSBooster.Settings[setting] and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(50, 50, 50)
+    Button.BorderSizePixel = 0
+    Button.Text = FPSBooster.Settings[setting] and "ON" or "OFF"
+    Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Button.TextSize = 7
+    Button.Font = Enum.Font.GothamBold
+    Button.Parent = ToggleFrame
+    
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.CornerRadius = UDim.new(0, 3)
+    ButtonCorner.Parent = Button
+    
+    Button.MouseButton1Click:Connect(function()
+        FPSBooster.Settings[setting] = not FPSBooster.Settings[setting]
+        Button.BackgroundColor3 = FPSBooster.Settings[setting] and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(50, 50, 50)
+        Button.Text = FPSBooster.Settings[setting] and "ON" or "OFF"
+        
+        -- Smooth transition effect
+        local tween = TweenService:Create(Button, TweenInfo.new(0.2), {
+            BackgroundColor3 = FPSBooster.Settings[setting] and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(50, 50, 50)
+        })
+        tween:Play()
+    end)
+end
+
+-- Create compact setting toggles
+CreateSettingToggle("Remove Trees", "RemoveTrees", 1)
+CreateSettingToggle("Remove Grass", "RemoveGrass", 2)
+CreateSettingToggle("Remove Rocks", "RemoveRocks", 3)
+CreateSettingToggle("Remove Particles", "RemoveParticles", 4)
+CreateSettingToggle("Remove Decals", "RemoveDecals", 5)
+CreateSettingToggle("Low Quality", "LowQualityMode", 6)
+CreateSettingToggle("Disable Shadows", "DisableShadows", 7)
+CreateSettingToggle("Reduce Lighting", "ReduceLighting", 8)
+
+-- Draggable functionality
+local dragging = false
+local dragStart = nil
+local startPos = nil
+
+local function updateInput(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if dragging then
+            updateInput(input)
+        end
+    end
+end)
+
+-- Minimize functionality
+local minimized = false
+local originalSize = MainFrame.Size
+local minimizedSize = UDim2.new(0, 220, 0, 28)
+
+MinimizeButton.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    local targetSize = minimized and minimizedSize or originalSize
+    MinimizeButton.Text = minimized and "+" or "−"
+    
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Size = targetSize})
+    tween:Play()
+    
+    -- Hide/Show content frame when minimized
+    ContentFrame.Visible = not minimized
+end)
+
+-- FPS Counter Logic
+local FPSCount = 0
+local LastTime = tick()
+
+local function UpdateFPS()
+    FPSCount = FPSCount + 1
+    if tick() - LastTime >= 1 then
+        FPSLabel.Text = "FPS: " .. FPSCount
+        if FPSCount >= 45 then
+            FPSLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+        elseif FPSCount >= 30 then
+            FPSLabel.TextColor3 = Color3.fromRGB(255, 255, 0)
+        else
+            FPSLabel.TextColor3 = Color3.fromRGB(255, 20, 60)
+        end
+        FPSCount = 0
+        LastTime = tick()
+    end
+end
+
+-- Function to remove lag-causing objects
+local function RemoveLagObjects()
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj:IsA("Part") or obj:IsA("MeshPart") or obj:IsA("UnionOperation") then
+            local name = obj.Name:lower()
+            local shouldRemove = false
+            
+            if FPSBooster.Settings.RemoveTrees and (name:find("tree") or name:find("leaf") or name:find("branch")) then
+                shouldRemove = true
+            elseif FPSBooster.Settings.RemoveGrass and (name:find("grass") or name:find("plant") or name:find("bush")) then
+                shouldRemove = true
+            elseif FPSBooster.Settings.RemoveRocks and (name:find("rock") or name:find("stone") or name:find("boulder")) then
+                shouldRemove = true
+            end
+            
+            if shouldRemove and obj.Parent ~= LocalPlayer.Character then
+                table.insert(FPSBooster.RemovedObjects, {obj, obj.Parent})
+                obj.Parent = nil
+            end
+        elseif FPSBooster.Settings.RemoveParticles and (obj:IsA("ParticleEmitter") or obj:IsA("Fire") or obj:IsA("Smoke")) then
+            table.insert(FPSBooster.RemovedObjects, {obj, obj.Parent})
+            obj.Parent = nil
+        elseif FPSBooster.Settings.RemoveDecals and (obj:IsA("Decal") or obj:IsA("Texture")) then
+            table.insert(FPSBooster.RemovedObjects, {obj, obj.Parent})
+            obj.Parent = nil
+        end
+    end
+end
+
+-- Function to restore removed objects
+local function RestoreObjects()
+    for _, data in pairs(FPSBooster.RemovedObjects) do
+        local obj, parent = data[1], data[2]
+        if obj and parent then
+            obj.Parent = parent
+        end
+    end
+    FPSBooster.RemovedObjects = {}
+end
+
+-- Function to apply graphics settings
+local function ApplyGraphicsSettings()
+    if FPSBooster.Settings.LowQualityMode then
+        settings().Rendering.QualityLevel = 1
+    end
+    
+    if FPSBooster.Settings.DisableShadows then
+        game:GetService("Lighting").GlobalShadows = false
+    end
+    
+    if FPSBooster.Settings.ReduceLighting then
+        game:GetService("Lighting").Brightness = 2
+        game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+    end
+end
+
+-- Function to restore graphics settings
+local function RestoreGraphicsSettings()
+    settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic.Value
+    game:GetService("Lighting").GlobalShadows = true
+    game:GetService("Lighting").Brightness = 1
+    game:GetService("Lighting").OutdoorAmbient = Color3.fromRGB(70, 70, 70)
+end
+
+-- Toggle FPS Booster
+local function ToggleFPSBooster()
+    FPSBooster.Enabled = not FPSBooster.Enabled
+    
+    if FPSBooster.Enabled then
+        ToggleButton.Text = "BOOSTER: ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 127)
+        RemoveLagObjects()
+        ApplyGraphicsSettings()
+    else
+        ToggleButton.Text = "BOOSTER: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(255, 20, 60)
+        RestoreObjects()
+        RestoreGraphicsSettings()
+    end
+    
+    -- Smooth button transition
+    local tween = TweenService:Create(ToggleButton, TweenInfo.new(0.2), {
+        BackgroundColor3 = FPSBooster.Enabled and Color3.fromRGB(0, 255, 127) or Color3.fromRGB(255, 20, 60)
+    })
+    tween:Play()
+end
+
+-- Button connections
+ToggleButton.MouseButton1Click:Connect(ToggleFPSBooster)
+
+CloseButton.MouseButton1Click:Connect(function()
+    if FPSBooster.Enabled then
+        RestoreObjects()
+        RestoreGraphicsSettings()
+    end
+    
+    -- Smooth close animation
+    local tween = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back), {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0)
+    })
+    tween:Play()
+    
+    tween.Completed:Connect(function()
+        ScreenGui:Destroy()
+    end)
+end)
+
+-- FPS Counter Update
+RunService.Heartbeat:Connect(UpdateFPS)
+
+-- Auto-remove new objects if booster is enabled
+Workspace.DescendantAdded:Connect(function(obj)
+    if not FPSBooster.Enabled then return end
+    
+    wait(0.1)
+    
+    if obj:IsA("Part") or obj:IsA("MeshPart") or obj:IsA("UnionOperation") then
+        local name = obj.Name:lower()
+        local shouldRemove = false
+        
+        if FPSBooster.Settings.RemoveTrees and (name:find("tree") or name:find("leaf") or name:find("branch")) then
+            shouldRemove = true
+        elseif FPSBooster.Settings.RemoveGrass and (name:find("grass") or name:find("plant") or name:find("bush")) then
+            shouldRemove = true
+        elseif FPSBooster.Settings.RemoveRocks and (name:find("rock") or name:find("stone") or name:find("boulder")) then
+            shouldRemove = true
+        end
+        
+        if shouldRemove and obj.Parent ~= LocalPlayer.Character then
+            obj.Parent = nil
+        end
+    elseif FPSBooster.Settings.RemoveParticles and (obj:IsA("ParticleEmitter") or obj:IsA("Fire") or obj:IsA("Smoke")) then
+        obj.Parent = nil
+    elseif FPSBooster.Settings.RemoveDecals and (obj:IsA("Decal") or obj:IsA("Texture")) then
+        obj.Parent = nil
+    end
+end)
+
+-- Startup animation
+MainFrame.Size = UDim2.new(0, 0, 0, 0)
+MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+
+local startupTween = TweenService:Create(MainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+    Size = UDim2.new(0, 220, 0, 280),
+    Position = UDim2.new(0.5, -110, 0.5, -140)
+})
+startupTween:Play()
+
+-- Notification
+game:GetService("StarterGui"):SetCore("SendNotification", {
+    Title = "Warpah VIP Booster";
+    Text = "Professional GUI Loaded Successfully!";
+    Duration = 3;
+})
+
+print("Warpah VIP Booster loaded - Professional compact design!")
+print("Features: Draggable, Minimizable, Smooth animations")
