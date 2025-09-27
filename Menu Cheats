@@ -187,7 +187,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -80, 0, 40)
 title.Position = UDim2.new(0, 40, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "WarpahVip | v.0.3.3.4"
+title.Text = "WarpahVip | v.0.4.0.0"
 title.TextColor3 = Color3.fromRGB(0, 255, 0)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -508,7 +508,7 @@ local function showFlingMenu()
     backBtn.Visible = true
 end
 
--- Device menu function (Enhanced with Server Hop)
+-- Device menu function (Enhanced with Server Hop and Boost FPS)
 local function showDeviceMenu()
     clearContent()
     currentMenu = "device"
@@ -534,6 +534,13 @@ local function showDeviceMenu()
             label = "🌐 Server Hop", 
             callback = function()
                 serverHop()
+            end 
+        },
+        { 
+            label = "⚡ Boost FPS", 
+            callback = function()
+                print("⚡ Loading Boost FPS...")
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/BoosterFPSVIP"))()
             end 
         },
         { 
@@ -594,6 +601,30 @@ local function showWarpahMorphMenu()
     backBtn.Visible = false
 end
 
+-- NEW: Warpah Carry menu - FIXED: Now directly loads script
+local function showWarpahCarryMenu()
+    clearContent()
+    currentMenu = "main" -- Stay in main menu
+    
+    -- Directly load the Bypass Carry script
+    print("🎒 Loading Warpah Carry...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Bypass%20Carry"))()
+    
+    backBtn.Visible = false
+end
+
+-- NEW: Warpah RTX menu - FIXED: Now directly loads script
+local function showWarpahRTXMenu()
+    clearContent()
+    currentMenu = "main" -- Stay in main menu
+    
+    -- Directly load the WarpahRtx script
+    print("🌟 Loading Warpah RTX...")
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/WarpahRtx"))()
+    
+    backBtn.Visible = false
+end
+
 -- NEW: No Clip menu - FIXED: Now directly loads script
 local function showNoClipMenu()
     clearContent()
@@ -626,7 +657,7 @@ local function showCheats()
         { label = "🏔️ Auto Puncak", callback = showAutoPuncak },
         { label = "✈️ Fly Mode", callback = showFlyMenu },
         { label = "🏃 Speed Run", callback = showSpeedMenu },
-        { label = "🦘 Infinite Jump", callback = showInfiniteJumpMenu }, -- NEW: Added Infinite Jump
+        { label = "🦘 Infinite Jump", callback = showInfiniteJumpMenu },
         { label = "✨ Radiant Body", callback = function()
             print("✨ Loading Radiant Body...")
             loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Radiant%20body"))()
@@ -639,8 +670,10 @@ local function showCheats()
         { label = "🎭 Hide Name Visual", callback = showHideNameMenu },
         { label = "👁️ Spectate Player", callback = showSpectatePlayerMenu },
         { label = "🦋 WarpahMorph", callback = showWarpahMorphMenu },
-        { label = "👻 No Clip", callback = showNoClipMenu }, -- NEW: Added No Clip
-        { label = "🚀 Teleport", callback = showTeleportMenu }, -- NEW: Added Teleport
+        { label = "🎒 Warpah Carry", callback = showWarpahCarryMenu },
+        { label = "🌟 Warpah RTX", callback = showWarpahRTXMenu },
+        { label = "👻 No Clip", callback = showNoClipMenu },
+        { label = "🚀 Teleport", callback = showTeleportMenu },
     }
 
     for _, item in ipairs(items) do
@@ -888,13 +921,16 @@ print("  - 💥 Fling Player menu with Fling All Player & Walkfling")
 print("  - 🔍 Dex Explorer added to Device menu")
 print("  - ✈️ Fly No Clip & Fly Safe functional with loadstring")
 print("  - 🌐 Server Hop feature added to Device menu")
+print("  - ⚡ Boost FPS added to Device menu") -- NEW FEATURE ADDED
 print("  - 🔧 Device Spoof now loads DeviceSpoof script")
 print("  - 👮 Detect Admin now loads DetectAdmin script")
 print("  - 👤 TP to Player now loads TptoPlayer script")
 print("  - 🎭 Hide Name Visual now directly loads HideNameVisual script")
 print("  - 👁️ Spectate Player now directly loads SpectateWarpah script")
 print("  - 🦋 WarpahMorph now directly loads WarpahMorph script")
-print("  - 👻 No Clip now directly loads No Clip Bypass script") -- NEW FEATURE
+print("  - 🎒 Warpah Carry now directly loads Bypass Carry script") -- NEW FEATURE
+print("  - 🌟 Warpah RTX now directly loads WarpahRtx script") -- NEW FEATURE
+print("  - 👻 No Clip now directly loads No Clip Bypass script")
 print("  - 🚀 Teleport now directly loads WarpahTeleport script")
 print("  - 🦘 Infinite Jump now directly loads InfiniteJump script")
 print("  - 🏃 Speed Run now has submenu with Speed Hack V1 & V2")
