@@ -1,0 +1,692 @@
+-- Warpah Part Controller (Optimized No-Lag Version)
+-- Parts akan menempel ke diri sendiri dan terlihat oleh orang lain
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local localPlayer = Players.LocalPlayer
+
+-- Configuration
+local PART_LIMIT = 50 -- Much smaller limit for performance
+local DETECTION_RADIUS = 150 -- Smaller radius to reduce scanning load
+local MAGNET_FORCE = 200000 -- Reduced force
+local LIFT_FORCE = 150000 -- Reduced lift force
+local ROTATION_SPEED = 5 -- Slower rotation
+local UPDATE_RATE = 0.1 -- Faster update for smoother ring movement
+local BATCH_SIZE = 5 -- Process more parts at once for ring mode
+local GUI_ENABLED = true
+
+-- Variables
+local currentMode = "bring"
+local isActive = false
+local activeConnection
+local gui
+local foundParts = {}
+local timeOffset = 0
+local processedParts = {} -- Track which parts have been processed
+
+-- Debug function
+local function debugPrint(message)
+    print("[WARPAH CONTROLLER] " .. message)
+end
+
+-- Get local player position
+local function getLocalPlayerPosition()
+    if localPlayer.Character and localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        return localPlayer.Character.HumanoidRootPart.Position
+    end
+    return nil
+end
+
+-- Enhanced part scanning with constraint breaking
+local function scanAllParts()
+    foundParts = {}
+    local partCount = 0
+    local playerPos = getLocalPlayerPosition()
+    
+    if not playerPos then
+        debugPrint("Cannot scan - player position not found!")
+        return {}
+    end
+    
+    debugPrint("Scanning workspace for parts within " .. DETECTION_RADIUS .. " studs...")
+    
+    -- Function to check if part is valid target
+    local function isValidPart(part, position)
+        if not part or not part:IsA("BasePart") then return false end
+        if part.Parent == workspace.CurrentCamera then return false end
+        if localPlayer.Character and part:IsDescendantOf(localPlayer.Character) then return false end
+        if part.Name:lower():find("baseplate") then return false end
+        if part.Size.Magnitude < 0.1 then return false end -- Skip tiny parts
+        
+        -- Check distance from player
+        local distance = (part.Position - position).Magnitude
+        if distance > DETECTION_RADIUS then return false end
+        
+        -- Check if part belongs to other players
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= localPlayer and player.Character and part:IsDescendantOf(player.Character) then
+                return false
+            end
+        end
+        
+        return true
+    end
+    
+    -- Get all parts in workspace first
+    local allParts = {}
+    local function collectParts(parent)
+        for _, child in pairs(parent:GetChildren()) do
+            if child:IsA("BasePart") then
+                table.insert(allParts, child)
+            elseif child:IsA("Model") or child:IsA("Folder") then
+                collectParts(child)
+            end
+        end
+    end
+    
+    collectParts(workspace)
+    
+    -- Filter valid parts
+    for _, part in pairs(allParts) do
+        if partCount >= PART_LIMIT then break end
+        if isValidPart(part, playerPos) then
+            table.insert(foundParts, part)
+            partCount = partCount + 1
+        end
+    end
+    
+    debugPrint("Scan complete! Found " .. #foundParts .. " parts within " .. DETECTION_RADIUS .. " studs")
+    debugPrint("Including metalladder001-002 and rope-connected parts")
+    
+    -- Update GUI if it exists
+    if gui then
+        local frame = gui:FindFirstChild("Frame")
+        if frame then
+            local title = frame:FindFirstChild("TextLabel")
+            if title then
+                title.Text = "WARPAH PART CONTROLLER [" .. #foundParts .. " Parts]"
+            end
+        end
+    end
+    
+    return foundParts
+end
+
+-- ULTIMATE CONSTRAINT DESTROYER - Lightweight version
+local function obliterateAllConnections(targetPart)
+    if not targetPart or not targetPart.Parent then return end
+    
+    -- Only destroy constraints in the part itself (no workspace scanning)
+    pcall(function()
+        for _, child in pairs(targetPart:GetChildren()) do
+            if child:IsA("Constraint") or child:IsA("JointInstance") or
+               child:IsA("BodyPosition") or child:IsA("BodyVelocity") or 
+               child:IsA("BodyAngularVelocity") or child:IsA("BodyThrust") or
+               child:IsA("BodyForce") or child:IsA("VectorForce") or
+               child:IsA("AlignPosition") or child:IsA("AlignOrientation") or
+               child:IsA("Attachment") or child:IsA("WeldConstraint") or
+               child:IsA("Motor6D") or child:IsA("Weld") or child:IsA("ManualWeld") or
+               child:IsA("Snap") or child:IsA("Glue") or child:IsA("RigidConstraint") or
+               child:IsA("BallSocketConstraint") or child:IsA("HingeConstraint") or
+               child:IsA("CylindricalConstraint") or child:IsA("RopeConstraint") or
+               child:IsA("RodConstraint") or child:IsA("SpringConstraint") or
+               child:IsA("TorsionSpringConstraint") or child:IsA("UniversalConstraint") or
+               child:IsA("PrismaticConstraint") then
+                child:Destroy()
+            end
+        end
+    end)
+    
+    -- Break surface joints
+    pcall(function()
+        targetPart:BreakJoints()
+    end)
+    
+    -- Reset part properties
+    pcall(function()
+        targetPart.Anchored = false
+        targetPart.CanCollide = false
+        targetPart.TopSurface = Enum.SurfaceType.Smooth
+        targetPart.BottomSurface = Enum.SurfaceType.Smooth
+        targetPart.LeftSurface = Enum.SurfaceType.Smooth
+        targetPart.RightSurface = Enum.SurfaceType.Smooth
+        targetPart.FrontSurface = Enum.SurfaceType.Smooth
+        targetPart.BackSurface = Enum.SurfaceType.Smooth
+    end)
+    
+    return true
+end
+
+-- OPTIMIZED force application with lag prevention (Ultra Lightweight)
+local function applyOptimizedForce(part, forceType, targetPos)
+    if not part or not part.Parent or not targetPos then return end
+    
+    pcall(function()
+        -- Only break constraints in this part (no workspace scanning)
+        obliterateAllConnections(part)
+        
+        -- Simple cleanup of existing body movers
+        for _, child in pairs(part:GetChildren()) do
+            if child:IsA("BodyPosition") or child:IsA("BodyVelocity") or 
+               child:IsA("BodyAngularVelocity") then
+                child:Destroy()
+            end
+        end
+        
+        -- Set basic part properties
+        part.Anchored = false
+        part.CanCollide = false
+        
+        -- Apply minimal forces based on mode
+        if forceType == "bring" then
+            local bodyPosition = Instance.new("BodyPosition")
+            bodyPosition.MaxForce = Vector3.new(MAGNET_FORCE, LIFT_FORCE, MAGNET_FORCE)
+            bodyPosition.Position = targetPos + Vector3.new(
+                math.random(-10, 10),
+                math.random(15, 25),
+                math.random(-10, 10)
+            )
+            bodyPosition.P = 3000 -- Reduced P value
+            bodyPosition.D = 500 -- Reduced D value
+            bodyPosition.Parent = part
+            
+        elseif forceType == "ring" then
+            local bodyPosition = Instance.new("BodyPosition")
+            bodyPosition.MaxForce = Vector3.new(MAGNET_FORCE * 2, MAGNET_FORCE * 2, MAGNET_FORCE * 2)
+            bodyPosition.Position = targetPos
+            bodyPosition.P = 8000 -- Increased for stronger pull
+            bodyPosition.D = 1000 -- Increased for stability
+            bodyPosition.Parent = part
+            
+        elseif forceType == "tornado" then
+            local bodyPosition = Instance.new("BodyPosition")
+            bodyPosition.MaxForce = Vector3.new(MAGNET_FORCE, MAGNET_FORCE, MAGNET_FORCE)
+            bodyPosition.Position = targetPos
+            bodyPosition.P = 3000
+            bodyPosition.D = 400
+            bodyPosition.Parent = part
+            
+            -- Only add velocity for tornado (minimal)
+            local bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.MaxForce = Vector3.new(10000, 10000, 10000)
+            bodyVelocity.Velocity = Vector3.new(
+                math.random(-15, 15),
+                math.random(-8, 10),
+                math.random(-15, 15)
+            )
+            bodyVelocity.Parent = part
+        end
+        
+        -- Mark as processed
+        processedParts[part] = true
+    end)
+end
+
+-- OPTIMIZED BRING mode - lift parts to sky with lag prevention
+local function executeBring()
+    local myPosition = getLocalPlayerPosition()
+    if not myPosition then return end
+    
+    -- Process small batch of parts to prevent lag
+    for i = 1, math.min(BATCH_SIZE, #foundParts) do
+        local partIndex = ((timeOffset + i - 1) % #foundParts) + 1
+        local part = foundParts[partIndex]
+        
+        if part and part.Parent and not processedParts[part] then
+            spawn(function()
+                applyOptimizedForce(part, "bring", myPosition)
+            end)
+        end
+    end
+end
+
+-- FIXED Ring mode - ALL parts pulled to head and rotate smoothly
+local function executeRing()
+    local myPosition = getLocalPlayerPosition()
+    if not myPosition then return end
+    
+    -- Get HEAD position precisely
+    local headPosition = myPosition + Vector3.new(0, 5, 0)
+    if localPlayer.Character and localPlayer.Character:FindFirstChild("Head") then
+        headPosition = localPlayer.Character.Head.Position
+    end
+    
+    local time = tick()
+    
+    -- Process ALL parts simultaneously for ring formation
+    for i, part in pairs(foundParts) do
+        if part and part.Parent then
+            -- Calculate ring position around head
+            local angle = ((i / math.max(#foundParts, 1)) * math.pi * 2) + (time * ROTATION_SPEED * 0.5)
+            local radius = 5 + math.sin(time * 1.5) * 0.5
+            local height = headPosition.Y + math.sin(time * 2 + i * 0.3) * 0.8
+            
+            local ringPosition = Vector3.new(
+                headPosition.X + math.cos(angle) * radius,
+                height,
+                headPosition.Z + math.sin(angle) * radius
+            )
+            
+            -- Update position continuously
+            pcall(function()
+                local bodyPos = part:FindFirstChildOfClass("BodyPosition")
+                if bodyPos then
+                    bodyPos.Position = ringPosition
+                else
+                    applyOptimizedForce(part, "ring", ringPosition)
+                end
+            end)
+        end
+    end
+end
+
+-- OPTIMIZED Tornado mode - spinning in front of face
+local function executeTornado()
+    local myPosition = getLocalPlayerPosition()
+    if not myPosition then return end
+    
+    -- Get position in front of player
+    local character = localPlayer.Character
+    local lookDirection = Vector3.new(0, 0, -1)
+    if character and character:FindFirstChild("HumanoidRootPart") then
+        lookDirection = character.HumanoidRootPart.CFrame.LookVector
+    end
+    
+    local tornadoCenter = myPosition + lookDirection * 8 + Vector3.new(0, 2, 0)
+    local time = tick() * 1.5
+    
+    -- Process parts in tornado formation
+    for i = 1, math.min(BATCH_SIZE, #foundParts) do
+        local partIndex = ((timeOffset + i - 1) % #foundParts) + 1
+        local part = foundParts[partIndex]
+        
+        if part and part.Parent and not processedParts[part] then
+            -- Calculate tornado spiral position
+            local heightLayer = ((partIndex - 1) % 5) * 3
+            local radius = 3 + (heightLayer / 5) * 1.5 + math.sin(time + partIndex) * 1
+            local angle = time + (partIndex * 0.3) + (heightLayer * 0.15)
+            
+            local tornadoPosition = tornadoCenter + Vector3.new(
+                math.cos(angle) * radius,
+                heightLayer - 1 + math.sin(time * 2 + partIndex) * 1.5,
+                math.sin(angle) * radius
+            )
+            
+            spawn(function()
+                applyOptimizedForce(part, "tornado", tornadoPosition)
+            end)
+        end
+    end
+end
+
+-- Create improved GUI with Close button
+local function createPartControllerGUI()
+    if not GUI_ENABLED then return end
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "WarpahPartControllerGUI"
+    screenGui.ResetOnSpawn = false
+    
+    if gethui then
+        pcall(function()
+            screenGui.Parent = gethui()
+        end)
+    else
+        screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
+    end
+    
+    -- Main frame
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 280, 0, 180)
+    frame.Position = UDim2.new(0.5, -140, 0.5, -90)
+    frame.BackgroundColor3 = Color3.new(0, 0, 0)
+    frame.BackgroundTransparency = 0
+    frame.BorderSizePixel = 2
+    frame.BorderColor3 = Color3.new(0, 1, 0)
+    frame.Active = true
+    frame.Draggable = true
+    frame.Parent = screenGui
+    
+    -- Close button (X)
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 25, 0, 25)
+    closeButton.Position = UDim2.new(1, -30, 0, 5)
+    closeButton.BackgroundColor3 = Color3.new(0.8, 0, 0)
+    closeButton.BorderColor3 = Color3.new(1, 0, 0)
+    closeButton.BorderSizePixel = 1
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.new(1, 1, 1)
+    closeButton.TextSize = 16
+    closeButton.Font = Enum.Font.SourceSansBold
+    closeButton.Parent = frame
+    
+    -- Minimize button
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Size = UDim2.new(0, 25, 0, 25)
+    minimizeButton.Position = UDim2.new(1, -60, 0, 5)
+    minimizeButton.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    minimizeButton.BorderColor3 = Color3.new(0, 1, 0)
+    minimizeButton.BorderSizePixel = 1
+    minimizeButton.Text = "-"
+    minimizeButton.TextColor3 = Color3.new(0, 1, 0)
+    minimizeButton.TextSize = 18
+    minimizeButton.Font = Enum.Font.SourceSansBold
+    minimizeButton.Parent = frame
+    
+    -- Title with part count
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, -65, 0, 30)
+    title.BackgroundTransparency = 1
+    title.Text = "WARPAH PART CONTROLLER [0 Parts]"
+    title.TextColor3 = Color3.new(0, 1, 0)
+    title.TextSize = 14
+    title.Font = Enum.Font.SourceSansBold
+    title.Parent = frame
+    
+    -- Status label
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(1, 0, 0, 20)
+    status.Position = UDim2.new(0, 0, 0, 30)
+    status.BackgroundTransparency = 1
+    status.Text = "Radius: " .. DETECTION_RADIUS .. " studs | FE Compatible | No-Lag"
+    status.TextColor3 = Color3.new(0.6, 1, 0.6)
+    status.TextSize = 11
+    status.Font = Enum.Font.SourceSans
+    status.Parent = frame
+    
+    -- Scan button
+    local scanButton = Instance.new("TextButton")
+    scanButton.Size = UDim2.new(1, -20, 0, 30)
+    scanButton.Position = UDim2.new(0, 10, 0, 60)
+    scanButton.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+    scanButton.BorderColor3 = Color3.new(0, 1, 0)
+    scanButton.BorderSizePixel = 1
+    scanButton.Text = "SCAN PARTS IN RADIUS"
+    scanButton.TextColor3 = Color3.new(0, 1, 0)
+    scanButton.TextSize = 12
+    scanButton.Font = Enum.Font.SourceSansBold
+    scanButton.Parent = frame
+    
+    -- Mode buttons (removed telekinesis)
+    local modes = {"BRING", "RING", "TORNADO"}
+    local modeValues = {"bring", "ring", "tornado"}
+    local icons = {"⬆️", "💫", "🌪️"}
+    
+    for i, modeName in pairs(modes) do
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(0.31, 0, 0, 25)
+        button.Position = UDim2.new((i-1) * 0.33 + 0.03, 0, 0, 100)
+        button.BackgroundColor3 = currentMode == modeValues[i] and Color3.new(0, 0.8, 0) or Color3.new(0.15, 0.15, 0.15)
+        button.BorderColor3 = Color3.new(0, 1, 0)
+        button.BorderSizePixel = 1
+        button.Text = icons[i] .. " " .. modeName
+        button.TextColor3 = Color3.new(0, 1, 0)
+        button.TextSize = 10
+        button.Font = Enum.Font.SourceSansBold
+        button.Parent = frame
+        
+        button.MouseButton1Click:Connect(function()
+            currentMode = modeValues[i]
+            debugPrint("Mode changed to: " .. currentMode)
+            
+            -- Update button colors
+            for _, child in pairs(frame:GetChildren()) do
+                if child:IsA("TextButton") and child.Text:find(" ") and table.find(modes, child.Text:split(" ")[2]) then
+                    child.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+                end
+            end
+            button.BackgroundColor3 = Color3.new(0, 0.8, 0)
+        end)
+    end
+    
+    -- Control buttons (ON/OFF)
+    local onOffButton = Instance.new("TextButton")
+    onOffButton.Size = UDim2.new(1, -20, 0, 35)
+    onOffButton.Position = UDim2.new(0, 10, 0, 135)
+    onOffButton.BackgroundColor3 = Color3.new(0.6, 0, 0)
+    onOffButton.BorderColor3 = Color3.new(0, 1, 0)
+    onOffButton.BorderSizePixel = 2
+    onOffButton.Text = "OFF"
+    onOffButton.TextColor3 = Color3.new(1, 1, 1)
+    onOffButton.TextSize = 16
+    onOffButton.Font = Enum.Font.SourceSansBold
+    onOffButton.Parent = frame
+    
+    -- Close button functionality
+    closeButton.MouseButton1Click:Connect(function()
+        stopPartController()
+        screenGui:Destroy()
+        debugPrint("GUI closed")
+    end)
+    
+    -- Minimize functionality
+    local isMinimized = false
+    minimizeButton.MouseButton1Click:Connect(function()
+        isMinimized = not isMinimized
+        if isMinimized then
+            frame:TweenSize(UDim2.new(0, 280, 0, 35), "Out", "Quad", 0.3, true)
+            minimizeButton.Text = "+"
+            for _, child in pairs(frame:GetChildren()) do
+                if child ~= title and child ~= minimizeButton and child ~= closeButton then
+                    child.Visible = false
+                end
+            end
+        else
+            frame:TweenSize(UDim2.new(0, 280, 0, 180), "Out", "Quad", 0.3, true)
+            minimizeButton.Text = "-"
+            for _, child in pairs(frame:GetChildren()) do
+                child.Visible = true
+            end
+        end
+    end)
+    
+    -- Event connections
+    scanButton.MouseButton1Click:Connect(function()
+        scanButton.Text = "SCANNING..."
+        spawn(function()
+            scanAllParts()
+            wait(0.5)
+            scanButton.Text = "SCAN PARTS IN RADIUS"
+        end)
+    end)
+    
+    -- ON/OFF functionality
+    onOffButton.MouseButton1Click:Connect(function()
+        if isActive then
+            stopPartController()
+            onOffButton.Text = "OFF"
+            onOffButton.BackgroundColor3 = Color3.new(0.6, 0, 0)
+        else
+            startPartController()
+            onOffButton.Text = "ON"
+            onOffButton.BackgroundColor3 = Color3.new(0, 0.6, 0)
+        end
+    end)
+    
+    return screenGui
+end
+
+-- Start part controller
+function startPartController()
+    if isActive then 
+        debugPrint("Already running! Stop first.")
+        return 
+    end
+    
+    if #foundParts == 0 then
+        debugPrint("No parts found! Scanning automatically...")
+        scanAllParts()
+        if #foundParts == 0 then
+            debugPrint("Still no parts found in radius!")
+            return
+        end
+    end
+    
+    if not getLocalPlayerPosition() then
+        debugPrint("Character not found! Respawn and try again.")
+        return
+    end
+    
+    isActive = true
+    timeOffset = 0
+    processedParts = {} -- Reset processed parts
+    debugPrint("Starting " .. currentMode .. " mode with " .. #foundParts .. " parts!")
+    debugPrint("All rope constraints will be broken for metalladder parts!")
+    
+    activeConnection = RunService.Heartbeat:Connect(function()
+        if not isActive then return end
+        
+        -- Update time offset for batch processing
+        timeOffset = timeOffset + BATCH_SIZE
+        if timeOffset >= #foundParts then
+            timeOffset = 0
+            if currentMode ~= "ring" then
+                processedParts = {} -- Reset processed parts every cycle (except ring mode)
+            end
+        end
+        
+        -- Execute the selected mode
+        if currentMode == "bring" then
+            executeBring()
+            wait(UPDATE_RATE * 3)
+        elseif currentMode == "ring" then
+            executeRing()
+            wait(UPDATE_RATE)
+        elseif currentMode == "tornado" then
+            executeTornado()
+            wait(UPDATE_RATE * 3)
+        end
+    end)
+end
+
+-- Stop part controller
+function stopPartController()
+    if activeConnection then
+        activeConnection:Disconnect()
+        activeConnection = nil
+    end
+    isActive = false
+    processedParts = {}
+    
+    debugPrint("Stopping and cleaning up...")
+    
+    -- Clean up forces
+    spawn(function()
+        for i, part in pairs(foundParts) do
+            if part and part.Parent then
+                pcall(function()
+                    for _, child in pairs(part:GetChildren()) do
+                        if child:IsA("BodyPosition") or child:IsA("BodyVelocity") or 
+                           child:IsA("BodyAngularVelocity") then
+                            child:Destroy()
+                        end
+                    end
+                end)
+            end
+            
+            if i % 10 == 0 then
+                wait(0.03)
+            end
+        end
+        
+        debugPrint("Cleanup complete!")
+    end)
+end
+
+-- Console commands
+local function setupConsoleCommands()
+    getgenv().scanParts = function(radius) 
+        if radius and radius > 0 then
+            DETECTION_RADIUS = radius
+            debugPrint("Detection radius set to: " .. radius .. " studs")
+        end
+        return scanAllParts()
+    end
+    
+    getgenv().setRadius = function(radius)
+        if radius and radius > 0 and radius <= 1000 then
+            DETECTION_RADIUS = radius
+            debugPrint("Detection radius changed to: " .. radius .. " studs")
+            scanAllParts()
+        else
+            debugPrint("Invalid radius! Use value between 1-1000")
+        end
+    end
+    
+    getgenv().bringSelf = function() 
+        currentMode = "bring"
+        startPartController() 
+    end
+    
+    getgenv().ringSelf = function() 
+        currentMode = "ring"
+        startPartController() 
+    end
+    
+    getgenv().tornadoSelf = function() 
+        currentMode = "tornado"
+        startPartController() 
+    end
+    
+    getgenv().stopParts = stopPartController
+    
+    debugPrint("Console commands loaded!")
+    debugPrint("scanParts(radius), setRadius(number), bringSelf(), ringSelf(), tornadoSelf(), stopParts()")
+end
+
+-- Hotkeys
+local function setupHotkeys()
+    UserInputService.InputBegan:Connect(function(input, processed)
+        if processed then return end
+        
+        if input.KeyCode == Enum.KeyCode.F1 then
+            scanAllParts()
+        elseif input.KeyCode == Enum.KeyCode.F2 then
+            currentMode = "bring"
+            if isActive then stopPartController() else startPartController() end
+        elseif input.KeyCode == Enum.KeyCode.F3 then
+            currentMode = "ring"
+            if isActive then stopPartController() else startPartController() end
+        elseif input.KeyCode == Enum.KeyCode.F4 then
+            currentMode = "tornado"
+            if isActive then stopPartController() else startPartController() end
+        elseif input.KeyCode == Enum.KeyCode.F5 then
+            stopPartController()
+        end
+    end)
+    
+    debugPrint("Hotkeys loaded: F1=Scan, F2=Bring, F3=Ring, F4=Tornado, F5=Stop")
+end
+
+-- Main execution
+local function main()
+    debugPrint("=== WARPAH PART CONTROLLER LOADED ===")
+    debugPrint("Detection Radius: " .. DETECTION_RADIUS .. " studs")
+    debugPrint("Features: Optimized | No-Lag | Rope Breaking | FE Compatible")
+    
+    setupConsoleCommands()
+    setupHotkeys()
+    
+    if GUI_ENABLED then
+        gui = createPartControllerGUI()
+    end
+    
+    -- Auto scan on load
+    spawn(function()
+        wait(2)
+        debugPrint("Performing auto-scan...")
+        scanAllParts()
+    end)
+    
+    -- Cleanup on player leaving
+    Players.PlayerRemoving:Connect(function(player)
+        if player == localPlayer then
+            stopPartController()
+        end
+    end)
+end
+
+main()
