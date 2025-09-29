@@ -490,7 +490,7 @@ local function showFlingMenu()
             label = "💥 Fling All Player", 
             callback = function()
                 print("💥 Loading Fling All Player...")
-                loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Multi-fling-47147"))()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/FlingAll"))()
             end 
         },
         { 
