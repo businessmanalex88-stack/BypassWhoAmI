@@ -4,7 +4,7 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-sta
 -- Wait for loading screen to finish (adjust timing as needed)
 wait(3) -- You can adjust this delay based on how long the loading screen takes
 
---[[ LUA UI SCRIPT: WarpahVip GUI Cheat Menu - Enhanced Fixed Version (with WarpahMorph) ]]
+--[[ LUA UI SCRIPT: WarpahVip GUI Cheat Menu - Enhanced Fixed Version (with Fitur Rusuh) ]]
 local TweenService = game:GetService("TweenService")
 local UIS = game:GetService("UserInputService")
 local player = game.Players.LocalPlayer
@@ -187,7 +187,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, -80, 0, 40)
 title.Position = UDim2.new(0, 40, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "WarpahVip | v.0.4.0.0"
+title.Text = "WarpahVip | v.0.5.0.0"
 title.TextColor3 = Color3.fromRGB(0, 255, 0)
 title.TextSize = 16
 title.Font = Enum.Font.GothamBold
@@ -480,12 +480,12 @@ local function showInfiniteJumpMenu()
     backBtn.Visible = false
 end
 
--- Fling Player menu - FIXED: Now has two submenus
-local function showFlingMenu()
+-- NEW: Fitur Rusuh menu - Contains Walkfling, Fling All, and Partcontroller options
+local function showFiturRusuhMenu()
     clearContent()
-    currentMenu = "fling"
+    currentMenu = "rusuh"
     
-    local flingItems = {
+    local rusuhItems = {
         { 
             label = "💥 Fling All Player", 
             callback = function()
@@ -500,10 +500,24 @@ local function showFlingMenu()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Walkfling"))()
             end 
         },
+        { 
+            label = "🎮 Partcontroller 1", 
+            callback = function() 
+                print("🎮 Loading Partcontroller 1...")
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/PartcontrollerWarpah"))()
+            end 
+        },
+        { 
+            label = "🎮 Partcontroller 2", 
+            callback = function() 
+                print("🎮 Loading Partcontroller 2...")
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Partcontroller2"))()
+            end 
+        },
     }
 
-    for _, item in ipairs(flingItems) do
-        createButton(item.label, item.callback, Color3.fromRGB(120, 40, 40))
+    for _, item in ipairs(rusuhItems) do
+        createButton(item.label, item.callback, Color3.fromRGB(150, 30, 30))
     end
     backBtn.Visible = true
 end
@@ -658,11 +672,11 @@ local function showCheats()
         { label = "✈️ Fly Mode", callback = showFlyMenu },
         { label = "🏃 Speed Run", callback = showSpeedMenu },
         { label = "🦘 Infinite Jump", callback = showInfiniteJumpMenu },
+        { label = "💣 Fitur Rusuh", callback = showFiturRusuhMenu },
         { label = "✨ Radiant Body", callback = function()
             print("✨ Loading Radiant Body...")
             loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/Radiant%20body"))()
         end },
-        { label = "🎯 Fling Player", callback = showFlingMenu },
         { label = "👤 TP to Player", callback = function() 
             print("👤 Loading TP to Player...")
             loadstring(game:HttpGet("https://raw.githubusercontent.com/businessmanalex88-stack/BypassWhoAmI/refs/heads/main/TptoPlayer"))()
@@ -781,7 +795,7 @@ safeConnect(deviceBtn.MouseButton1Click, function()
 end)
 
 safeConnect(backBtn.MouseButton1Click, function()
-    if currentMenu == "fly" or currentMenu == "hidename" or currentMenu == "fling" or currentMenu == "device" or currentMenu == "speed" then
+    if currentMenu == "fly" or currentMenu == "hidename" or currentMenu == "rusuh" or currentMenu == "device" or currentMenu == "speed" then
         showCheats()
     else
         showCheats()
@@ -914,26 +928,29 @@ game:GetService("RunService").Heartbeat:Connect(function()
     end
 end)
 
-print("✅ WarpahVip GUI v0.3.3.4 Enhanced loaded successfully!")
+print("✅ WarpahVip GUI v0.5.0.0 loaded successfully!")
 print("✨ Updated Features:")
 print("  - 🏔️ Auto Puncak now directly loads AutoSummit script")
-print("  - 💥 Fling Player menu with Fling All Player & Walkfling")
+print("  - 💣 NEW: Fitur Rusuh menu added!")
+print("  - 💥 Fling All Player moved to Fitur Rusuh")
+print("  - 🚶 Walkfling moved to Fitur Rusuh")
+print("  - 🎮 NEW: Partcontroller 1 added to Fitur Rusuh")
+print("  - 🎮 NEW: Partcontroller 2 added to Fitur Rusuh")
 print("  - 🔍 Dex Explorer added to Device menu")
 print("  - ✈️ Fly No Clip & Fly Safe functional with loadstring")
 print("  - 🌐 Server Hop feature added to Device menu")
-print("  - ⚡ Boost FPS added to Device menu") -- NEW FEATURE ADDED
+print("  - ⚡ Boost FPS added to Device menu")
 print("  - 🔧 Device Spoof now loads DeviceSpoof script")
 print("  - 👮 Detect Admin now loads DetectAdmin script")
 print("  - 👤 TP to Player now loads TptoPlayer script")
 print("  - 🎭 Hide Name Visual now directly loads HideNameVisual script")
 print("  - 👁️ Spectate Player now directly loads SpectateWarpah script")
 print("  - 🦋 WarpahMorph now directly loads WarpahMorph script")
-print("  - 🎒 Warpah Carry now directly loads Bypass Carry script") -- NEW FEATURE
-print("  - 🌟 Warpah RTX now directly loads WarpahRtx script") -- NEW FEATURE
+print("  - 🎒 Warpah Carry now directly loads Bypass Carry script")
+print("  - 🌟 Warpah RTX now directly loads WarpahRtx script")
 print("  - 👻 No Clip now directly loads No Clip Bypass script")
 print("  - 🚀 Teleport now directly loads WarpahTeleport script")
 print("  - 🦘 Infinite Jump now directly loads InfiniteJump script")
 print("  - 🏃 Speed Run now has submenu with Speed Hack V1 & V2")
-print("  - ❌ Aimbot menu removed completely")
 print("  - 🛡️ Enhanced error handling and memory management")
 print("🚀 Ready to use!")
