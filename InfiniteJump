@@ -1,5 +1,5 @@
 -- Roblox Professional Infinite Jump Script with Elegant GUI
--- Compatible with Delta Executor Android
+-- Compatible with Delta Executor Android - NATURAL JUMP VERSION
 
 print("🚀 Professional Infinite Jump Loading...")
 
@@ -18,7 +18,7 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 -- Configuration
 local Config = {
-    JumpHeight = 16,
+    JumpHeight = 7.2, -- Default Roblox jump height (50 JumpPower)
     InfiniteJumpEnabled = true,
     AirSpeedMultiplier = 2.5,
     NormalWalkSpeed = 16,
@@ -229,7 +229,7 @@ local function createGui()
     SliderFill.Parent = SliderFrame
     SliderFill.BackgroundColor3 = Color3.fromRGB(0, 123, 255)
     SliderFill.BorderSizePixel = 0
-    SliderFill.Size = UDim2.new((Config.JumpHeight - 16) / (100 - 16), 0, 1, 0)
+    SliderFill.Size = UDim2.new((Config.JumpHeight - 7.2) / (50 - 7.2), 0, 1, 0)
     
     local FillCorner = Instance.new("UICorner")
     FillCorner.CornerRadius = UDim.new(0, 3)
@@ -241,7 +241,7 @@ local function createGui()
     SliderBtn.Parent = SliderFrame
     SliderBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
     SliderBtn.BorderSizePixel = 0
-    SliderBtn.Position = UDim2.new((Config.JumpHeight - 16) / (100 - 16), -8, 0.5, -8)
+    SliderBtn.Position = UDim2.new((Config.JumpHeight - 7.2) / (50 - 7.2), -8, 0.5, -8)
     SliderBtn.Size = UDim2.new(0, 16, 0, 16)
     SliderBtn.Text = ""
     
@@ -312,7 +312,7 @@ UserInputService.InputChanged:Connect(function(input)
         local relativePos = mousePos.X - sliderFrame.AbsolutePosition.X
         local percentage = math.clamp(relativePos / sliderFrame.AbsoluteSize.X, 0, 1)
         
-        Config.JumpHeight = math.floor(16 + (100 - 16) * percentage)
+        Config.JumpHeight = math.floor(7.2 + (50 - 7.2) * percentage)
         
         -- Update slider visual
         GUI.SliderFill.Size = UDim2.new(percentage, 0, 1, 0)
@@ -402,7 +402,7 @@ GUI.CloseBtn.MouseButton1Click:Connect(function()
     Config.GuiVisible = false
 end)
 
--- Original Jump Functions
+-- IMPROVED NATURAL JUMP SYSTEM
 local AirSpeed = Config.NormalWalkSpeed * Config.AirSpeedMultiplier
 
 local function airSpeedBoost()
@@ -416,44 +416,45 @@ local function airSpeedBoost()
         
         local moveVector = Humanoid.MoveDirection
         if moveVector.Magnitude > 0 then
-            local BodyVelocity = RootPart:FindFirstChild("AirSpeedBoost")
-            if not BodyVelocity then
-                BodyVelocity = Instance.new("BodyVelocity")
-                BodyVelocity.Name = "AirSpeedBoost"
-                BodyVelocity.MaxForce = Vector3.new(4000, 0, 4000)
-                BodyVelocity.Parent = RootPart
-            end
-            
+            -- Gunakan AssemblyLinearVelocity untuk kontrol yang lebih natural
+            local currentVelocity = RootPart.AssemblyLinearVelocity
             local horizontalVelocity = moveVector * AirSpeed
-            BodyVelocity.Velocity = Vector3.new(horizontalVelocity.X, RootPart.Velocity.Y, horizontalVelocity.Z)
+            
+            -- Smooth transition dengan lerp
+            local targetVelocity = Vector3.new(horizontalVelocity.X, currentVelocity.Y, horizontalVelocity.Z)
+            RootPart.AssemblyLinearVelocity = currentVelocity:Lerp(targetVelocity, 0.15)
         end
     else
         Humanoid.WalkSpeed = Config.NormalWalkSpeed
-        
-        local BodyVelocity = RootPart:FindFirstChild("AirSpeedBoost")
-        if BodyVelocity then
-            BodyVelocity:Destroy()
-        end
     end
 end
 
+-- NATURAL JUMP FUNCTION - Menggunakan metode yang lebih halus
 local function performJump()
     if not Config.InfiniteJumpEnabled or not Character or not RootPart then return end
     
-    local BodyVelocity = Instance.new("BodyVelocity")
-    BodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
-    BodyVelocity.Velocity = Vector3.new(0, Config.JumpHeight, 0)
-    BodyVelocity.Parent = RootPart
+    -- Ambil velocity saat ini
+    local currentVelocity = RootPart.AssemblyLinearVelocity
     
-    local currentVelocity = RootPart.Velocity
-    BodyVelocity.Velocity = Vector3.new(currentVelocity.X, Config.JumpHeight, currentVelocity.Z)
+    -- Hitung jump power berdasarkan formula fisika Roblox
+    -- JumpPower = sqrt(2 * gravity * jumpHeight)
+    local gravity = workspace.Gravity
+    local jumpPower = math.sqrt(2 * gravity * Config.JumpHeight)
     
-    spawn(function()
-        wait(0.3)
-        if BodyVelocity then
-            BodyVelocity:Destroy()
-        end
-    end)
+    -- Set velocity Y dengan smooth transition
+    local newVelocity = Vector3.new(
+        currentVelocity.X * 0.95, -- Pertahankan momentum horizontal sedikit berkurang
+        jumpPower, -- Natural jump velocity
+        currentVelocity.Z * 0.95
+    )
+    
+    -- Apply velocity secara langsung (lebih natural daripada BodyVelocity)
+    RootPart.AssemblyLinearVelocity = newVelocity
+    
+    -- Trigger jump state pada Humanoid untuk animasi yang natural
+    if Humanoid then
+        Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
 end
 
 local function onKeyDown(key)
@@ -462,7 +463,7 @@ local function onKeyDown(key)
         performJump()
         
         spawn(function()
-            wait(0.1)
+            wait(0.15) -- Cooldown lebih pendek untuk responsif
             Config.CanJump = true
         end)
     end
@@ -476,7 +477,7 @@ local function detectMobileJump()
         Humanoid.Jump = false
         
         spawn(function()
-            wait(0.1)
+            wait(0.15)
             Config.CanJump = true
         end)
     end
@@ -560,7 +561,7 @@ end)
 -- Success notification
 game:GetService("StarterGui"):SetCore("SendNotification", {
     Title = "✅ Infinite Jump Pro Loaded";
-    Text = "Professional GUI with full controls!";
+    Text = "Natural jump movement activated!";
     Duration = 3;
 })
 
@@ -569,3 +570,4 @@ print("🎮 GUI Controls: Toggle, Height Slider, Air Speed")
 print("🖱️ Draggable • Minimize • Close buttons")
 print("🚀 Jump Height: " .. Config.JumpHeight)
 print("💨 Air Speed: x" .. Config.AirSpeedMultiplier .. " faster")
+print("✨ NATURAL JUMP MODE - Looks like normal gameplay!")
