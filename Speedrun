@@ -14,7 +14,7 @@ screenGui.Name = "SpeedJumpGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Main Frame Container (Made Smaller)
+-- Main Frame Container
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
 mainFrame.Size = UDim2.new(0, 200, 0, 100)
@@ -176,14 +176,38 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
+-- FIX: Improved button animation with proper cleanup
+local activeAnimations = {}
+
 local function animateButton(button)
+	-- Cancel any existing animation for this button
+	if activeAnimations[button] then
+		activeAnimations[button]:Cancel()
+	end
+	
 	local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	local originalSize = button.Size
-	local scaleUp = TweenService:Create(button, tweenInfo, { Size = originalSize + UDim2.new(0, 3, 0, 3) })
-	local scaleDown = TweenService:Create(button, tweenInfo, { Size = originalSize })
+	local originalSize = UDim2.new(button.Size.X.Scale, button.Size.X.Offset, button.Size.Y.Scale, button.Size.Y.Offset)
+	
+	local scaleUp = TweenService:Create(button, tweenInfo, { 
+		Size = UDim2.new(originalSize.X.Scale, originalSize.X.Offset + 3, originalSize.Y.Scale, originalSize.Y.Offset + 3) 
+	})
+	
+	local scaleDown = TweenService:Create(button, tweenInfo, { 
+		Size = originalSize 
+	})
+	
+	activeAnimations[button] = scaleUp
+	
 	scaleUp:Play()
-	scaleUp.Completed:Wait()
-	scaleDown:Play()
+	scaleUp.Completed:Connect(function()
+		activeAnimations[button] = scaleDown
+		scaleDown:Play()
+		scaleDown.Completed:Connect(function()
+			-- Ensure button returns to exact original size
+			button.Size = originalSize
+			activeAnimations[button] = nil
+		end)
+	end)
 end
 
 local function updateSpeed()
@@ -303,6 +327,8 @@ minimizeButton.MouseButton1Click:Connect(function()
 end)
 
 -- Anti Fall Damage
+local antiFallConnection = nil
+
 local function applyAntiFallDamage(char)
 	local hum = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
@@ -310,7 +336,6 @@ local function applyAntiFallDamage(char)
 	hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
 	hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
 	hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-	hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
 
 	for _, v in pairs(char:GetDescendants()) do
 		if v:IsA("Script") or v:IsA("LocalScript") then
@@ -320,25 +345,47 @@ local function applyAntiFallDamage(char)
 		end
 	end
 
-	RunService.Heartbeat:Connect(function()
-		if hum:GetState() == Enum.HumanoidStateType.Freefall then
-			if hrp.Velocity.Y < -80 then
-				hrp.Velocity = Vector3.new(hrp.Velocity.X, -40, hrp.Velocity.Z)
+	-- Disconnect previous connection if exists
+	if antiFallConnection then
+		antiFallConnection:Disconnect()
+	end
+
+	antiFallConnection = RunService.Heartbeat:Connect(function()
+		if hum and hum.Parent and hrp and hrp.Parent then
+			if hum:GetState() == Enum.HumanoidStateType.Freefall then
+				if hrp.Velocity.Y < -80 then
+					hrp.Velocity = Vector3.new(hrp.Velocity.X, -40, hrp.Velocity.Z)
+				end
 			end
 		end
 	end)
 end
 
+-- FIX: Proper character respawn handling - turn OFF cheats when dying
 player.CharacterAdded:Connect(function(char)
-	char:WaitForChild("Humanoid")
-	updateSpeed()
-	updateJump()
+	-- Turn OFF both cheats when respawning
+	isSpeedOn = false
+	isJumpOn = false
+	
+	-- Wait for Humanoid to load
+	local hum = char:WaitForChild("Humanoid")
+	
+	-- Update UI to show OFF state
 	updateSpeedButton()
 	updateJumpButton()
+	
+	-- Apply normal values first
+	updateSpeed()
+	updateJump()
+	
+	-- Apply anti fall damage
 	applyAntiFallDamage(char)
 end)
 
+-- Handle initial character
 if player.Character and player.Character:FindFirstChild("Humanoid") then
+	isSpeedOn = false
+	isJumpOn = false
 	updateSpeed()
 	updateJump()
 	updateSpeedButton()
@@ -346,9 +393,12 @@ if player.Character and player.Character:FindFirstChild("Humanoid") then
 	applyAntiFallDamage(player.Character)
 end
 
+-- Periodic jump update (in case it gets reset)
 task.spawn(function()
 	while true do
 		task.wait(2)
-		updateJump()
+		if isJumpOn then
+			updateJump()
+		end
 	end
 end)
