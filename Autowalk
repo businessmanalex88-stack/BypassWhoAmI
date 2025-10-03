@@ -1,0 +1,1077 @@
+-- Auto Walk Script with Pastebin Integration
+-- No API Key/Token Needed!
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+local recording = false
+local playing = false
+local recordedPath = {}
+local savedPaths = {}
+local playConnection = nil
+local recordConnection = nil
+local playbackSpeed = 1
+local playbackDelay = 0.1
+
+local function createConfigData()
+    local configData = {
+        name = "WarpahAutoWalk",
+        version = "2.0",
+        paths = {},
+        speed = playbackSpeed,
+        delay = playbackDelay,
+        timestamp = os.time(),
+        pathCount = 0
+    }
+    
+    for pathName, pathData in pairs(savedPaths) do
+        local serializableData = {}
+        for i, point in ipairs(pathData) do
+            local rx, ry, rz = point.rotation:ToEulerAnglesXYZ()
+            serializableData[i] = {
+                x = point.position.X,
+                y = point.position.Y,
+                z = point.position.Z,
+                rx = rx,
+                ry = ry,
+                rz = rz,
+                time = point.timestamp
+            }
+        end
+        configData.paths[pathName] = serializableData
+        configData.pathCount = configData.pathCount + 1
+    end
+    
+    return configData
+end
+
+-- Pastebin Functions (No API Key Required!)
+local function uploadToPastebin(configData)
+    local jsonData = HttpService:JSONEncode(configData)
+    
+    local success, result = pcall(function()
+        local response = request({
+            Url = "https://paste.gg/api/v1/pastes",
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode({
+                name = "WarpahAutoWalk_" .. os.time(),
+                description = "AutoWalk Config",
+                visibility = "unlisted",
+                files = {{
+                    name = "config.json",
+                    content = {
+                        format = "text",
+                        value = jsonData
+                    }
+                }}
+            })
+        })
+        
+        if response.StatusCode == 201 then
+            local data = HttpService:JSONDecode(response.Body)
+            return "https://paste.gg/p/anonymous/" .. data.result.id
+        else
+            error("Upload failed: " .. response.StatusCode)
+        end
+    end)
+    
+    if success and result then
+        return true, result
+    else
+        return false, tostring(result)
+    end
+end
+
+local function downloadFromPastebin(pasteUrl)
+    local success, result = pcall(function()
+        -- Extract paste ID
+        local pasteId = pasteUrl:match("paste%.gg/p/[^/]+/(%w+)") or pasteUrl:match("paste%.gg/p/anonymous/(%w+)")
+        
+        if not pasteId then
+            error("Invalid paste.gg URL")
+        end
+        
+        local response = request({
+            Url = "https://paste.gg/api/v1/pastes/" .. pasteId,
+            Method = "GET"
+        })
+        
+        if response.StatusCode == 200 then
+            local data = HttpService:JSONDecode(response.Body)
+            return data.result.files[1].content.value
+        else
+            error("Download failed: " .. response.StatusCode)
+        end
+    end)
+    
+    if success and result then
+        return true, result
+    else
+        return false, tostring(result)
+    end
+end
+
+local function importConfigFromString(jsonString)
+    local success, result = pcall(function()
+        local configData = HttpService:JSONDecode(jsonString)
+        
+        if not configData or not configData.paths then
+            return false, "Invalid config format"
+        end
+        
+        playbackSpeed = configData.speed or 1
+        playbackDelay = configData.delay or 0.1
+        
+        savedPaths = {}
+        local loadedCount = 0
+        
+        for pathName, pathPoints in pairs(configData.paths) do
+            local loadedPath = {}
+            for i, point in ipairs(pathPoints) do
+                local pos = Vector3.new(point.x, point.y, point.z)
+                local rot = CFrame.fromEulerAnglesXYZ(point.rx or 0, point.ry or 0, point.rz or 0)
+                
+                loadedPath[i] = {
+                    position = pos,
+                    rotation = rot,
+                    timestamp = point.time or (i * 0.05)
+                }
+            end
+            savedPaths[pathName] = loadedPath
+            loadedCount = loadedCount + 1
+        end
+        
+        return true, "Loaded " .. loadedCount .. " paths"
+    end)
+    
+    if success then
+        return result
+    else
+        return false, "Failed to parse config"
+    end
+end
+
+-- Path file functions
+local function savePathToFile(pathName, pathData)
+    pcall(function()
+        if not writefile then return end
+        
+        if makefolder then
+            pcall(makefolder, "Delta")
+            pcall(makefolder, "Delta/AutoWalkWarpah")
+            task.wait(0.05)
+        end
+        
+        local serializableData = {}
+        for i, point in ipairs(pathData) do
+            local rx, ry, rz = point.rotation:ToEulerAnglesXYZ()
+            serializableData[i] = {
+                x = point.position.X,
+                y = point.position.Y,
+                z = point.position.Z,
+                rx = rx,
+                ry = ry,
+                rz = rz,
+                time = point.timestamp
+            }
+        end
+        
+        writefile("Delta/AutoWalkWarpah/" .. pathName .. ".json", HttpService:JSONEncode({
+            name = pathName,
+            points = serializableData,
+            count = #serializableData
+        }))
+    end)
+end
+
+local function loadPathFromFile(fileName)
+    local success, result = pcall(function()
+        if not readfile or not isfile then return nil end
+        
+        local fullPath = "Delta/AutoWalkWarpah/" .. fileName
+        if not isfile(fullPath) then return nil end
+        
+        local fileData = HttpService:JSONDecode(readfile(fullPath))
+        if not fileData or not fileData.points then return nil end
+        
+        local loadedPath = {}
+        for i, point in ipairs(fileData.points) do
+            local pos = Vector3.new(point.x, point.y, point.z)
+            local rot = CFrame.fromEulerAnglesXYZ(point.rx or 0, point.ry or 0, point.rz or 0)
+            
+            loadedPath[i] = {
+                position = pos,
+                rotation = rot,
+                timestamp = point.time or (i * 0.05)
+            }
+        end
+        
+        return {name = fileData.name, data = loadedPath}
+    end)
+    
+    return success and result or nil
+end
+
+local function getAllSavedFiles()
+    local files = {}
+    pcall(function()
+        if listfiles and isfolder and isfolder("Delta/AutoWalkWarpah") then
+            for _, path in pairs(listfiles("Delta/AutoWalkWarpah")) do
+                local name = path:match("([^/\\]+)$")
+                if name and name:find("%.json$") then
+                    table.insert(files, name)
+                end
+            end
+        end
+    end)
+    return files
+end
+
+local function deletePathFile(pathName)
+    return pcall(function()
+        if delfile and isfile then
+            local path = "Delta/AutoWalkWarpah/" .. pathName .. ".json"
+            if isfile(path) then
+                delfile(path)
+                return true
+            end
+        end
+    end)
+end
+
+-- GUI (sama seperti sebelumnya, hanya ganti button text)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AutoWalkGUI"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = game.CoreGui
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 460)
+mainFrame.Position = UDim2.new(0, 10, 0, 10)
+mainFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+local titleBar = Instance.new("Frame", mainFrame)
+titleBar.Size = UDim2.new(1, 0, 0, 35)
+titleBar.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+titleBar.BorderSizePixel = 0
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 8)
+
+local titleText = Instance.new("TextLabel", titleBar)
+titleText.Size = UDim2.new(1, -90, 1, 0)
+titleText.Position = UDim2.new(0, 8, 0, 0)
+titleText.BackgroundTransparency = 1
+titleText.Text = "WarpahVip AutoWalk"
+titleText.TextColor3 = Color3.new(1, 1, 1)
+titleText.TextSize = 14
+titleText.Font = Enum.Font.GothamBold
+titleText.TextXAlignment = Enum.TextXAlignment.Left
+
+local minimizeButton = Instance.new("TextButton", titleBar)
+minimizeButton.Size = UDim2.new(0, 25, 0, 25)
+minimizeButton.Position = UDim2.new(1, -60, 0, 5)
+minimizeButton.BackgroundColor3 = Color3.new(0.6, 0.6, 0.2)
+minimizeButton.Text = "−"
+minimizeButton.TextColor3 = Color3.new(1, 1, 1)
+minimizeButton.TextSize = 16
+minimizeButton.Font = Enum.Font.GothamBold
+minimizeButton.BorderSizePixel = 0
+Instance.new("UICorner", minimizeButton).CornerRadius = UDim.new(0, 4)
+
+local closeButton = Instance.new("TextButton", titleBar)
+closeButton.Size = UDim2.new(0, 25, 0, 25)
+closeButton.Position = UDim2.new(1, -30, 0, 5)
+closeButton.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+closeButton.Text = "×"
+closeButton.TextColor3 = Color3.new(1, 1, 1)
+closeButton.TextSize = 16
+closeButton.Font = Enum.Font.GothamBold
+closeButton.BorderSizePixel = 0
+Instance.new("UICorner", closeButton).CornerRadius = UDim.new(0, 4)
+
+local contentFrame = Instance.new("Frame", mainFrame)
+contentFrame.Size = UDim2.new(1, 0, 1, -35)
+contentFrame.Position = UDim2.new(0, 0, 0, 35)
+contentFrame.BackgroundTransparency = 1
+
+local statusFrame = Instance.new("Frame", contentFrame)
+statusFrame.Size = UDim2.new(1, -16, 0, 30)
+statusFrame.Position = UDim2.new(0, 8, 0, 7)
+statusFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
+statusFrame.BorderSizePixel = 0
+Instance.new("UICorner", statusFrame).CornerRadius = UDim.new(0, 6)
+
+local statusText = Instance.new("TextLabel", statusFrame)
+statusText.Size = UDim2.new(1, -16, 1, 0)
+statusText.Position = UDim2.new(0, 8, 0, 0)
+statusText.BackgroundTransparency = 1
+statusText.Text = "Status: Ready"
+statusText.TextColor3 = Color3.new(0.7, 0.9, 0.7)
+statusText.TextSize = 12
+statusText.Font = Enum.Font.Gotham
+statusText.TextXAlignment = Enum.TextXAlignment.Left
+
+local speedFrame = Instance.new("Frame", contentFrame)
+speedFrame.Size = UDim2.new(1, -16, 0, 30)
+speedFrame.Position = UDim2.new(0, 8, 0, 42)
+speedFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
+speedFrame.BorderSizePixel = 0
+Instance.new("UICorner", speedFrame).CornerRadius = UDim.new(0, 6)
+
+local speedLabel = Instance.new("TextLabel", speedFrame)
+speedLabel.Size = UDim2.new(0, 60, 1, 0)
+speedLabel.Position = UDim2.new(0, 8, 0, 0)
+speedLabel.BackgroundTransparency = 1
+speedLabel.Text = "Speed:"
+speedLabel.TextColor3 = Color3.new(1, 1, 1)
+speedLabel.TextSize = 12
+speedLabel.Font = Enum.Font.Gotham
+speedLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local speedBox = Instance.new("TextBox", speedFrame)
+speedBox.Size = UDim2.new(0, 60, 0, 20)
+speedBox.Position = UDim2.new(0, 65, 0, 5)
+speedBox.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+speedBox.Text = "1.0"
+speedBox.TextColor3 = Color3.new(1, 1, 1)
+speedBox.TextSize = 11
+speedBox.Font = Enum.Font.Gotham
+speedBox.TextXAlignment = Enum.TextXAlignment.Center
+speedBox.BorderSizePixel = 0
+Instance.new("UICorner", speedBox).CornerRadius = UDim.new(0, 4)
+
+local delayLabel = Instance.new("TextLabel", speedFrame)
+delayLabel.Size = UDim2.new(0, 45, 1, 0)
+delayLabel.Position = UDim2.new(0, 135, 0, 0)
+delayLabel.BackgroundTransparency = 1
+delayLabel.Text = "Delay:"
+delayLabel.TextColor3 = Color3.new(1, 1, 1)
+delayLabel.TextSize = 12
+delayLabel.Font = Enum.Font.Gotham
+delayLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local delayBox = Instance.new("TextBox", speedFrame)
+delayBox.Size = UDim2.new(0, 60, 0, 20)
+delayBox.Position = UDim2.new(0, 180, 0, 5)
+delayBox.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+delayBox.Text = "0.1"
+delayBox.TextColor3 = Color3.new(1, 1, 1)
+delayBox.TextSize = 11
+delayBox.Font = Enum.Font.Gotham
+delayBox.TextXAlignment = Enum.TextXAlignment.Center
+delayBox.BorderSizePixel = 0
+Instance.new("UICorner", delayBox).CornerRadius = UDim.new(0, 4)
+
+local function createButton(name, text, pos, color)
+    local btn = Instance.new("TextButton", contentFrame)
+    btn.Name = name
+    btn.Size = UDim2.new(0, 135, 0, 28)
+    btn.Position = pos
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamSemibold
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    return btn
+end
+
+local recButton = createButton("Rec", "Record", UDim2.new(0, 8, 0, 80), Color3.new(0.8, 0.2, 0.2))
+local stopButton = createButton("Stop", "Stop", UDim2.new(0, 155, 0, 80), Color3.new(0.6, 0.6, 0.6))
+local saveButton = createButton("Save", "Save Path", UDim2.new(0, 8, 0, 115), Color3.new(0.2, 0.6, 0.8))
+local loadButton = createButton("Load", "Load Path", UDim2.new(0, 155, 0, 115), Color3.new(0.6, 0.2, 0.8))
+local deleteButton = createButton("Delete", "Clear", UDim2.new(0, 8, 0, 150), Color3.new(0.8, 0.4, 0.2))
+local playButton = createButton("Play", "Play", UDim2.new(0, 155, 0, 150), Color3.new(0.2, 0.8, 0.3))
+local pauseButton = createButton("Pause", "Pause", UDim2.new(0, 8, 0, 185), Color3.new(0.8, 0.8, 0.2))
+local saveConfigBtn = createButton("SaveConfig", "Share Online", UDim2.new(0, 8, 0, 220), Color3.new(0.3, 0.5, 0.8))
+local loadConfigBtn = createButton("LoadConfig", "Load from URL", UDim2.new(0, 155, 0, 220), Color3.new(0.5, 0.3, 0.8))
+
+local pathListFrame = Instance.new("ScrollingFrame", contentFrame)
+pathListFrame.Size = UDim2.new(1, -16, 0, 130)
+pathListFrame.Position = UDim2.new(0, 8, 0, 255)
+pathListFrame.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
+pathListFrame.BorderSizePixel = 0
+pathListFrame.ScrollBarThickness = 6
+Instance.new("UICorner", pathListFrame).CornerRadius = UDim.new(0, 6)
+
+local pathListLayout = Instance.new("UIListLayout", pathListFrame)
+pathListLayout.Padding = UDim.new(0, 3)
+
+-- Functions
+local function updateStatus(text, color)
+    statusText.Text = "Status: " .. text
+    statusText.TextColor3 = color or Color3.new(0.7, 0.9, 0.7)
+end
+
+local function updateSpeed()
+    playbackSpeed = math.max(0.1, math.min(5, tonumber(speedBox.Text) or 1))
+    playbackDelay = math.max(0.01, math.min(1, tonumber(delayBox.Text) or 0.1))
+    speedBox.Text = tostring(playbackSpeed)
+    delayBox.Text = tostring(playbackDelay)
+end
+
+local function startRecording()
+    if not recording then
+        recording = true
+        recordedPath = {}
+        updateStatus("Recording...", Color3.new(0.9, 0.3, 0.3))
+        
+        recordConnection = RunService.Heartbeat:Connect(function()
+            if recording and rootPart then
+                table.insert(recordedPath, {
+                    position = rootPart.Position,
+                    rotation = rootPart.CFrame - rootPart.Position,
+                    timestamp = tick()
+                })
+            end
+        end)
+        
+        recButton.Text = "Recording..."
+    end
+end
+
+local function stopRecording()
+    if recording then
+        recording = false
+        if recordConnection then
+            recordConnection:Disconnect()
+            recordConnection = nil
+        end
+        updateStatus("Stopped. " .. #recordedPath .. " points", Color3.new(0.7, 0.9, 0.7))
+        recButton.Text = "Record"
+    end
+end
+
+local function updatePathList()
+    for _, child in pairs(pathListFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+    
+    local pathCount = 0
+    for pathName, pathData in pairs(savedPaths) do
+        pathCount = pathCount + 1
+        local item = Instance.new("Frame", pathListFrame)
+        item.Size = UDim2.new(1, -8, 0, 28)
+        item.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+        item.BorderSizePixel = 0
+        Instance.new("UICorner", item).CornerRadius = UDim.new(0, 4)
+        
+        local label = Instance.new("TextLabel", item)
+        label.Size = UDim2.new(0.5, 0, 1, 0)
+        label.Position = UDim2.new(0, 6, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = pathName .. " (" .. #pathData .. ")"
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.TextSize = 10
+        label.Font = Enum.Font.Gotham
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        
+        local playBtn = Instance.new("TextButton", item)
+        playBtn.Size = UDim2.new(0, 35, 0, 20)
+        playBtn.Position = UDim2.new(1, -75, 0, 4)
+        playBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.3)
+        playBtn.Text = "Play"
+        playBtn.TextSize = 9
+        playBtn.Font = Enum.Font.GothamBold
+        playBtn.BorderSizePixel = 0
+        Instance.new("UICorner", playBtn).CornerRadius = UDim.new(0, 3)
+        
+        local delBtn = Instance.new("TextButton", item)
+        delBtn.Size = UDim2.new(0, 35, 0, 20)
+        delBtn.Position = UDim2.new(1, -36, 0, 4)
+        delBtn.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+        delBtn.Text = "Del"
+        delBtn.TextSize = 9
+        delBtn.Font = Enum.Font.GothamBold
+        delBtn.BorderSizePixel = 0
+        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 3)
+        
+        playBtn.MouseButton1Click:Connect(function()
+            if not playing and pathData and #pathData > 0 then
+                playing = true
+                updateSpeed()
+                updateStatus("Playing: " .. pathName, Color3.new(0.3, 0.9, 0.3))
+                
+                local idx = 1
+                local startTime = tick()
+                local pathStart = pathData[1].timestamp
+                
+                playConnection = RunService.Heartbeat:Connect(function()
+                    if not playing or not rootPart then
+                        if playConnection then
+                            playConnection:Disconnect()
+                            playConnection = nil
+                        end
+                        playing = false
+                        updateStatus("Stopped", Color3.new(0.7, 0.9, 0.7))
+                        return
+                    end
+                    
+                    local elapsed = (tick() - startTime) * playbackSpeed
+                    
+                    while idx < #pathData and (pathData[idx + 1].timestamp - pathStart) <= elapsed do
+                        idx = idx + 1
+                    end
+                    
+                    if idx <= #pathData then
+                        local point = pathData[idx]
+                        if point and point.position and point.rotation then
+                            rootPart.CFrame = CFrame.new(point.position) * point.rotation
+                        end
+                        
+                        if idx % 50 == 0 then
+                            local pct = math.floor((idx / #pathData) * 100)
+                            updateStatus("Playing " .. pct .. "%", Color3.new(0.3, 0.9, 0.3))
+                        end
+                    else
+                        playing = false
+                        if playConnection then
+                            playConnection:Disconnect()
+                            playConnection = nil
+                        end
+                        updateStatus("Completed!", Color3.new(0.7, 0.9, 0.7))
+                    end
+                end)
+            end
+        end)
+        
+        delBtn.MouseButton1Click:Connect(function()
+            savedPaths[pathName] = nil
+            deletePathFile(pathName)
+            updateStatus("Deleted: " .. pathName, Color3.new(0.9, 0.5, 0.2))
+            updatePathList()
+        end)
+    end
+    
+    pathListFrame.CanvasSize = UDim2.new(0, 0, 0, pathListLayout.AbsoluteContentSize.Y)
+    
+    if pathCount == 0 then
+        saveConfigBtn.Text = "Share (0)"
+    else
+        saveConfigBtn.Text = "Share (" .. pathCount .. ")"
+    end
+end
+
+local function savePath()
+    if #recordedPath == 0 then
+        updateStatus("Nothing to save!", Color3.new(0.9, 0.5, 0.2))
+        return
+    end
+    
+    local inputFrame = Instance.new("Frame", screenGui)
+    inputFrame.Size = UDim2.new(0, 300, 0, 120)
+    inputFrame.Position = UDim2.new(0.5, -150, 0.5, -60)
+    inputFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+    inputFrame.BorderSizePixel = 0
+    Instance.new("UICorner", inputFrame).CornerRadius = UDim.new(0, 8)
+    
+    local inputLabel = Instance.new("TextLabel", inputFrame)
+    inputLabel.Size = UDim2.new(1, -16, 0, 30)
+    inputLabel.Position = UDim2.new(0, 8, 0, 8)
+    inputLabel.BackgroundTransparency = 1
+    inputLabel.Text = "Enter path name:"
+    inputLabel.TextColor3 = Color3.new(1, 1, 1)
+    inputLabel.TextSize = 14
+    inputLabel.Font = Enum.Font.GothamBold
+    inputLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local nameInput = Instance.new("TextBox", inputFrame)
+    nameInput.Size = UDim2.new(1, -16, 0, 25)
+    nameInput.Position = UDim2.new(0, 8, 0, 40)
+    nameInput.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+    nameInput.Text = "Path_" .. os.date("%H%M%S")
+    nameInput.TextColor3 = Color3.new(1, 1, 1)
+    nameInput.TextSize = 12
+    nameInput.Font = Enum.Font.Gotham
+    nameInput.BorderSizePixel = 0
+    Instance.new("UICorner", nameInput).CornerRadius = UDim.new(0, 4)
+    
+    local saveBtn = Instance.new("TextButton", inputFrame)
+    saveBtn.Size = UDim2.new(0, 80, 0, 25)
+    saveBtn.Position = UDim2.new(0, 8, 0, 75)
+    saveBtn.BackgroundColor3 = Color3.new(0.2, 0.6, 0.8)
+    saveBtn.Text = "Save"
+    saveBtn.TextSize = 11
+    saveBtn.Font = Enum.Font.GothamBold
+    saveBtn.BorderSizePixel = 0
+    Instance.new("UICorner", saveBtn).CornerRadius = UDim.new(0, 4)
+    
+    local cancelBtn = Instance.new("TextButton", inputFrame)
+    cancelBtn.Size = UDim2.new(0, 80, 0, 25)
+    cancelBtn.Position = UDim2.new(1, -88, 0, 75)
+    cancelBtn.BackgroundColor3 = Color3.new(0.6, 0.6, 0.6)
+    cancelBtn.Text = "Cancel"
+    cancelBtn.TextSize = 11
+    cancelBtn.Font = Enum.Font.GothamBold
+    cancelBtn.BorderSizePixel = 0
+    Instance.new("UICorner", cancelBtn).CornerRadius = UDim.new(0, 4)
+    
+    nameInput:CaptureFocus()
+    
+    saveBtn.MouseButton1Click:Connect(function()
+        local name = nameInput.Text:gsub("^%s*(.-)%s*$", "%1"):gsub("[<>:\"/\\|%?%*]", "_")
+        if name ~= "" then
+            savedPaths[name] = recordedPath
+            savePathToFile(name, recordedPath)
+            updateStatus("Path saved: " .. name, Color3.new(0.3, 0.7, 0.9))
+            updatePathList()
+            recordedPath = {}
+            inputFrame:Destroy()
+        end
+    end)
+    
+    cancelBtn.MouseButton1Click:Connect(function()
+        inputFrame:Destroy()
+    end)
+end
+
+local function loadPath()
+    local files = getAllSavedFiles()
+    if #files == 0 then
+        updateStatus("No saved paths!", Color3.new(0.9, 0.5, 0.2))
+        return
+    end
+    
+    local loadFrame = Instance.new("Frame", screenGui)
+    loadFrame.Size = UDim2.new(0, 350, 0, 300)
+    loadFrame.Position = UDim2.new(0.5, -175, 0.5, -150)
+    loadFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+    loadFrame.BorderSizePixel = 0
+    Instance.new("UICorner", loadFrame).CornerRadius = UDim.new(0, 8)
+    
+    local loadLabel = Instance.new("TextLabel", loadFrame)
+    loadLabel.Size = UDim2.new(1, -16, 0, 30)
+    loadLabel.Position = UDim2.new(0, 8, 0, 8)
+    loadLabel.BackgroundTransparency = 1
+    loadLabel.Text = "Select path:"
+    loadLabel.TextColor3 = Color3.new(1, 1, 1)
+    loadLabel.TextSize = 14
+    loadLabel.Font = Enum.Font.GothamBold
+    loadLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local loadList = Instance.new("ScrollingFrame", loadFrame)
+    loadList.Size = UDim2.new(1, -16, 0, 220)
+    loadList.Position = UDim2.new(0, 8, 0, 40)
+    loadList.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
+    loadList.BorderSizePixel = 0
+    loadList.ScrollBarThickness = 6
+    Instance.new("UICorner", loadList).CornerRadius = UDim.new(0, 6)
+    
+    local loadListLayout = Instance.new("UIListLayout", loadList)
+    loadListLayout.Padding = UDim.new(0, 3)
+    
+    for _, fileName in pairs(files) do
+        local fileItem = Instance.new("Frame", loadList)
+        fileItem.Size = UDim2.new(1, -8, 0, 30)
+        fileItem.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+        fileItem.BorderSizePixel = 0
+        Instance.new("UICorner", fileItem).CornerRadius = UDim.new(0, 4)
+        
+        local fileLabel = Instance.new("TextLabel", fileItem)
+        fileLabel.Size = UDim2.new(1, -120, 1, 0)
+        fileLabel.Position = UDim2.new(0, 8, 0, 0)
+        fileLabel.BackgroundTransparency = 1
+        fileLabel.Text = fileName:gsub("%.json$", "")
+        fileLabel.TextColor3 = Color3.new(1, 1, 1)
+        fileLabel.TextSize = 12
+        fileLabel.Font = Enum.Font.Gotham
+        fileLabel.TextXAlignment = Enum.TextXAlignment.Left
+        
+        local loadBtn = Instance.new("TextButton", fileItem)
+        loadBtn.Size = UDim2.new(0, 50, 0, 22)
+        loadBtn.Position = UDim2.new(1, -114, 0, 4)
+        loadBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.3)
+        loadBtn.Text = "Load"
+        loadBtn.TextSize = 10
+        loadBtn.Font = Enum.Font.GothamBold
+        loadBtn.BorderSizePixel = 0
+        Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 4)
+        
+        local delBtn = Instance.new("TextButton", fileItem)
+        delBtn.Size = UDim2.new(0, 55, 0, 22)
+        delBtn.Position = UDim2.new(1, -59, 0, 4)
+        delBtn.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2)
+        delBtn.Text = "Del"
+        delBtn.TextSize = 10
+        delBtn.Font = Enum.Font.GothamBold
+        delBtn.BorderSizePixel = 0
+        Instance.new("UICorner", delBtn).CornerRadius = UDim.new(0, 4)
+        
+        loadBtn.MouseButton1Click:Connect(function()
+            local data = loadPathFromFile(fileName)
+            if data and data.data then
+                savedPaths[data.name] = data.data
+                updateStatus("Loaded: " .. data.name, Color3.new(0.3, 0.7, 0.9))
+                updatePathList()
+                loadFrame:Destroy()
+            end
+        end)
+        
+        delBtn.MouseButton1Click:Connect(function()
+            local name = fileName:gsub("%.json$", "")
+            if deletePathFile(name) then
+                savedPaths[name] = nil
+                updateStatus("Deleted: " .. name, Color3.new(0.9, 0.5, 0.2))
+                fileItem:Destroy()
+                loadList.CanvasSize = UDim2.new(0, 0, 0, loadListLayout.AbsoluteContentSize.Y)
+                updatePathList()
+            end
+        end)
+    end
+    
+    loadList.CanvasSize = UDim2.new(0, 0, 0, loadListLayout.AbsoluteContentSize.Y)
+    
+    local cancelBtn = Instance.new("TextButton", loadFrame)
+    cancelBtn.Size = UDim2.new(0, 100, 0, 25)
+    cancelBtn.Position = UDim2.new(0.5, -50, 0, 267)
+    cancelBtn.BackgroundColor3 = Color3.new(0.6, 0.6, 0.6)
+    cancelBtn.Text = "Cancel"
+    cancelBtn.TextSize = 11
+    cancelBtn.Font = Enum.Font.GothamBold
+    cancelBtn.BorderSizePixel = 0
+    Instance.new("UICorner", cancelBtn).CornerRadius = UDim.new(0, 4)
+    
+    cancelBtn.MouseButton1Click:Connect(function()
+        loadFrame:Destroy()
+    end)
+end
+
+local function showShareDialog()
+    local pathCount = 0
+    for _ in pairs(savedPaths) do pathCount = pathCount + 1 end
+    
+    if pathCount == 0 then
+        updateStatus("No paths to share!", Color3.new(0.9, 0.5, 0.2))
+        return
+    end
+    
+    updateSpeed()
+    
+    local exportFrame = Instance.new("Frame", screenGui)
+    exportFrame.Size = UDim2.new(0, 400, 0, 200)
+    exportFrame.Position = UDim2.new(0.5, -200, 0.5, -100)
+    exportFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+    exportFrame.BorderSizePixel = 0
+    Instance.new("UICorner", exportFrame).CornerRadius = UDim.new(0, 8)
+    
+    local titleLabel = Instance.new("TextLabel", exportFrame)
+    titleLabel.Size = UDim2.new(1, -16, 0, 30)
+    titleLabel.Position = UDim2.new(0, 8, 0, 8)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "Share Config Online"
+    titleLabel.TextColor3 = Color3.new(1, 1, 1)
+    titleLabel.TextSize = 14
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local statusLabel = Instance.new("TextLabel", exportFrame)
+    statusLabel.Size = UDim2.new(1, -16, 0, 80)
+    statusLabel.Position = UDim2.new(0, 8, 0, 50)
+    statusLabel.BackgroundColor3 = Color3.new(0.05, 0.05, 0.05)
+    statusLabel.Text = "Uploading to paste.gg...\nPlease wait..."
+    statusLabel.TextColor3 = Color3.new(1, 1, 1)
+    statusLabel.TextSize = 12
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.BorderSizePixel = 0
+    Instance.new("UICorner", statusLabel).CornerRadius = UDim.new(0, 6)
+    
+    local urlBox = Instance.new("TextBox", exportFrame)
+    urlBox.Size = UDim2.new(1, -16, 0, 30)
+    urlBox.Position = UDim2.new(0, 8, 0, 140)
+    urlBox.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+    urlBox.PlaceholderText = "URL will appear here..."
+    urlBox.Text = ""
+    urlBox.TextColor3 = Color3.new(1, 1, 1)
+    urlBox.TextSize = 10
+    urlBox.Font = Enum.Font.Code
+    urlBox.TextXAlignment = Enum.TextXAlignment.Left
+    urlBox.BorderSizePixel = 0
+    urlBox.Visible = false
+    Instance.new("UICorner", urlBox).CornerRadius = UDim.new(0, 4)
+    
+    local closeBtn = Instance.new("TextButton", exportFrame)
+    closeBtn.Size = UDim2.new(0, 120, 0, 28)
+    closeBtn.Position = UDim2.new(0.5, -60, 0, 162)
+    closeBtn.BackgroundColor3 = Color3.new(0.2, 0.6, 0.8)
+    closeBtn.Text = "Close"
+    closeBtn.TextSize = 12
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.BorderSizePixel = 0
+    closeBtn.Visible = false
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
+    
+    task.spawn(function()
+        local configData = createConfigData()
+        local success, result = uploadToPastebin(configData)
+        
+        if success then
+            statusLabel.Text = "Success!\n\nShare this URL:"
+            statusLabel.TextColor3 = Color3.new(0.3, 0.9, 0.3)
+            urlBox.Text = result
+            urlBox.Visible = true
+            
+            if setclipboard then
+                setclipboard(result)
+                statusLabel.Text = statusLabel.Text .. "\n(Copied to clipboard!)"
+            end
+            
+            updateStatus("Uploaded!", Color3.new(0.3, 0.9, 0.3))
+        else
+            statusLabel.Text = "Upload Failed!\n\n" .. result
+            statusLabel.TextColor3 = Color3.new(0.9, 0.3, 0.3)
+            updateStatus("Upload failed", Color3.new(0.9, 0.3, 0.3))
+        end
+        
+        closeBtn.Visible = true
+    end)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        exportFrame:Destroy()
+    end)
+end
+
+local function showLoadFromURLDialog()
+    local importFrame = Instance.new("Frame", screenGui)
+    importFrame.Size = UDim2.new(0, 400, 0, 220)
+    importFrame.Position = UDim2.new(0.5, -200, 0.5, -110)
+    importFrame.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+    importFrame.BorderSizePixel = 0
+    Instance.new("UICorner", importFrame).CornerRadius = UDim.new(0, 8)
+    
+    local titleLabel = Instance.new("TextLabel", importFrame)
+    titleLabel.Size = UDim2.new(1, -16, 0, 30)
+    titleLabel.Position = UDim2.new(0, 8, 0, 8)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "Load from URL"
+    titleLabel.TextColor3 = Color3.new(1, 1, 1)
+    titleLabel.TextSize = 14
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    local infoLabel = Instance.new("TextLabel", importFrame)
+    infoLabel.Size = UDim2.new(1, -16, 0, 40)
+    infoLabel.Position = UDim2.new(0, 8, 0, 45)
+    infoLabel.BackgroundTransparency = 1
+    infoLabel.Text = "Paste paste.gg URL below:\n(e.g., paste.gg/p/anonymous/...)"
+    infoLabel.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+    infoLabel.TextSize = 10
+    infoLabel.Font = Enum.Font.Gotham
+    infoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    infoLabel.TextYAlignment = Enum.TextYAlignment.Top
+    
+    local urlInput = Instance.new("TextBox", importFrame)
+    urlInput.Size = UDim2.new(1, -16, 0, 35)
+    urlInput.Position = UDim2.new(0, 8, 0, 90)
+    urlInput.BackgroundColor3 = Color3.new(0.15, 0.15, 0.15)
+    urlInput.PlaceholderText = "https://paste.gg/p/anonymous/..."
+    urlInput.Text = ""
+    urlInput.TextColor3 = Color3.new(1, 1, 1)
+    urlInput.TextSize = 10
+    urlInput.Font = Enum.Font.Code
+    urlInput.TextXAlignment = Enum.TextXAlignment.Left
+    urlInput.BorderSizePixel = 0
+    Instance.new("UICorner", urlInput).CornerRadius = UDim.new(0, 4)
+    
+    local statusLabel = Instance.new("TextLabel", importFrame)
+    statusLabel.Size = UDim2.new(1, -16, 0, 30)
+    statusLabel.Position = UDim2.new(0, 8, 0, 135)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = ""
+    statusLabel.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+    statusLabel.TextSize = 10
+    statusLabel.Font = Enum.Font.Gotham
+    
+    local loadBtn = Instance.new("TextButton", importFrame)
+    loadBtn.Size = UDim2.new(0, 100, 0, 28)
+    loadBtn.Position = UDim2.new(0, 8, 0, 175)
+    loadBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.3)
+    loadBtn.Text = "Load"
+    loadBtn.TextSize = 12
+    loadBtn.Font = Enum.Font.GothamBold
+    loadBtn.BorderSizePixel = 0
+    Instance.new("UICorner", loadBtn).CornerRadius = UDim.new(0, 4)
+    
+    local cancelBtn = Instance.new("TextButton", importFrame)
+    cancelBtn.Size = UDim2.new(0, 100, 0, 28)
+    cancelBtn.Position = UDim2.new(1, -108, 0, 175)
+    cancelBtn.BackgroundColor3 = Color3.new(0.6, 0.6, 0.6)
+    cancelBtn.Text = "Cancel"
+    cancelBtn.TextSize = 12
+    cancelBtn.Font = Enum.Font.GothamBold
+    cancelBtn.BorderSizePixel = 0
+    Instance.new("UICorner", cancelBtn).CornerRadius = UDim.new(0, 4)
+    
+    urlInput:CaptureFocus()
+    
+    loadBtn.MouseButton1Click:Connect(function()
+        local url = urlInput.Text:gsub("^%s*(.-)%s*$", "%1")
+        
+        if url == "" then
+            statusLabel.Text = "Please enter a URL!"
+            statusLabel.TextColor3 = Color3.new(0.9, 0.5, 0.2)
+            return
+        end
+        
+        loadBtn.Text = "Loading..."
+        loadBtn.BackgroundColor3 = Color3.new(0.5, 0.5, 0.5)
+        statusLabel.Text = "Downloading..."
+        statusLabel.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+        
+        task.spawn(function()
+            local success, jsonData = downloadFromPastebin(url)
+            
+            if success then
+                local importSuccess, message = importConfigFromString(jsonData)
+                
+                if importSuccess then
+                    statusLabel.Text = "Success! " .. message
+                    statusLabel.TextColor3 = Color3.new(0.3, 0.9, 0.3)
+                    speedBox.Text = tostring(playbackSpeed)
+                    delayBox.Text = tostring(playbackDelay)
+                    updatePathList()
+                    updateStatus("Loaded!", Color3.new(0.3, 0.9, 0.3))
+                    task.wait(1.5)
+                    importFrame:Destroy()
+                else
+                    loadBtn.Text = "Load"
+                    loadBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.3)
+                    statusLabel.Text = "Failed: " .. message
+                    statusLabel.TextColor3 = Color3.new(0.9, 0.3, 0.3)
+                end
+            else
+                loadBtn.Text = "Load"
+                loadBtn.BackgroundColor3 = Color3.new(0.2, 0.8, 0.3)
+                statusLabel.Text = "Download failed"
+                statusLabel.TextColor3 = Color3.new(0.9, 0.3, 0.3)
+            end
+        end)
+    end)
+    
+    cancelBtn.MouseButton1Click:Connect(function()
+        importFrame:Destroy()
+    end)
+end
+
+local function stopPlayback()
+    if playing then
+        playing = false
+        if playConnection then
+            playConnection:Disconnect()
+            playConnection = nil
+        end
+        updateStatus("Playback stopped", Color3.new(0.7, 0.9, 0.7))
+    end
+end
+
+local isMinimized = false
+local function toggleMinimize()
+    isMinimized = not isMinimized
+    local targetSize = isMinimized and UDim2.new(0, 300, 0, 35) or UDim2.new(0, 300, 0, 460)
+    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = targetSize}):Play()
+    contentFrame.Visible = not isMinimized
+    minimizeButton.Text = isMinimized and "+" or "−"
+end
+
+minimizeButton.MouseButton1Click:Connect(toggleMinimize)
+speedBox.FocusLost:Connect(updateSpeed)
+delayBox.FocusLost:Connect(updateSpeed)
+recButton.MouseButton1Click:Connect(startRecording)
+stopButton.MouseButton1Click:Connect(function()
+    stopRecording()
+    stopPlayback()
+end)
+saveButton.MouseButton1Click:Connect(savePath)
+loadButton.MouseButton1Click:Connect(loadPath)
+deleteButton.MouseButton1Click:Connect(function()
+    recordedPath = {}
+    updateStatus("Recording cleared", Color3.new(0.9, 0.5, 0.2))
+end)
+playButton.MouseButton1Click:Connect(function()
+    if #recordedPath > 0 then
+        if not playing then
+            playing = true
+            updateSpeed()
+            updateStatus("Playing recording", Color3.new(0.3, 0.9, 0.3))
+            
+            local idx = 1
+            local startTime = tick()
+            local pathStart = recordedPath[1].timestamp
+            
+            playConnection = RunService.Heartbeat:Connect(function()
+                if not playing or not rootPart then
+                    if playConnection then
+                        playConnection:Disconnect()
+                        playConnection = nil
+                    end
+                    playing = false
+                    updateStatus("Stopped", Color3.new(0.7, 0.9, 0.7))
+                    return
+                end
+                
+                local elapsed = (tick() - startTime) * playbackSpeed
+                
+                while idx < #recordedPath and (recordedPath[idx + 1].timestamp - pathStart) <= elapsed do
+                    idx = idx + 1
+                end
+                
+                if idx <= #recordedPath then
+                    local point = recordedPath[idx]
+                    if point and point.position and point.rotation then
+                        rootPart.CFrame = CFrame.new(point.position) * point.rotation
+                    end
+                    
+                    if idx % 50 == 0 then
+                        local pct = math.floor((idx / #recordedPath) * 100)
+                        updateStatus("Playing " .. pct .. "%", Color3.new(0.3, 0.9, 0.3))
+                    end
+                else
+                    playing = false
+                    if playConnection then
+                        playConnection:Disconnect()
+                        playConnection = nil
+                    end
+                    updateStatus("Completed!", Color3.new(0.7, 0.9, 0.7))
+                end
+            end)
+        end
+    else
+        updateStatus("Record or load path first", Color3.new(0.9, 0.5, 0.2))
+    end
+end)
+pauseButton.MouseButton1Click:Connect(stopPlayback)
+saveConfigBtn.MouseButton1Click:Connect(showShareDialog)
+loadConfigBtn.MouseButton1Click:Connect(showLoadFromURLDialog)
+
+closeButton.MouseButton1Click:Connect(function()
+    if recordConnection then recordConnection:Disconnect() end
+    if playConnection then playConnection:Disconnect() end
+    screenGui:Destroy()
+end)
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    humanoid = character:WaitForChild("Humanoid")
+    rootPart = character:WaitForChild("HumanoidRootPart")
+end)
+
+print("=== WarpahVip AutoWalk v2.0 ===")
+print("Paste.gg Integration - No Token Needed!")
+updateStatus("Ready to record!", Color3.new(0.7, 0.9, 0.7))
+updatePathList()
+print("=== Ready to use ===")
