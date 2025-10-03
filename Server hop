@@ -1,0 +1,576 @@
+-- Server Hop Warpah - Delta Executor
+-- Compatible with Android - Admin Detection & Private Server Generator
+
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+
+-- UI Library
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local Title = Instance.new("TextLabel")
+local MinimizeBtn = Instance.new("TextButton")
+local CloseBtn = Instance.new("TextButton")
+local ContentFrame = Instance.new("Frame")
+local StatusLabel = Instance.new("TextLabel")
+local ScrollFrame = Instance.new("ScrollingFrame")
+local SearchBtn = Instance.new("TextButton")
+local RefreshBtn = Instance.new("TextButton")
+local PrivateServerBtn = Instance.new("TextButton")
+
+-- Properties
+ScreenGui.Parent = game.CoreGui
+ScreenGui.Name = "WarpahServerHop"
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+-- Main Frame (Smaller for Android)
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -180)
+MainFrame.Size = UDim2.new(0, 280, 0, 360)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = MainFrame
+
+-- Title Bar
+Title.Parent = MainFrame
+Title.BackgroundColor3 = Color3.fromRGB(35, 35, 50)
+Title.BorderSizePixel = 0
+Title.Size = UDim2.new(1, 0, 0, 35)
+Title.Font = Enum.Font.GothamBold
+Title.Text = "🚀 Server Hop Warpah"
+Title.TextColor3 = Color3.fromRGB(255, 100, 100)
+Title.TextSize = 14
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- Minimize Button
+MinimizeBtn.Parent = MainFrame
+MinimizeBtn.BackgroundColor3 = Color3.fromRGB(255, 180, 50)
+MinimizeBtn.BorderSizePixel = 0
+MinimizeBtn.Position = UDim2.new(1, -65, 0, 5)
+MinimizeBtn.Size = UDim2.new(0, 25, 0, 25)
+MinimizeBtn.Font = Enum.Font.GothamBold
+MinimizeBtn.Text = "_"
+MinimizeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinimizeBtn.TextSize = 16
+
+local MinCorner = Instance.new("UICorner")
+MinCorner.CornerRadius = UDim.new(0, 5)
+MinCorner.Parent = MinimizeBtn
+
+-- Close Button
+CloseBtn.Parent = MainFrame
+CloseBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+CloseBtn.Size = UDim2.new(0, 25, 0, 25)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 14
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 5)
+CloseCorner.Parent = CloseBtn
+
+-- Content Frame
+ContentFrame.Parent = MainFrame
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Position = UDim2.new(0, 0, 0, 35)
+ContentFrame.Size = UDim2.new(1, 0, 1, -35)
+
+-- Status Label
+StatusLabel.Parent = ContentFrame
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Position = UDim2.new(0, 8, 0, 5)
+StatusLabel.Size = UDim2.new(1, -16, 0, 25)
+StatusLabel.Font = Enum.Font.Gotham
+StatusLabel.Text = "📡 Ready"
+StatusLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+StatusLabel.TextSize = 10
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Private Server Button
+PrivateServerBtn.Parent = ContentFrame
+PrivateServerBtn.BackgroundColor3 = Color3.fromRGB(150, 80, 200)
+PrivateServerBtn.BorderSizePixel = 0
+PrivateServerBtn.Position = UDim2.new(0, 8, 0, 35)
+PrivateServerBtn.Size = UDim2.new(1, -16, 0, 32)
+PrivateServerBtn.Font = Enum.Font.GothamBold
+PrivateServerBtn.Text = "🔐 Generate Private Server"
+PrivateServerBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PrivateServerBtn.TextSize = 11
+
+local PrivateCorner = Instance.new("UICorner")
+PrivateCorner.CornerRadius = UDim.new(0, 6)
+PrivateCorner.Parent = PrivateServerBtn
+
+-- Scroll Frame
+ScrollFrame.Parent = ContentFrame
+ScrollFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+ScrollFrame.BorderSizePixel = 0
+ScrollFrame.Position = UDim2.new(0, 8, 0, 75)
+ScrollFrame.Size = UDim2.new(1, -16, 0, 175)
+ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+ScrollFrame.ScrollBarThickness = 4
+
+local ScrollCorner = Instance.new("UICorner")
+ScrollCorner.CornerRadius = UDim.new(0, 6)
+ScrollCorner.Parent = ScrollFrame
+
+local UIListLayout = Instance.new("UIListLayout")
+UIListLayout.Parent = ScrollFrame
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+UIListLayout.Padding = UDim.new(0, 4)
+
+-- Search Button
+SearchBtn.Parent = ContentFrame
+SearchBtn.BackgroundColor3 = Color3.fromRGB(60, 140, 255)
+SearchBtn.BorderSizePixel = 0
+SearchBtn.Position = UDim2.new(0, 8, 0, 260)
+SearchBtn.Size = UDim2.new(0.48, -6, 0, 32)
+SearchBtn.Font = Enum.Font.GothamBold
+SearchBtn.Text = "🔍 Search"
+SearchBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SearchBtn.TextSize = 11
+
+local SearchCorner = Instance.new("UICorner")
+SearchCorner.CornerRadius = UDim.new(0, 6)
+SearchCorner.Parent = SearchBtn
+
+-- Refresh Button
+RefreshBtn.Parent = ContentFrame
+RefreshBtn.BackgroundColor3 = Color3.fromRGB(100, 180, 100)
+RefreshBtn.BorderSizePixel = 0
+RefreshBtn.Position = UDim2.new(0.52, 2, 0, 260)
+RefreshBtn.Size = UDim2.new(0.48, -6, 0, 32)
+RefreshBtn.Font = Enum.Font.GothamBold
+RefreshBtn.Text = "🔄 Refresh"
+RefreshBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RefreshBtn.TextSize = 11
+
+local RefreshCorner = Instance.new("UICorner")
+RefreshCorner.CornerRadius = UDim.new(0, 6)
+RefreshCorner.Parent = RefreshBtn
+
+-- Variables
+local minimized = false
+local originalSize = MainFrame.Size
+local LocalPlayer = Players.LocalPlayer
+
+-- Admin/Mod Ranks to Detect
+local adminRanks = {
+    ["owner"] = true,
+    ["admin"] = true,
+    ["moderator"] = true,
+    ["mod"] = true,
+    ["developer"] = true,
+    ["dev"] = true,
+    ["staff"] = true,
+    ["manager"] = true,
+    ["creator"] = true,
+    ["founder"] = true
+}
+
+-- Notification
+local function Notify(title, text, duration)
+    pcall(function()
+        game.StarterGui:SetCore("SendNotification", {
+            Title = title;
+            Text = text;
+            Duration = duration or 3;
+        })
+    end)
+end
+
+-- Advanced Admin Detection
+local function CheckAdminAdvanced(userId, username)
+    -- Method 1: Check by UserId (known game admins/devs)
+    local knownAdmins = {}
+    
+    -- Get game creator info
+    local creatorType = game.CreatorType
+    local creatorId = game.CreatorId
+    
+    -- If game owned by user, check if userId matches
+    if creatorType == Enum.CreatorType.User and userId == creatorId then
+        return true
+    end
+    
+    -- Method 2: Check group rank (for group games)
+    if creatorType == Enum.CreatorType.Group then
+        local success, rank = pcall(function()
+            return game:GetService("GroupService"):GetGroupInfoAsync(creatorId)
+        end)
+        
+        if success then
+            local playerRank = 0
+            pcall(function()
+                local player = Players:GetPlayerByUserId(userId)
+                if player then
+                    playerRank = player:GetRankInGroup(creatorId)
+                end
+            end)
+            
+            -- Rank 200+ usually admin/mod
+            if playerRank >= 200 then
+                return true
+            end
+        end
+    end
+    
+    -- Method 3: Check username for admin keywords
+    local lowerUsername = string.lower(username or "")
+    for rank, _ in pairs(adminRanks) do
+        if string.find(lowerUsername, rank) then
+            return true
+        end
+    end
+    
+    -- Method 4: Check if player has admin commands access
+    local player = Players:GetPlayerByUserId(userId)
+    if player then
+        -- Check for common admin indicators
+        if player:FindFirstChild("PlayerGui") then
+            local gui = player.PlayerGui
+            if gui:FindFirstChild("AdminCommands") or 
+               gui:FindFirstChild("ModPanel") or 
+               gui:FindFirstChild("StaffPanel") then
+                return true
+            end
+        end
+        
+        -- Check leaderstats
+        if player:FindFirstChild("leaderstats") then
+            for _, stat in pairs(player.leaderstats:GetChildren()) do
+                local statValue = string.lower(tostring(stat.Value))
+                for rank, _ in pairs(adminRanks) do
+                    if string.find(statValue, rank) then
+                        return true
+                    end
+                end
+            end
+        end
+    end
+    
+    return false
+end
+
+-- Check if player is admin/mod with multiple methods
+local function CheckAdmin(playerData)
+    if not playerData then return false end
+    
+    local userId = playerData.id or playerData.userId
+    local username = playerData.name or playerData.username or ""
+    
+    return CheckAdminAdvanced(userId, username)
+end
+
+-- Clear Server List
+local function ClearServerList()
+    for _, child in pairs(ScrollFrame:GetChildren()) do
+        if child:IsA("Frame") then
+            child:Destroy()
+        end
+    end
+end
+
+-- Create Server Entry
+local function CreateServerEntry(serverData, index)
+    local hasAdmin = false
+    local adminCount = 0
+    
+    -- Enhanced admin check with player data
+    if serverData.playerTokens then
+        for _, playerToken in pairs(serverData.playerTokens) do
+            -- playerToken format: "userId|username"
+            local parts = string.split(playerToken, "|")
+            if #parts >= 2 then
+                local userId = tonumber(parts[1])
+                local username = parts[2]
+                
+                if CheckAdmin({id = userId, username = username}) then
+                    hasAdmin = true
+                    adminCount = adminCount + 1
+                end
+            end
+        end
+    end
+    
+    -- Fallback: check playerIds
+    if serverData.playerIds and not hasAdmin then
+        for i, playerId in pairs(serverData.playerIds) do
+            local username = ""
+            -- Try to get username from player list
+            if serverData.playerTokens and serverData.playerTokens[i] then
+                local parts = string.split(serverData.playerTokens[i], "|")
+                if #parts >= 2 then
+                    username = parts[2]
+                end
+            end
+            
+            if CheckAdmin({id = playerId, username = username}) then
+                hasAdmin = true
+                adminCount = adminCount + 1
+            end
+        end
+    end
+    
+    local ServerFrame = Instance.new("Frame")
+    ServerFrame.Parent = ScrollFrame
+    ServerFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    ServerFrame.BorderSizePixel = 0
+    ServerFrame.Size = UDim2.new(1, -8, 0, 75)
+    
+    local EntryCorner = Instance.new("UICorner")
+    EntryCorner.CornerRadius = UDim.new(0, 5)
+    EntryCorner.Parent = ServerFrame
+    
+    -- Server Number
+    local NumberLabel = Instance.new("TextLabel")
+    NumberLabel.Parent = ServerFrame
+    NumberLabel.BackgroundTransparency = 1
+    NumberLabel.Position = UDim2.new(0, 5, 0, 2)
+    NumberLabel.Size = UDim2.new(1, -10, 0, 15)
+    NumberLabel.Font = Enum.Font.GothamBold
+    NumberLabel.Text = "Server #" .. index
+    NumberLabel.TextColor3 = Color3.fromRGB(255, 180, 100)
+    NumberLabel.TextSize = 10
+    NumberLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Player Info
+    local InfoLabel = Instance.new("TextLabel")
+    InfoLabel.Parent = ServerFrame
+    InfoLabel.BackgroundTransparency = 1
+    InfoLabel.Position = UDim2.new(0, 5, 0, 18)
+    InfoLabel.Size = UDim2.new(1, -60, 0, 12)
+    InfoLabel.Font = Enum.Font.Gotham
+    InfoLabel.Text = string.format("👥 %d/%d | 📶 %dms%s", 
+        serverData.playing or 0, 
+        serverData.maxPlayers or 0,
+        serverData.ping or 0,
+        hasAdmin and " | ⚠️ " .. adminCount .. " Admin" or ""
+    )
+    InfoLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    InfoLabel.TextSize = 9
+    InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+    
+    -- Admin Warning
+    local WarningLabel = Instance.new("TextLabel")
+    WarningLabel.Parent = ServerFrame
+    WarningLabel.BackgroundColor3 = hasAdmin and Color3.fromRGB(180, 40, 40) or Color3.fromRGB(40, 150, 80)
+    WarningLabel.BorderSizePixel = 0
+    WarningLabel.Position = UDim2.new(0, 5, 0, 35)
+    WarningLabel.Size = UDim2.new(1, -60, 0, 32)
+    WarningLabel.Font = Enum.Font.GothamBold
+    WarningLabel.Text = hasAdmin and "⚠️ AWAS ADA ADMIN\nJANGAN MASUK!" or "✅ TIDAK ADA ADMIN\nGAS RUSUH!"
+    WarningLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    WarningLabel.TextSize = 8
+    
+    local WarnCorner = Instance.new("UICorner")
+    WarnCorner.CornerRadius = UDim.new(0, 4)
+    WarnCorner.Parent = WarningLabel
+    
+    -- Join Button
+    local JoinBtn = Instance.new("TextButton")
+    JoinBtn.Parent = ServerFrame
+    JoinBtn.BackgroundColor3 = hasAdmin and Color3.fromRGB(200, 80, 80) or Color3.fromRGB(60, 200, 120)
+    JoinBtn.BorderSizePixel = 0
+    JoinBtn.Position = UDim2.new(1, -50, 0, 5)
+    JoinBtn.Size = UDim2.new(0, 45, 0, 65)
+    JoinBtn.Font = Enum.Font.GothamBold
+    JoinBtn.Text = "JOIN"
+    JoinBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    JoinBtn.TextSize = 11
+    
+    local JoinCorner = Instance.new("UICorner")
+    JoinCorner.CornerRadius = UDim.new(0, 5)
+    JoinCorner.Parent = JoinBtn
+    
+    JoinBtn.MouseButton1Click:Connect(function()
+        JoinBtn.Text = "..."
+        local success, err = pcall(function()
+            TeleportService:TeleportToPlaceInstance(serverData.placeId, serverData.id, LocalPlayer)
+        end)
+        if not success then
+            JoinBtn.Text = "❌"
+            wait(1)
+            JoinBtn.Text = "JOIN"
+        end
+    end)
+end
+
+-- Fetch Servers
+local function FetchServers()
+    ClearServerList()
+    StatusLabel.Text = "📡 Searching..."
+    SearchBtn.Text = "⏳"
+    
+    local placeId = game.PlaceId
+    local servers = {}
+    
+    for i = 1, 3 do
+        local success, result = pcall(function()
+            return game:HttpGet(string.format(
+                "https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100",
+                placeId
+            ))
+        end)
+        
+        if success then
+            local decoded = HttpService:JSONDecode(result)
+            if decoded.data then
+                for _, server in pairs(decoded.data) do
+                    table.insert(servers, {
+                        id = server.id,
+                        placeId = placeId,
+                        playing = server.playing,
+                        maxPlayers = server.maxPlayers,
+                        ping = server.ping or 0,
+                        playerIds = server.playerIds,
+                        playerTokens = server.playerTokens
+                    })
+                end
+            end
+        end
+        wait(0.1)
+    end
+    
+    if #servers > 0 then
+        StatusLabel.Text = string.format("📡 Found %d servers", #servers)
+        for index, serverData in pairs(servers) do
+            CreateServerEntry(serverData, index)
+        end
+        ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, #servers * 79)
+        Notify("✅ Success", "Found " .. #servers .. " servers!")
+    else
+        StatusLabel.Text = "📡 No servers found"
+        Notify("⚠️ Warning", "API blocked or no servers")
+    end
+    
+    SearchBtn.Text = "🔍 Search"
+end
+
+-- Generate TRUE Private Server (Reserved Server - Only You)
+local function GeneratePrivateServer()
+    PrivateServerBtn.Text = "⏳ Creating..."
+    StatusLabel.Text = "📡 Creating private server..."
+    
+    local placeId = game.PlaceId
+    
+    -- Method 1: Try creating Reserved Server (TRUE private - only you)
+    local success1, reservedCode = pcall(function()
+        return TeleportService:ReserveServer(placeId)
+    end)
+    
+    if success1 and reservedCode then
+        Notify("🔐 Private Server", "Reserved server created! Joining...")
+        StatusLabel.Text = "📡 Joining your private server..."
+        
+        wait(0.5)
+        
+        local success2 = pcall(function()
+            TeleportService:TeleportToPrivateServer(placeId, reservedCode, {LocalPlayer})
+        end)
+        
+        if success2 then
+            Notify("✅ Success", "Joining private server...")
+        else
+            -- Fallback to method 2
+            StatusLabel.Text = "📡 Trying alternative method..."
+            GeneratePrivateServerFallback()
+        end
+    else
+        -- Fallback to method 2
+        GeneratePrivateServerFallback()
+    end
+end
+
+-- Fallback: Find empty server
+local function GeneratePrivateServerFallback()
+    StatusLabel.Text = "📡 Finding empty server..."
+    
+    local placeId = game.PlaceId
+    local foundEmpty = false
+    
+    -- Try to find a server with 0 or 1 player
+    for i = 1, 5 do
+        local success, result = pcall(function()
+            return game:HttpGet(string.format(
+                "https://games.roblox.com/v1/games/%d/servers/Public?sortOrder=Asc&limit=100",
+                placeId
+            ))
+        end)
+        
+        if success then
+            local decoded = HttpService:JSONDecode(result)
+            if decoded.data then
+                for _, server in pairs(decoded.data) do
+                    -- Find server with 0 players (empty)
+                    if server.playing == 0 then
+                        foundEmpty = true
+                        Notify("🔐 Private Server", "Found empty server! Joining...")
+                        StatusLabel.Text = "📡 Joining empty server..."
+                        
+                        wait(0.3)
+                        pcall(function()
+                            TeleportService:TeleportToPlaceInstance(placeId, server.id, LocalPlayer)
+                        end)
+                        
+                        PrivateServerBtn.Text = "🔐 Generate Private Server"
+                        return
+                    end
+                end
+            end
+        end
+        wait(0.2)
+    end
+    
+    if not foundEmpty then
+        -- If no empty server, create new instance (server hop)
+        Notify("🔐 Private Server", "Creating new server instance...")
+        StatusLabel.Text = "📡 Creating new instance..."
+        
+        pcall(function()
+            local teleportOptions = Instance.new("TeleportOptions")
+            teleportOptions.ShouldReserveServer = true
+            TeleportService:TeleportAsync(placeId, {LocalPlayer}, teleportOptions)
+        end)
+    end
+    
+    PrivateServerBtn.Text = "🔐 Generate Private Server"
+end
+
+-- Minimize Toggle
+MinimizeBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        MainFrame:TweenSize(UDim2.new(0, 280, 0, 35), "Out", "Quad", 0.3, true)
+        ContentFrame.Visible = false
+        MinimizeBtn.Text = "□"
+    else
+        MainFrame:TweenSize(originalSize, "Out", "Quad", 0.3, true)
+        ContentFrame.Visible = true
+        MinimizeBtn.Text = "_"
+    end
+end)
+
+-- Button Events
+SearchBtn.MouseButton1Click:Connect(FetchServers)
+RefreshBtn.MouseButton1Click:Connect(FetchServers)
+PrivateServerBtn.MouseButton1Click:Connect(GeneratePrivateServer)
+CloseBtn.MouseButton1Click:Connect(function()
+    ScreenGui:Destroy()
+end)
+
+-- Startup
+Notify("🚀 Warpah", "Server Hop loaded!")
+wait(0.5)
+FetchServers()
