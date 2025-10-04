@@ -1,4 +1,4 @@
--- Warpah Exploit - Magnet Push/Pull Parts
+-- Warpah Exploit - Magnet Push/Pull Parts (OPTIMIZED - NO LAG)
 -- Design Like Right Panel - Clean & Professional
 
 local Players = game:GetService("Players")
@@ -12,6 +12,13 @@ local magnetPower = 50
 local magnetRange = 100
 local magnetMode = "PULL"
 local minimized = false
+
+-- Performance Settings
+local UPDATE_INTERVAL = 0.03 -- Update lebih cepat untuk respons lebih baik
+local lastUpdate = 0
+local cachedParts = {}
+local CACHE_REFRESH_TIME = 2 -- Refresh cache setiap 2 detik
+local lastCacheRefresh = 0
 
 -- Character
 local char = player.Character or player.CharacterAdded:Wait()
@@ -217,7 +224,34 @@ infoLbl.TextSize = 14
 infoLbl.Font = Enum.Font.GothamBold
 infoLbl.TextXAlignment = Enum.TextXAlignment.Center
 
--- Functions
+-- OPTIMIZED FUNCTIONS
+local function isPartOfPlayer(obj)
+    if not obj or not obj.Parent then return true end
+    
+    local p = obj
+    for i = 1, 5 do
+        p = p.Parent
+        if not p then break end
+        if p == char then return true end
+        if Players:GetPlayerFromCharacter(p) then return true end
+    end
+    return false
+end
+
+local function refreshCache()
+    cachedParts = {}
+    
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and not obj.Anchored and obj.CanCollide then
+            if not isPartOfPlayer(obj) then
+                table.insert(cachedParts, obj)
+            end
+        end
+    end
+    
+    print("🔄 Cache Refreshed: " .. #cachedParts .. " parts found")
+end
+
 local function updateMode()
     if magnetMode == "PULL" then
         pullBtn.BackgroundColor3 = Color3.fromRGB(0, 140, 255)
@@ -243,48 +277,72 @@ local function toggle()
         toggleBtn.Text = "STOP MAGNET"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
         
+        -- Initial cache
+        refreshCache()
+        lastCacheRefresh = tick()
+        lastUpdate = tick()
+        
         connection = RunService.Heartbeat:Connect(function()
+            local currentTime = tick()
+            
+            -- Throttle updates lebih ringan
+            if currentTime - lastUpdate < UPDATE_INTERVAL then
+                return
+            end
+            lastUpdate = currentTime
+            
             if not char or not hrp then return end
             
-            local count = 0
+            -- Refresh cache periodically
+            if currentTime - lastCacheRefresh > CACHE_REFRESH_TIME then
+                refreshCache()
+                lastCacheRefresh = currentTime
+            end
             
-            for _, obj in pairs(workspace:GetDescendants()) do
-                if obj:IsA("BasePart") and not obj.Anchored then
-                    local dist = (obj.Position - hrp.Position).Magnitude
+            local count = 0
+            local hrpPos = hrp.Position
+            
+            -- Process cached parts
+            for i = #cachedParts, 1, -1 do
+                local obj = cachedParts[i]
+                
+                -- Validasi part
+                if not obj or not obj.Parent or obj.Anchored then
+                    table.remove(cachedParts, i)
+                    local bv = obj and obj:FindFirstChild("MagnetForce")
+                    if bv then bv:Destroy() end
+                else
+                    -- Cek jarak dengan pcall untuk keamanan
+                    local success, dist = pcall(function()
+                        return (obj.Position - hrpPos).Magnitude
+                    end)
                     
-                    if dist <= magnetRange and dist > 3 then
-                        local isPlayer = false
-                        local p = obj.Parent
-                        while p do
-                            if p == char then
-                                isPlayer = true
-                                break
-                            end
-                            p = p.Parent
+                    if success and dist <= magnetRange and dist > 3 then
+                        local dir
+                        if magnetMode == "PULL" then
+                            dir = (hrpPos - obj.Position).Unit
+                        else
+                            dir = (obj.Position - hrpPos).Unit
                         end
                         
-                        if not isPlayer then
-                            local dir
-                            if magnetMode == "PULL" then
-                                dir = (hrp.Position - obj.Position).Unit
-                            else
-                                dir = (obj.Position - hrp.Position).Unit
-                            end
-                            
-                            local bv = obj:FindFirstChild("MagnetForce")
-                            if not bv then
-                                bv = Instance.new("BodyVelocity")
-                                bv.Name = "MagnetForce"
-                                bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                                bv.Parent = obj
-                            end
-                            
-                            bv.Velocity = dir * magnetPower
-                            count = count + 1
-                        end
-                    else
+                        -- Cari atau buat BodyVelocity
                         local bv = obj:FindFirstChild("MagnetForce")
-                        if bv then bv:Destroy() end
+                        if not bv then
+                            bv = Instance.new("BodyVelocity")
+                            bv.Name = "MagnetForce"
+                            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bv.P = 1250
+                            bv.Parent = obj
+                        end
+                        
+                        bv.Velocity = dir * magnetPower
+                        count = count + 1
+                    else
+                        -- Hapus force jika di luar range
+                        local bv = obj:FindFirstChild("MagnetForce")
+                        if bv then 
+                            bv:Destroy() 
+                        end
                     end
                 end
             end
@@ -299,12 +357,16 @@ local function toggle()
             connection:Disconnect()
         end
         
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("BodyVelocity") and obj.Name == "MagnetForce" then
-                obj:Destroy()
+        -- Clean up all forces
+        for i = 1, #cachedParts do
+            local obj = cachedParts[i]
+            if obj and obj.Parent then
+                local bv = obj:FindFirstChild("MagnetForce")
+                if bv then bv:Destroy() end
             end
         end
         
+        cachedParts = {}
         infoLbl.Text = "Parts Affected: 0"
     end
 end
@@ -342,9 +404,11 @@ minBtn.MouseButton1Click:Connect(toggleMinimize)
 closeBtn.MouseButton1Click:Connect(function()
     if connection then connection:Disconnect() end
     
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BodyVelocity") and obj.Name == "MagnetForce" then
-            obj:Destroy()
+    for i = 1, #cachedParts do
+        local obj = cachedParts[i]
+        if obj and obj.Parent then
+            local bv = obj:FindFirstChild("MagnetForce")
+            if bv then bv:Destroy() end
         end
     end
     
@@ -375,11 +439,16 @@ updateMode()
 
 -- Respawn
 player.CharacterAdded:Connect(function(newChar)
-    wait(0.5)
+    task.wait(0.5)
     char = newChar
     hrp = char:WaitForChild("HumanoidRootPart")
+    
+    if magnetEnabled then
+        refreshCache()
+    end
 end)
 
-print("✅ Warpah Exploit Loaded!")
+print("✅ Warpah Exploit Loaded! (OPTIMIZED)")
 print("🎨 Design: Clean Panel Style")
-print("📊 Radius: 150 studs | FE Compatible | No-Lag")
+print("⚡ Performance: No Lag | Throttled Updates")
+print("📊 Radius: 100 studs | FE Compatible")
